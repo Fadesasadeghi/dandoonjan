@@ -1,0 +1,163 @@
+"""Canonical enums. Truth types and statuses are locked by the architecture."""
+from enum import Enum
+
+
+class TruthType(str, Enum):
+    PATIENT_REPORTED = "PATIENT_REPORTED"
+    CLINICIAN_REPORTED = "CLINICIAN_REPORTED"
+    DOCUMENT_EXTRACTED = "DOCUMENT_EXTRACTED"
+    MODEL_INFERRED = "MODEL_INFERRED"
+    CLINICAL_KNOWLEDGE = "CLINICAL_KNOWLEDGE"
+    SYSTEM_DERIVED = "SYSTEM_DERIVED"
+
+
+class CaseStatus(str, Enum):
+    CREATED = "CREATED"
+    INTAKE_COMPLETE = "INTAKE_COMPLETE"
+    PROCESSING = "PROCESSING"
+    NEEDS_MORE_EVIDENCE = "NEEDS_MORE_EVIDENCE"
+    READY_FOR_ASSESSMENT = "READY_FOR_ASSESSMENT"
+    ASSESSED = "ASSESSED"
+    REPORT_READY = "REPORT_READY"
+    MANUAL_REVIEW_REQUIRED = "MANUAL_REVIEW_REQUIRED"
+    FAILED = "FAILED"
+    CANCELLED = "CANCELLED"
+
+
+class ArtifactCategory(str, Enum):
+    RADIOGRAPH = "RADIOGRAPH"
+    PHOTO = "PHOTO"
+    CLINICAL_DOCUMENT = "CLINICAL_DOCUMENT"
+    FINANCIAL_DOCUMENT = "FINANCIAL_DOCUMENT"
+    TEXT_INPUT = "TEXT_INPUT"
+    UNKNOWN = "UNKNOWN"
+
+
+class ArtifactSubtype(str, Enum):
+    PERIAPICAL = "PERIAPICAL"
+    BITEWING = "BITEWING"
+    OPG = "OPG"
+    CBCT = "CBCT"
+    UNKNOWN_RADIOGRAPH = "UNKNOWN_RADIOGRAPH"
+    INTRAORAL = "INTRAORAL"
+    EXTRAORAL = "EXTRAORAL"
+    UNKNOWN_PHOTO = "UNKNOWN_PHOTO"
+    TREATMENT_PLAN = "TREATMENT_PLAN"
+    PRESCRIPTION = "PRESCRIPTION"
+    REFERRAL = "REFERRAL"
+    CLINICAL_NOTE = "CLINICAL_NOTE"
+    OTHER_CLINICAL = "OTHER_CLINICAL"
+    ESTIMATE = "ESTIMATE"
+    INVOICE = "INVOICE"
+    OTHER_FINANCIAL = "OTHER_FINANCIAL"
+    NONE = "NONE"
+    UNKNOWN = "UNKNOWN"
+
+
+class UsabilityState(str, Enum):
+    USABLE = "USABLE"
+    PARTIALLY_USABLE = "PARTIALLY_USABLE"
+    INSUFFICIENT = "INSUFFICIENT"
+    INVALID = "INVALID"
+    UNSUPPORTED = "UNSUPPORTED"
+
+
+class QualityDimension(str, Enum):
+    TECHNICAL_USABILITY = "TECHNICAL_USABILITY"
+    SEMANTIC_RELEVANCE = "SEMANTIC_RELEVANCE"
+    EVIDENTIARY_USABILITY = "EVIDENTIARY_USABILITY"
+
+
+class EvidenceRelationship(str, Enum):
+    SUPPORTS = "SUPPORTS"
+    PARTIALLY_SUPPORTS = "PARTIALLY_SUPPORTS"
+    CONTRADICTS = "CONTRADICTS"
+    RELEVANT_TO = "RELEVANT_TO"
+    REQUIRES = "REQUIRES"
+    MISSING = "MISSING"
+
+
+class GapStatus(str, Enum):
+    MISSING = "MISSING"
+    UNAVAILABLE = "UNAVAILABLE"
+    NOT_APPLICABLE = "NOT_APPLICABLE"
+    RESOLVED = "RESOLVED"
+
+
+class GapImportance(str, Enum):
+    LOW = "LOW"
+    MEDIUM = "MEDIUM"
+    HIGH = "HIGH"
+    CRITICAL = "CRITICAL"
+
+
+class AssessmentStatus(str, Enum):
+    SUPPORTED = "SUPPORTED"
+    PARTIALLY_SUPPORTED = "PARTIALLY_SUPPORTED"
+    INSUFFICIENT_EVIDENCE = "INSUFFICIENT_EVIDENCE"
+    CONTRADICTED = "CONTRADICTED"
+    NOT_ASSESSABLE = "NOT_ASSESSABLE"
+
+
+class ConfidenceLevel(str, Enum):
+    HIGH = "HIGH"
+    MEDIUM = "MEDIUM"
+    LOW = "LOW"
+    INSUFFICIENT = "INSUFFICIENT"
+
+
+class SafetyState(str, Enum):
+    NORMAL = "NORMAL"
+    CAUTION = "CAUTION"
+    URGENT_EVALUATION = "URGENT_EVALUATION"
+    MANUAL_REVIEW = "MANUAL_REVIEW"
+    BLOCKED = "BLOCKED"
+
+
+class ProcessingRunStatus(str, Enum):
+    QUEUED = "QUEUED"
+    RUNNING = "RUNNING"
+    SUCCEEDED = "SUCCEEDED"
+    FAILED = "FAILED"
+    RETRYING = "RETRYING"
+    CANCELLED = "CANCELLED"
+
+
+class KnowledgePackStatus(str, Enum):
+    DEVELOPMENT = "DEVELOPMENT"
+    REVIEW_REQUIRED = "REVIEW_REQUIRED"
+    CLINICIAN_REVIEWED = "CLINICIAN_REVIEWED"
+    RETIRED = "RETIRED"
+
+
+class ClaimType(str, Enum):
+    """Coarse propositional category. Treatment propositions are compositional:
+    (claim_type=TREATMENT, treatment_id, modality) — see D-Q3 in
+    docs/P0_1_DECISIONS_LOCK.md."""
+    TREATMENT = "TREATMENT"
+    TREATMENT_QUOTED = "TREATMENT_QUOTED"
+    OTHER = "OTHER"
+
+
+class Modality(str, Enum):
+    """Claim/finding semantics for treatments. Normalization never upgrades
+    modality (e.g. PLANNED -> REQUIRED is forbidden)."""
+    MENTIONED = "MENTIONED"
+    PLANNED = "PLANNED"
+    RECOMMENDED = "RECOMMENDED"
+    REQUIRED = "REQUIRED"
+    PERFORMED = "PERFORMED"
+    QUOTED = "QUOTED"
+
+
+class DerivationStatus(str, Enum):
+    ACTIVE = "ACTIVE"
+    SUPERSEDED = "SUPERSEDED"
+    NON_AUTHORITATIVE = "NON_AUTHORITATIVE"              # failed/partial run output
+    NON_AUTHORITATIVE_LEGACY = "NON_AUTHORITATIVE_LEGACY"  # pre-P0.1 rows
+
+
+class RunAuthority(str, Enum):
+    NON_AUTHORITATIVE = "NON_AUTHORITATIVE"
+    ACTIVE = "ACTIVE"
+    SUPERSEDED = "SUPERSEDED"

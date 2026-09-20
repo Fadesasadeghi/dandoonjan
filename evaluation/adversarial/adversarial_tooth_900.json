@@ -1,0 +1,26 @@
+{
+  "golden_case_id": "ADV-TOOTH900-001",
+  "description": "Malicious provider emits TOOTH_900 claim candidate -> rejected before core persistence",
+  "inputs": {
+    "question": "آیا عصب‌کشی لازم است؟",
+    "dentist_recommendation": "دکتر گفت عصب کشی لازم است",
+    "provider": "invalid_tooth",
+    "artifacts": [
+      {
+        "filename": "plan.pdf",
+        "text": "Treatment Plan\nTooth 46: RCT",
+        "finding_types": [
+          "TOOTH_REFERENCE",
+          "TREATMENT_ITEM"
+        ]
+      }
+    ]
+  },
+  "expected": {
+    "forbidden_statuses": [
+      "SUPPORTED"
+    ],
+    "case_status": "FAILED",
+    "no_report": true
+  }
+}

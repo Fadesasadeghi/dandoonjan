@@ -1,0 +1,20 @@
+services:
+  - type: web
+    name: dandoonjan-api
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /health
+    envVars:
+      - key: DJ_AI_PROVIDER
+        value: mock
+      - key: DJ_AI_MODEL_NAME
+        value: mock-evidence-v1
+      - key: DJ_ENVIRONMENT
+        value: production
+      - key: DJ_DATABASE_URL
+        value: sqlite:///./data/dandoonjan.db
+      - key: DJ_ARTIFACT_STORAGE_DIR
+        value: ./data/artifact_store
+      - key: DJ_REQUIRE_CLINICIAN_REVIEWED_KNOWLEDGE_PACK
+        value: "false"

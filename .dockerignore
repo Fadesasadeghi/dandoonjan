@@ -1,0 +1,12 @@
+.env
+*.db
+artifact_store/
+*_artifact_store/
+.pytest_cache/
+pytest-tmp*/
+tests/
+evaluation/
+docs/
+.git/
+.netlify/
+node_modules/

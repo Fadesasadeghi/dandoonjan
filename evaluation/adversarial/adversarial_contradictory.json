@@ -1,0 +1,40 @@
+{
+  "golden_case_id": "ADV-CONTRA-001",
+  "description": "Two documents referencing different teeth: findings stay distinct, no silent merge",
+  "inputs": {
+    "question": "کدام دندان مشکل دارد؟",
+    "dentist_recommendation": "",
+    "artifacts": [
+      {
+        "filename": "a.pdf",
+        "text": "Treatment Plan\nTooth 46: RCT",
+        "finding_types": [
+          "TOOTH_REFERENCE",
+          "TREATMENT_ITEM"
+        ]
+      },
+      {
+        "filename": "b.pdf",
+        "text": "Clinical note\nTooth 36: extraction recommended",
+        "finding_types": [
+          "TOOTH_REFERENCE",
+          "TREATMENT_ITEM"
+        ]
+      }
+    ]
+  },
+  "expected": {
+    "case_status": "REPORT_READY",
+    "safety_state": "NORMAL",
+    "treatment_item_pairs": [
+      [
+        "TOOTH_46",
+        "TREATMENT_ROOT_CANAL"
+      ],
+      [
+        "TOOTH_36",
+        "TREATMENT_EXTRACTION"
+      ]
+    ]
+  }
+}

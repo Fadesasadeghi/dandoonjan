@@ -1,0 +1,26 @@
+[build]
+  publish = "frontend"
+  # Netlify does not expand environment variables directly in redirect targets.
+  # The build guard injects the real FastAPI origin before redirects are evaluated.
+  command = "test -n \"$DANDOONJAN_BACKEND_URL\" && sed -i \"s|__DANDOONJAN_BACKEND_URL__|${DANDOONJAN_BACKEND_URL}|g\" netlify.toml || (echo 'DANDOONJAN_BACKEND_URL is required' && exit 1)"
+
+[build.environment]
+  NODE_VERSION = "20"
+
+[[redirects]]
+  from = "/api/*"
+  to = "__DANDOONJAN_BACKEND_URL__/api/:splat"
+  status = 200
+  force = true
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    X-Frame-Options = "SAMEORIGIN"
+
+[[headers]]
+  for = "/index.html"
+  [headers.values]
+    Cache-Control = "no-store"

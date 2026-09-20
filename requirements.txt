@@ -1,0 +1,11 @@
+fastapi
+uvicorn[standard]
+sqlalchemy>=2
+alembic
+pydantic>=2
+pydantic-settings
+pytest
+httpx
+python-multipart
+pymupdf
+pillow

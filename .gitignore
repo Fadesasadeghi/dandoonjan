@@ -1,0 +1,63 @@
+.env
+*.db
+artifact_store/
+presentation_artifact_store/
+test_artifact_store/
+test_api_store/
+pytest-tmp*/
+.netlify/
+.npm-cache/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# --- Collaboration / local generated files ---
+
+# Secrets
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.tmp-pytest/
+pytest-tmp*/
+.mypy_cache/
+.ruff_cache/
+.venv/
+venv/
+
+# Node / frontend
+node_modules/
+.npm-cache/
+dist/
+build/
+.next/
+
+# Netlify local/generated
+.netlify/
+.netlify-appdata/
+NETLIFY_DROP/
+
+# Local databases
+*.db
+*.sqlite
+*.sqlite3
+
+# Local project artifacts
+artifact_store/
+presentation_artifact_store/
+test_artifact_store/
+test_api_store/
+
+# Packaged backups / deploy drops
+DANDOONJAN_FULL_PROJECT_BACKUP.zip
+DANDOONJAN_NETLIFY_DROP.zip
+
+# IDE / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
