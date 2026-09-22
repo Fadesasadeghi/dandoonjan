@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import os
+from pathlib import Path
 import re
 import shutil
 import uuid
@@ -18,30 +19,43 @@ def sanitize_filename(name: str) -> str:
     return cleaned[:180]
 
 
+def _contained_path(root: Path, candidate: Path) -> Path:
+    """Resolve existing parents/symlinks even when the final file is new.
+
+    Callers must use the returned path for I/O, not the unresolved candidate.
+    The root is already resolved and stays fixed throughout the operation.
+    """
+    path = candidate.resolve()
+    if not path.is_relative_to(root):
+        raise StorageError("path traversal rejected")
+    return path
+
+
 def store_bytes(case_public_id: str, filename: str, data: bytes) -> str:
     """Write bytes under an opaque storage key. Same content may repeat (duplicate
     awareness is upstream); keys are unique so files are never overwritten."""
-    settings = get_settings()
-    root = os.path.abspath(settings.artifact_storage_dir)
     key = f"cases/{case_public_id}/{uuid.uuid4().hex}/{sanitize_filename(filename)}"
-    path = os.path.join(root, key)
-    if not os.path.abspath(path).startswith(root):
-        raise StorageError("path traversal rejected")
     try:
-        os.makedirs(os.path.dirname(path), exist_ok=True)
-        with open(path, "wb") as fh:
+        root = Path(get_settings().artifact_storage_dir).resolve()
+        path = _contained_path(root, root / key)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        # Recheck the created parents, and open the resolved target rather than
+        # following the original key through any symlink alias again.
+        path = _contained_path(root, path)
+        with path.open("xb") as fh:
             fh.write(data)
-    except OSError as exc:
+    except (OSError, RuntimeError) as exc:
         raise StorageError(str(exc)) from exc
     return key
 
 
 def read_bytes(storage_key: str) -> bytes:
-    root = os.path.abspath(get_settings().artifact_storage_dir)
-    path = os.path.join(root, storage_key)
-    if not os.path.abspath(path).startswith(root):
-        raise StorageError("path traversal rejected")
-    if not os.path.exists(path):
-        raise StorageError("artifact missing from storage")
-    with open(path, "rb") as fh:
-        return fh.read()
+    try:
+        root = Path(get_settings().artifact_storage_dir).resolve()
+        path = _contained_path(root, root / storage_key)
+        if not path.exists():
+            raise StorageError("artifact missing from storage")
+        with path.open("rb") as fh:
+            return fh.read()
+    except (OSError, RuntimeError) as exc:
+        raise StorageError(str(exc)) from exc
