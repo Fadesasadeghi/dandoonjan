@@ -80,12 +80,15 @@ def build_case_claims(db: Session, gw: ModelGateway, case: Case,
                   treatment_id: str | None = None,
                   modality: Modality | None = None) -> Claim:
         validate_claim_semantics(claim_type, subject, treatment_id, modality)
-        # Dedupe within (type, subject, treatment, modality): reported claims win
-        # because they are added first (P0-01-B).
+        # Preserve independent sources for equivalent propositions. Model-generated
+        # restatements still defer to existing claims (P0-01-B).
         for existing in claims:
             if (existing.claim_type == claim_type and existing.subject == subject
                     and existing.treatment_id == treatment_id
-                    and existing.modality == modality):
+                    and existing.modality == modality
+                    and (source_type == TruthType.MODEL_INFERRED
+                         or (existing.source_type == source_type
+                             and existing.source_reference == source_ref[:1000]))):
                 return existing
         prov = create_provenance(db, truth_type=source_type, confidence=confidence,
                                  description=source_ref[:500])
