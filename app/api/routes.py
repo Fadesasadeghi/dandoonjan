@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 
 from app.core.artifacts.ingestion import ingest_artifact
 from app.core.cases import state_machine
+from app import db as database
 from app.db import get_db
 from app.domain.enums import CaseStatus, DerivationStatus, ProcessingRunStatus, RunAuthority
 from app.domain.models import (Artifact, Assessment, AssessmentSnapshot, Case, ProcessingRun, Report, User,
@@ -91,7 +92,12 @@ def upload_artifact(case_public_id: str, file: UploadFile = File(...),
         result = ingest_artifact(db, case, file.filename or "file",
                                  file.content_type or "", data)
     except DandoonjanError as exc:
-        audit(db, "artifact_rejected", case_id=case.id, reason=exc.code)
+        audit_db = database.SessionLocal()
+        try:
+            audit(audit_db, "artifact_rejected", case_id=case.id, reason=exc.code)
+            audit_db.commit()
+        finally:
+            audit_db.close()
         _handle_domain_error(exc)
         return
     audit(db, "artifact_uploaded", case_id=case.id,

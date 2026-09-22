@@ -83,6 +83,11 @@ Prior tests-only gate: [P0 regression-test gate](docs/handoff/p0-regression-test
 - Focused migration regressions: 5 passed.
 - Combined suite: 134 passed, 2 expected failures (rejected-upload audit and packaging), 2 skipped.
 
+## Gate 10 status
+- P0 rejected-upload audit durability is complete at `5773b04079ec7ec02e949c460430c6895c38ef05` pending its publication commit.
+- Record: `docs/handoff/p0-rejected-upload-audit.md`.
+- Combined suite: 135 passed, 1 expected packaging failure, 2 skipped.
+
 ## Test status
 - `python -m pytest tests -q` → **106 passed**.
 - `manual_verification_p0.py` scenarios A–H: **ALL PASS** (A claim semantics,
