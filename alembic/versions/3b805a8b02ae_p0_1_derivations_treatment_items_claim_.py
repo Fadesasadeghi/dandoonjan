@@ -95,14 +95,17 @@ def upgrade() -> None:
         batch_op.add_column(sa.Column('derivation_run_id', sa.Integer(), nullable=True))
         batch_op.add_column(sa.Column('derivation_status', sa.Enum('ACTIVE', 'SUPERSEDED', 'NON_AUTHORITATIVE', 'NON_AUTHORITATIVE_LEGACY', name='derivationstatus'), nullable=False))
         batch_op.create_index(batch_op.f('ix_findings_derivation_run_id'), ['derivation_run_id'], unique=False)
-        batch_op.create_foreign_key('fk_p01_', 'treatment_items', ['treatment_item_id'], ['id'])
         batch_op.create_foreign_key('fk_p01_', 'processing_runs', ['derivation_run_id'], ['id'])
 
     with op.batch_alter_table('processing_runs', schema=None) as batch_op:
-        batch_op.add_column(sa.Column('authority', sa.Enum('NON_AUTHORITATIVE', 'ACTIVE', 'SUPERSEDED', name='runauthority'), nullable=False))
+        batch_op.add_column(sa.Column('authority', sa.Enum('NON_AUTHORITATIVE', 'ACTIVE', 'SUPERSEDED', name='runauthority'), nullable=True))
         batch_op.add_column(sa.Column('derivation_run_id', sa.Integer(), nullable=True))
         batch_op.create_index(batch_op.f('ix_processing_runs_derivation_run_id'), ['derivation_run_id'], unique=False)
         batch_op.create_foreign_key('fk_p01_', 'processing_runs', ['derivation_run_id'], ['id'])
+
+    op.execute("UPDATE processing_runs SET authority = 'NON_AUTHORITATIVE' WHERE authority IS NULL")
+    with op.batch_alter_table('processing_runs', schema=None) as batch_op:
+        batch_op.alter_column('authority', existing_type=sa.Enum('NON_AUTHORITATIVE', 'ACTIVE', 'SUPERSEDED', name='runauthority'), nullable=False)
 
     with op.batch_alter_table('provenance_records', schema=None) as batch_op:
         batch_op.add_column(sa.Column('bounding_box', sa.Text(), nullable=True))

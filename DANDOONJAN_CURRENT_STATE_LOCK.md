@@ -77,6 +77,12 @@ Prior tests-only gate: [P0 regression-test gate](docs/handoff/p0-regression-test
   TREATMENT_SCALING (+ ZWNJ variant). **D7** dead assertions removed.
   **D8** reuse results expose the same public contract incl. `report_kind`.
 
+## Gate 9 status
+- P0 Migrations / Integrity is complete at `d7a28b56a2299ca20d479dc9adfbc9f90472dfcb` pending its publication commit.
+- Record: `docs/handoff/p0-migrations-integrity.md`.
+- Focused migration regressions: 5 passed.
+- Combined suite: 134 passed, 2 expected failures (rejected-upload audit and packaging), 2 skipped.
+
 ## Test status
 - `python -m pytest tests -q` → **106 passed**.
 - `manual_verification_p0.py` scenarios A–H: **ALL PASS** (A claim semantics,
