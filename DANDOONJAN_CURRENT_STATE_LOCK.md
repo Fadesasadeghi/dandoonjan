@@ -5,6 +5,9 @@ Current continuation: [approved Gate 1 handoff](docs/handoff/gate-1/README.md)
 conflicting completion/readiness claims below. The earlier record is preserved as
 historical context; it is not evidence that Gate 1 defects are fixed.
 
+Tests-only continuation: [P0 regression-test gate](docs/handoff/p0-regression-tests.md)
+(2026-09-22). Expected failures are encoded; no production fixes are implemented.
+
 - **Implementation date**: 2026-09-06
 - **P0 Architecture Reconciliation completed**: 2026-09-06 (all 12 issues fixed;
   see `docs/P0_ARCHITECTURE_RECONCILIATION.md`)
