@@ -5,9 +5,12 @@ Current continuation: [approved Gate 1 handoff](docs/handoff/gate-1/README.md)
 conflicting completion/readiness claims below. The earlier record is preserved as
 historical context; it is not evidence that Gate 1 defects are fixed.
 
-Current implementation: [P0 processing identity gate](docs/handoff/p0-processing-identity.md)
-(2026-09-22). All four processing-identity regressions pass; 10 other P0 failures remain.
-Existing processing records are preserved; terminal reuse parity remains unresolved.
+Current implementation: [P0 terminal reuse parity gate](docs/handoff/p0-terminal-reuse-parity.md)
+(2026-09-22). All three terminal-reuse regressions pass; 7 other P0 failures remain.
+Existing processing records are preserved; upload audit, migrations and packaging remain.
+
+Prior implementation: [P0 processing identity gate](docs/handoff/p0-processing-identity.md)
+(2026-09-22). Preserved without changes; all four processing-identity regressions still pass.
 
 Prior implementation: [P0 claim provenance gate](docs/handoff/p0-claim-provenance.md)
 (2026-09-22). Preserved without changes; source-distinct provenance still passes.

@@ -128,6 +128,9 @@ def _reused_result(db: Session, case: Case, prior: ProcessingRun) -> dict:
     snap = (db.query(AssessmentSnapshot)
             .filter(AssessmentSnapshot.derivation_run_id == prior.id)
             .order_by(AssessmentSnapshot.id.desc()).first())
+    safety = (db.query(SafetyResult)
+              .filter(SafetyResult.derivation_run_id == prior.id)
+              .order_by(SafetyResult.id.desc()).first())
     rep = (db.query(Report)
            .filter(Report.derivation_run_id == prior.id)
            .order_by(Report.id.desc()).first())
@@ -143,7 +146,8 @@ def _reused_result(db: Session, case: Case, prior: ProcessingRun) -> dict:
         "snapshot": snap.public_id if snap else None,
         "report": rep.public_id if rep else None,
         "report_kind": rep.content.get("report_kind") if rep else None,
-        "safety_state": snap.safety_state.value if snap else None,
+        "safety_state": (snap.safety_state.value if snap else
+                         safety.state.value if safety else None),
         "status": case.status.value,
         "claims": active[Claim],
         "evidence_links": active[EvidenceLink],
@@ -302,6 +306,8 @@ def run_case_pipeline(db: Session, case: Case) -> dict:
                                "limitations": limitations,
                                "needs_more_evidence": needs_more})
                 return result
+            safety = _record_safety_result(db, case, intake_state,
+                                           intake_reasons, derivation_run_id)
             _advance(case, CaseStatus.NEEDS_MORE_EVIDENCE)
             _activate_derivation(db, case, derivation)
             db.commit()
