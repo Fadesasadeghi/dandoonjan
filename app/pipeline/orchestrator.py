@@ -170,7 +170,12 @@ def _activate_derivation(db: Session, case: Case, derivation: ProcessingRun) -> 
                 table.derivation_status == DerivationStatus.ACTIVE,
                 table.derivation_run_id != derivation.id)
         else:
+            # Artifact/claim-scoped rows inherit case ownership from their
+            # derivation run; never supersede another case's derived evidence.
             q = db.query(table).filter(
+                table.derivation_run_id.in_(
+                    db.query(ProcessingRun.id).filter(
+                        ProcessingRun.case_id == case.id)),
                 table.derivation_status == DerivationStatus.ACTIVE,
                 table.derivation_run_id != derivation.id)
         q.update({"derivation_status": DerivationStatus.SUPERSEDED},

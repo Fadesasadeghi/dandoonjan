@@ -5,8 +5,11 @@ Current continuation: [approved Gate 1 handoff](docs/handoff/gate-1/README.md)
 conflicting completion/readiness claims below. The earlier record is preserved as
 historical context; it is not evidence that Gate 1 defects are fixed.
 
-Current implementation: [P0 storage containment gate](docs/handoff/p0-storage-containment.md)
-(2026-09-22). Executable storage regressions pass; 20 other P0 failures remain.
+Current implementation: [P0 case isolation gate](docs/handoff/p0-case-isolation.md)
+(2026-09-22). Both case-isolation regressions pass; 18 other P0 failures remain.
+
+Prior implementation: [P0 storage containment gate](docs/handoff/p0-storage-containment.md)
+(2026-09-22). Preserved without changes; executable storage regressions still pass.
 
 Prior tests-only gate: [P0 regression-test gate](docs/handoff/p0-regression-tests.md)
 (2026-09-22). Records the regression baseline before the storage fix.
