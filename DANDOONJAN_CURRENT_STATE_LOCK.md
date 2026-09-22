@@ -5,9 +5,12 @@ Current continuation: [approved Gate 1 handoff](docs/handoff/gate-1/README.md)
 conflicting completion/readiness claims below. The earlier record is preserved as
 historical context; it is not evidence that Gate 1 defects are fixed.
 
-Current implementation: [P0 historical/current isolation gate](docs/handoff/p0-historical-current-isolation.md)
-(2026-09-22). Both historical/current regressions pass; 16 other P0 failures remain.
-Historical rows are preserved; stale-current-report semantics remain unresolved.
+Current implementation: [P0 current report semantics gate](docs/handoff/p0-current-report-semantics.md)
+(2026-09-22). The stale-current-report regression passes; 15 other P0 failures remain.
+Historical reports are preserved; reportless terminal reuse parity remains unresolved.
+
+Prior implementation: [P0 historical/current isolation gate](docs/handoff/p0-historical-current-isolation.md)
+(2026-09-22). Preserved without changes; both historical/current regressions still pass.
 
 Prior implementation: [P0 case isolation gate](docs/handoff/p0-case-isolation.md)
 (2026-09-22). Preserved without changes; both case-isolation regressions still pass.

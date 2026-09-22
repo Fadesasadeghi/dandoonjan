@@ -168,7 +168,17 @@ def case_assessment(case_public_id: str, db: Session = Depends(get_db)):
 @router.get("/cases/{case_public_id}/report")
 def case_report(case_public_id: str, db: Session = Depends(get_db)):
     case = _case_or_404(db, case_public_id)
-    report = (db.query(Report).filter(Report.case_id == case.id)
+    report = (db.query(Report)
+              .join(ProcessingRun, Report.derivation_run_id == ProcessingRun.id)
+              .join(AssessmentSnapshot, Report.snapshot_id == AssessmentSnapshot.id)
+              .filter(Report.case_id == case.id,
+                      ProcessingRun.case_id == case.id,
+                      ProcessingRun.module == "pipeline",
+                      ProcessingRun.status == ProcessingRunStatus.SUCCEEDED,
+                      ProcessingRun.authority == RunAuthority.ACTIVE,
+                      AssessmentSnapshot.case_id == case.id,
+                      AssessmentSnapshot.derivation_run_id == ProcessingRun.id,
+                      AssessmentSnapshot.case_version == case.version)
               .order_by(Report.id.desc()).first())
     if report is None:
         raise HTTPException(status_code=404, detail="REPORT_NOT_READY")
