@@ -22,6 +22,8 @@ import json
 from sqlalchemy.orm import Session
 
 from app.ai.gateway import ModelGateway
+from app.config import get_settings
+from app.core.knowledge.pack import get_active_pack
 from app.core.artifacts.ingestion import extract_text_if_supported
 from app.core.cases import state_machine
 from app.domain.enums import (CaseStatus, DerivationStatus, ProcessingRunStatus,
@@ -84,11 +86,16 @@ def _advance(case: Case, target: CaseStatus) -> None:
         state_machine.transition(case, step)
 
 
-def effective_input_hash(case: Case) -> str:
-    """Hash of everything that materially determines pipeline output."""
+def effective_input_hash(db: Session, case: Case) -> str:
+    """Stable case inputs and versioned processing configuration for reuse."""
+    settings = get_settings()
+    pack = get_active_pack(db)
     material = {
         "schema": PIPELINE_SCHEMA_VERSION,
         "modules": MODULE_VERSIONS,
+        "provider": settings.ai_provider,
+        "model": settings.ai_model_name,
+        "knowledge_pack": [pack.knowledge_pack_id, pack.version],
         "question": case.question_text,
         "context": case.context_text,
         "dentist_recommendation": case.dentist_recommendation_text,
@@ -204,7 +211,7 @@ def run_case_pipeline(db: Session, case: Case) -> dict:
     db.commit()
 
     # ---- Reuse resolution BEFORE creating a derivation run (Correction 2)
-    input_hash = effective_input_hash(case)
+    input_hash = effective_input_hash(db, case)
     prior = _reusable_derivation(db, case, input_hash)
     if prior is not None:
         return _reused_result(db, case, prior)
