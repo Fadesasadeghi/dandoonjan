@@ -1,6 +1,9 @@
 # DANDOONJAN_CURRENT_STATE_LOCK
 
-Canonical continuation document. Keep updated before finishing any session.
+Current continuation: [approved Gate 1 handoff](docs/handoff/gate-1/README.md)
+(recorded 2026-09-22). Its audit, roadmap, and Product Owner decisions supersede
+conflicting completion/readiness claims below. The earlier record is preserved as
+historical context; it is not evidence that Gate 1 defects are fixed.
 
 - **Implementation date**: 2026-09-06
 - **P0 Architecture Reconciliation completed**: 2026-09-06 (all 12 issues fixed;
