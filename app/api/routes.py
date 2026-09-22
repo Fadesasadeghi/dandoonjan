@@ -8,8 +8,8 @@ from sqlalchemy.orm import Session
 from app.core.artifacts.ingestion import ingest_artifact
 from app.core.cases import state_machine
 from app.db import get_db
-from app.domain.enums import CaseStatus
-from app.domain.models import (Artifact, Assessment, AssessmentSnapshot, Case, Report, User,
+from app.domain.enums import CaseStatus, DerivationStatus, ProcessingRunStatus, RunAuthority
+from app.domain.models import (Artifact, Assessment, AssessmentSnapshot, Case, ProcessingRun, Report, User,
                                public_id)
 from app.errors import DandoonjanError, InvalidTransitionError
 from app.governance.record import audit
@@ -148,7 +148,14 @@ def case_status(case_public_id: str, db: Session = Depends(get_db)):
 @router.get("/cases/{case_public_id}/assessment")
 def case_assessment(case_public_id: str, db: Session = Depends(get_db)):
     case = _case_or_404(db, case_public_id)
-    assessments = db.query(Assessment).filter(Assessment.case_id == case.id).all()
+    assessments = (db.query(Assessment)
+                   .join(ProcessingRun, Assessment.derivation_run_id == ProcessingRun.id)
+                   .filter(Assessment.case_id == case.id,
+                           Assessment.derivation_status == DerivationStatus.ACTIVE,
+                           ProcessingRun.case_id == case.id,
+                           ProcessingRun.module == "pipeline",
+                           ProcessingRun.status == ProcessingRunStatus.SUCCEEDED,
+                           ProcessingRun.authority == RunAuthority.ACTIVE).all())
     return {"case_id": case.public_id, "status": case.status.value,
             "assessments": [{"claim_type": a.claim.claim_type.value,
                              "treatment": a.claim.treatment_id,

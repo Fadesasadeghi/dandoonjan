@@ -129,6 +129,8 @@ def run_safety_gate(db: Session, case: Case,
     # Fail closed: critical missing evidence
     critical_missing = (db.query(EvidenceGap)
                         .filter(EvidenceGap.case_id == case.id,
+                                EvidenceGap.derivation_run_id == derivation_run_id,
+                                EvidenceGap.derivation_status == DerivationStatus.ACTIVE,
                                 EvidenceGap.status == GapStatus.MISSING,
                                 EvidenceGap.importance == GapImportance.CRITICAL)
                         .count())
@@ -139,6 +141,8 @@ def run_safety_gate(db: Session, case: Case,
     # Fail closed: low-confidence extraction feeding material claims
     low_conf = (db.query(Claim)
                 .filter(Claim.case_id == case.id,
+                        Claim.derivation_run_id == derivation_run_id,
+                        Claim.derivation_status == DerivationStatus.ACTIVE,
                         Claim.claim_type != ClaimType.OTHER,
                         Claim.source_type.in_([TruthType.MODEL_INFERRED,
                                                TruthType.DOCUMENT_EXTRACTED]),
