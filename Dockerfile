@@ -7,6 +7,7 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY app ./app
+COPY frontend ./frontend
 COPY alembic ./alembic
 COPY alembic.ini README.md .env.example ./
 RUN mkdir -p /app/data/artifact_store

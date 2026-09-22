@@ -88,6 +88,11 @@ Prior tests-only gate: [P0 regression-test gate](docs/handoff/p0-regression-test
 - Record: `docs/handoff/p0-rejected-upload-audit.md`.
 - Combined suite: 135 passed, 1 expected packaging failure, 2 skipped.
 
+## Gate 11 status
+- P0 Docker/frontend packaging is complete at `894b1447bb469e79564a12885b31503d6d9e93c6` pending its publication commit.
+- Record: `docs/handoff/p0-docker-deployment-packaging.md`.
+- Combined suite: 136 passed, 0 failed, 2 skipped; all currently locked P0 regressions are resolved.
+
 ## Test status
 - `python -m pytest tests -q` → **106 passed**.
 - `manual_verification_p0.py` scenarios A–H: **ALL PASS** (A claim semantics,
