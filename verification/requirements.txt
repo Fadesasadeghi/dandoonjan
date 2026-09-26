@@ -1,0 +1,2 @@
+# Optional real-browser verification tooling; not an application dependency.
+playwright==1.63.0

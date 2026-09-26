@@ -1,5 +1,13 @@
 # DANDOONJAN_CURRENT_STATE_LOCK
 
+Current review checkpoint: [P1 core handoff](docs/handoff/p1-core/README.md)
+(2026-09-26), on `agent/sadeghi-p1-core` from approved base `b360369`.
+Final suite: **181 passed, 2 skipped, 4 warnings** including real-browser checks.
+The approved production fail-closed prerequisite is a separate commit
+`b835d5a4b8e970288bfc6f735578b49896875c11`. Docker runtime remains NOT VERIFIED.
+Await Product Owner review; no further P1 expansion is authorized. Older records
+below are preserved as history, with their original verification boundaries.
+
 Current continuation: [approved Gate 1 handoff](docs/handoff/gate-1/README.md)
 (recorded 2026-09-22). Its audit, roadmap, and Product Owner decisions supersede
 conflicting completion/readiness claims below. The earlier record is preserved as
