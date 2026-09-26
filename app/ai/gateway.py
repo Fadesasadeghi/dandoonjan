@@ -1,15 +1,8 @@
 """Model Gateway. The only path from domain modules to an AI provider.
 
-Responsibilities: provider selection, prompt version, schema validation, model-run
-recording, error mapping, VISIBLE provider fallback (V0.2 Q5):
-- If the real provider (openrouter) is unavailable OR returns schema-invalid output,
-  the gateway falls back to MockProvider for that call, records the fallback reason
-  in ModelRun metadata, and marks the model run provider as "mock" — the UI badge
-  and snapshot therefore show DEMO mode. Never silently.
-- Fallback applies ONLY at the AI worker boundary (classification/extraction/
-  claim candidates). Assessment, gaps, safety, and case state never get "mocked".
-- Fallback does NOT apply when the active provider is already mock or a
-  test-injected provider: their failures propagate (schema firewall semantics).
+Production fails closed on missing provider configuration, provider failures, and
+invalid responses. Development/test retain the existing recorded Mock fallback.
+Fallback never applies to assessment, gaps, safety policy, or case state.
 """
 from __future__ import annotations
 
@@ -37,12 +30,16 @@ class ModelGateway:
         self.db = db
         settings = get_settings()
         self.fallback = MockProvider()
+        if settings.environment == "production" and settings.ai_provider not in REAL_PROVIDER_NAMES:
+            raise ProviderUnavailableError("production requires a configured real provider")
         if settings.ai_provider == "openrouter":
             try:
                 self.provider = OpenRouterProvider(
                     api_key=settings.openrouter_api_key,
                     model=settings.ai_model_name)
             except ProviderUnavailableError:
+                if settings.environment == "production":
+                    raise
                 # no key configured -> run fully in mock (DEMO) mode
                 self.provider = self.fallback
         else:
@@ -75,8 +72,8 @@ class ModelGateway:
             raw = self._call_raw(provider, prompt, rendered)
             validated = self._validate_schema(schema, raw)
         except (ProviderUnavailableError, ValidationError) as exc:
-            if provider.name not in REAL_PROVIDER_NAMES:
-                # mock/test provider failed: propagate (schema firewall semantics)
+            if settings.environment == "production" or provider.name not in REAL_PROVIDER_NAMES:
+                # Fail closed in production; preserve mock/test schema-firewall behavior.
                 run.status = "FAILED"
                 run.error = f"{type(exc).__name__}: {str(exc)[:500]}"
                 raise ExtractionValidationError(
@@ -96,7 +93,7 @@ class ModelGateway:
         return validated, run
 
     def _call_raw(self, provider, prompt: Prompt, rendered: str) -> dict[str, Any]:
-        """Provider call + raw-shape guard. ProviderUnavailableError => fallback."""
+        """Provider call + raw-shape guard; environment policy is enforced by run."""
         try:
             raw = provider.run(prompt, rendered, {})
         except ProviderUnavailableError:
