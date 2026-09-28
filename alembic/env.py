@@ -14,13 +14,15 @@ target_metadata = Base.metadata
 
 config = context.config
 db_url = get_settings().database_url
-config.set_main_option("sqlalchemy.url", db_url)
+config.set_main_option("sqlalchemy.url", db_url.replace("%", "%%"))
 
 
 def run_migrations_online():
+    connect_args = {"connect_timeout": 10} if db_url.startswith("postgresql") else {}
     connectable = engine_from_config(
         config.get_section(config.config_ini_section),
-        prefix="sqlalchemy.", poolclass=pool.NullPool)
+        prefix="sqlalchemy.", poolclass=pool.NullPool, hide_parameters=True,
+        connect_args=connect_args)
     with connectable.begin() as connection:
         inspector = inspect(connection)
         tables = set(inspector.get_table_names())

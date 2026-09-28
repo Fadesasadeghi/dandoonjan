@@ -19,11 +19,13 @@ class Base(DeclarativeBase):
 
 def make_engine(url: str | None = None):
     url = url or get_settings().database_url
-    kwargs = {}
+    kwargs = {"hide_parameters": True}
     if url.startswith("sqlite"):
         kwargs["connect_args"] = {"check_same_thread": False}
     else:
         kwargs["pool_pre_ping"] = True
+        if url.startswith("postgresql"):
+            kwargs["connect_args"] = {"connect_timeout": 10}
     engine = create_engine(url, **kwargs)
     if url.startswith("sqlite"):
         @event.listens_for(engine, "connect")
@@ -39,6 +41,7 @@ SessionLocal = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False
 
 
 def get_db() -> Iterator[Session]:
+    # API dependencies use function scope: commit finishes before success headers.
     db = SessionLocal()
     try:
         yield db

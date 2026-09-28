@@ -8,6 +8,7 @@ V0 ships a DEVELOPMENT pack explicitly marked NOT CLINICALLY VALIDATED.
 from __future__ import annotations
 
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import IntegrityError
 
 from app.config import get_settings
 from app.domain.enums import KnowledgePackStatus
@@ -78,8 +79,19 @@ def seed_knowledge_pack(db: Session, version: str = DEVELOPMENT_PACK_VERSION,
         content=content,
         active=True,
     )
-    db.add(pack)
-    db.flush()
+    try:
+        # Concurrent first-use cases may seed the same version. A savepoint keeps
+        # the caller's case transaction intact when the unique constraint wins.
+        with db.begin_nested():
+            db.add(pack)
+            db.flush()
+    except IntegrityError:
+        existing = db.query(KnowledgePack).filter(
+            KnowledgePack.knowledge_pack_id == DEVELOPMENT_PACK_ID,
+            KnowledgePack.version == version).one_or_none()
+        if existing is None:
+            raise
+        return existing
     return pack
 
 

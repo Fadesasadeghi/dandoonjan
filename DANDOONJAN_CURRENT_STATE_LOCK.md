@@ -1,5 +1,15 @@
 # DANDOONJAN_CURRENT_STATE_LOCK
 
+Current checkpoint: [synthetic pilot Release Candidate](docs/handoff/pilot-rc/README.md)
+(2026-09-28), branch `agent/sadeghi-pilot-rc`, based on guarded PR #2 merge
+`d3a6584d8b75a2dfb5f83f7c684bdab6dce65f28`. Final Windows/browser verification:
+**205 passed, 2 skipped, 4 warnings**. Final Linux/PostgreSQL verification:
+**197 passed, 0 skipped, 3 warnings**. Docker build/runtime is NOT VERIFIED because
+the Docker CLI is unavailable. Synthetic-only; no paid services or deployment.
+See the [verification record](docs/handoff/pilot-rc/VERIFICATION.md) for exact scope,
+evidence and remaining limits. Stop for Product Owner review of the separate RC PR.
+Earlier checkpoints below are preserved as history.
+
 Current review checkpoint: [P1 core handoff](docs/handoff/p1-core/README.md)
 (2026-09-26), on `agent/sadeghi-p1-core` from approved base `b360369`.
 Final suite: **181 passed, 2 skipped, 4 warnings** including real-browser checks.

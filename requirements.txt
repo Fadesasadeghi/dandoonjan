@@ -1,6 +1,7 @@
-fastapi
+fastapi>=0.121
 uvicorn[standard]
 sqlalchemy>=2
+psycopg[binary]>=3.2,<4
 alembic
 pydantic>=2
 pydantic-settings

@@ -1,6 +1,9 @@
 .env
+.env.*
+!.env.example
 *.db
 artifact_store/
+pilot-data/
 *_artifact_store/
 .pytest_cache/
 pytest-tmp*/

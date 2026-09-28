@@ -1,12 +1,12 @@
 """Provider abstraction. Domain modules never call a provider directly.
 
-- MockProvider: deterministic, offline, no network. Always available as fallback.
+- MockProvider: deterministic, offline, no network. Development/test fallback only.
 - OpenRouterProvider: real provider (OpenRouter, OpenAI-compatible chat completions)
-  for classification + structured extraction ONLY. Conservative settings:
+  for classification, structured extraction and claim candidates. Conservative settings:
   temperature 0, JSON response format, bounded output, timeout, limited retries.
   Any unavailability (network, timeout, 429/5xx, unparseable envelope) raises
-  ProviderUnavailableError so the ModelGateway can fall back VISIBLY to mock at the
-  AI worker boundary — never at assessment/policy level.
+  ProviderUnavailableError; the gateway fails closed in production and retains
+  visible development/test fallback at the worker boundary only.
 
 Credentials come from environment only; never hardcoded. Accepts an injected
 httpx client for offline tests (no live API in the test suite).
@@ -184,8 +184,8 @@ class MockProvider:
 
 
 class OpenRouterProvider:
-    """Real provider via OpenRouter (OpenAI-compatible). Classification and
-    structured extraction only; the ModelGateway schema firewall validates every
+    """Real provider via OpenRouter (OpenAI-compatible). Structured candidates only;
+    the ModelGateway schema firewall validates every
     response before it can touch Core state."""
     name = "openrouter"
 
@@ -229,19 +229,19 @@ class OpenRouterProvider:
                     raise last_error
             if attempt < _MAX_ATTEMPTS:
                 time.sleep(0.5 * attempt)
-        raise ProviderUnavailableError(f"openrouter unavailable: {last_error}")
+        raise ProviderUnavailableError("openrouter unavailable") from None
 
     def run(self, prompt: Prompt, content: str, params: dict[str, Any]) -> dict[str, Any]:
         if prompt.prompt_id not in ("artifact_classifier", "treatment_plan_extractor",
-                                    "invoice_extractor"):
-            # V0.2 scope: classification + structured extraction only.
+                                    "invoice_extractor", "claim_builder"):
+            # Candidate generation remains behind schema and ontology firewalls.
             raise ProviderUnavailableError(
                 f"prompt {prompt.prompt_id} not in real-provider scope")
         data = self._post(prompt, content)
         try:
             message = data["choices"][0]["message"]["content"]
         except (KeyError, IndexError, TypeError) as exc:
-            raise ProviderUnavailableError(f"openrouter malformed envelope: {exc}") from exc
+            raise ProviderUnavailableError("openrouter malformed envelope") from None
         try:
             return json.loads(message)
         except json.JSONDecodeError as exc:
@@ -252,7 +252,7 @@ class OpenRouterProvider:
                     return json.loads(m.group(0))
                 except json.JSONDecodeError:
                     pass
-            raise ProviderUnavailableError(f"openrouter non-JSON content: {exc}") from exc
+            raise ProviderUnavailableError("openrouter non-JSON content") from None
 
 
 def content_hash(content: str) -> str:

@@ -55,7 +55,7 @@ def _handle_domain_error(exc: DandoonjanError):
 
 @router.post("/cases", status_code=201)
 def create_case(question: str = Form(...), dentist_recommendation: str = Form(""),
-                context: str = Form(""), db: Session = Depends(get_db)):
+                context: str = Form(""), db: Session = Depends(get_db, scope="function")):
     user = _ensure_user(db)
     from app.core.ontology import ontology as ont
     case = Case(public_id=public_id("CASE"), user_id=user.id, status=CaseStatus.CREATED,
@@ -70,7 +70,7 @@ def create_case(question: str = Form(...), dentist_recommendation: str = Form(""
 
 
 @router.get("/cases/{case_public_id}")
-def get_case(case_public_id: str, db: Session = Depends(get_db)):
+def get_case(case_public_id: str, db: Session = Depends(get_db, scope="function")):
     case = _case_or_404(db, case_public_id)
     artifacts = db.query(Artifact).filter(Artifact.case_id == case.id).all()
     return {
@@ -85,7 +85,7 @@ def get_case(case_public_id: str, db: Session = Depends(get_db)):
 
 @router.post("/cases/{case_public_id}/artifacts", status_code=201)
 def upload_artifact(case_public_id: str, file: UploadFile = File(...),
-                    db: Session = Depends(get_db)):
+                    db: Session = Depends(get_db, scope="function")):
     case = _case_or_404(db, case_public_id)
     try:
         data = file.file.read()
@@ -111,7 +111,7 @@ def upload_artifact(case_public_id: str, file: UploadFile = File(...),
 @router.patch("/cases/{case_public_id}")
 def update_case(case_public_id: str, question: str = Form(None),
                 dentist_recommendation: str = Form(None), context: str = Form(None),
-                db: Session = Depends(get_db)):
+                db: Session = Depends(get_db, scope="function")):
     """Material case-text change bumps Case version (P0-04)."""
     case = _case_or_404(db, case_public_id)
     changed = False
@@ -133,7 +133,7 @@ def update_case(case_public_id: str, question: str = Form(None),
 
 
 @router.post("/cases/{case_public_id}/process")
-def process_case(case_public_id: str, db: Session = Depends(get_db)):
+def process_case(case_public_id: str, db: Session = Depends(get_db, scope="function")):
     case = _case_or_404(db, case_public_id)
     try:
         return run_case_pipeline(db, case)
@@ -143,7 +143,7 @@ def process_case(case_public_id: str, db: Session = Depends(get_db)):
 
 
 @router.get("/cases/{case_public_id}/status")
-def case_status(case_public_id: str, db: Session = Depends(get_db)):
+def case_status(case_public_id: str, db: Session = Depends(get_db, scope="function")):
     case = _case_or_404(db, case_public_id)
     artifacts = db.query(Artifact).filter(Artifact.case_id == case.id).all()
     return {"case_id": case.public_id, "status": case.status.value,
@@ -152,7 +152,7 @@ def case_status(case_public_id: str, db: Session = Depends(get_db)):
 
 
 @router.get("/cases/{case_public_id}/assessment")
-def case_assessment(case_public_id: str, db: Session = Depends(get_db)):
+def case_assessment(case_public_id: str, db: Session = Depends(get_db, scope="function")):
     case = _case_or_404(db, case_public_id)
     assessments = (db.query(Assessment)
                    .join(ProcessingRun, Assessment.derivation_run_id == ProcessingRun.id)
@@ -172,7 +172,7 @@ def case_assessment(case_public_id: str, db: Session = Depends(get_db)):
 
 
 @router.get("/cases/{case_public_id}/report")
-def case_report(case_public_id: str, db: Session = Depends(get_db)):
+def case_report(case_public_id: str, db: Session = Depends(get_db, scope="function")):
     case = _case_or_404(db, case_public_id)
     report = (db.query(Report)
               .join(ProcessingRun, Report.derivation_run_id == ProcessingRun.id)

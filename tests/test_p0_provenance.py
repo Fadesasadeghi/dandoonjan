@@ -156,7 +156,7 @@ def test_p0_10_b_postgres_url_not_silently_redirected(tmp_path):
     env = {**os.environ,
            "DJ_DATABASE_URL": "postgresql+psycopg://nouser@localhost:1/nodb"}
     r = subprocess.run([sys.executable, "-m", "alembic", "current"],
-                       env=env, capture_output=True, text=True, cwd=os.getcwd())
+                       env=env, capture_output=True, text=True, cwd=os.getcwd(), timeout=30)
     assert "dandoonjan_dev.db" not in r.stderr
     assert r.returncode != 0  # connection refused => the PG URL was honored
 

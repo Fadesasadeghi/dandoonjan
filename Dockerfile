@@ -12,4 +12,4 @@ COPY alembic ./alembic
 COPY alembic.ini README.md .env.example ./
 RUN mkdir -p /app/data/artifact_store
 
-CMD ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}"]
+CMD ["sh", "-c", "exec uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000} --log-config app/logging.json"]

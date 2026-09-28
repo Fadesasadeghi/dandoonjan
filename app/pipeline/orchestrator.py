@@ -33,6 +33,7 @@ from app.domain.models import (ArtifactClassification, ArtifactQualityAssessment
                                Extraction, Finding, ProcessingRun, SafetyResult,
                                TreatmentItem, public_id, utcnow)
 from app.errors import InvalidTransitionError
+from app.safe_logging import safe_error_code
 from app.governance.record import audit
 from app.pipeline import claims as claims_mod
 from app.pipeline import assessment as assessment_mod
@@ -406,10 +407,10 @@ def run_case_pipeline(db: Session, case: Case) -> dict:
                               DerivationStatus.NON_AUTHORITATIVE)
         derivation.status = ProcessingRunStatus.FAILED
         derivation.authority = RunAuthority.NON_AUTHORITATIVE
-        derivation.error = str(exc)[:2000]
+        derivation.error = safe_error_code(exc)
         derivation.finished_at = utcnow()
         audit(db, "pipeline_failed", case_id=case.id, module="pipeline",
-              attempt=derivation.attempt, error=str(exc)[:300])
+              attempt=derivation.attempt, error=safe_error_code(exc))
         try:
             _advance(case, CaseStatus.FAILED)
         except InvalidTransitionError:

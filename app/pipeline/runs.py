@@ -15,6 +15,7 @@ from sqlalchemy.orm import Session
 
 from app.domain.enums import DerivationStatus, ProcessingRunStatus, RunAuthority
 from app.domain.models import ProcessingRun, public_id, utcnow
+from app.safe_logging import safe_error_code
 
 
 def next_attempt(db: Session, case_id: int, module: str, input_hash: str) -> int:
@@ -51,7 +52,7 @@ def processing_run(db: Session, case, module: str, input_obj,
         run.status = ProcessingRunStatus.SUCCEEDED
     except Exception as exc:
         run.status = ProcessingRunStatus.FAILED
-        run.error = str(exc)[:2000]
+        run.error = safe_error_code(exc)
         raise
     finally:
         run.finished_at = utcnow()

@@ -47,6 +47,7 @@ NETLIFY_DROP/
 *.sqlite3
 
 # Local project artifacts
+pilot-data/
 artifact_store/
 presentation_artifact_store/
 test_artifact_store/

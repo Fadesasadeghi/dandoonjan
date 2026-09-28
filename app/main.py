@@ -1,7 +1,6 @@
 """DANDOONJAN_EVIDENCE_CORE_V0 — FastAPI app shell."""
 from __future__ import annotations
 
-import logging
 from pathlib import Path
 
 from fastapi import FastAPI, Request
@@ -13,16 +12,17 @@ from app.api.routes import router
 from app.config import get_settings
 from app.db import Base, engine
 from app.errors import DandoonjanError
+from app.safe_logging import configure_logging
 
-logging.basicConfig(level=logging.INFO,
-                    format='{"level":"%(levelname)s","msg":"%(message)s"}')
+configure_logging()
 
 app = FastAPI(title="DANDOONJAN Evidence Core V0", version="0.1.0")
 
 FRONTEND_DIR = Path(__file__).resolve().parent.parent / "frontend"
 
-app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"],
-                   allow_headers=["*"])
+app.add_middleware(CORSMiddleware, allow_origins=get_settings().cors_origins,
+                   allow_methods=["GET", "POST", "PATCH"],
+                   allow_headers=["Content-Type"], allow_credentials=False)
 
 
 @app.exception_handler(DandoonjanError)

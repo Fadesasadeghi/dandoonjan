@@ -7,12 +7,16 @@ builds a structured, traceable evidence model before producing a patient-facing 
 
 > Architecture: **Evidence → Assessment → Explanation** (never Files → LLM → Answer)
 
+Current synthetic-only Release Candidate: [execution and Product Owner handoff](docs/handoff/pilot-rc/README.md).
+Use that handoff for Windows, local, Docker, migration and verification instructions.
+This unauthenticated RC is for a controlled loopback demo, not public or patient use.
+
 ## Run locally (offline, mock AI)
 
 ```bash
 pip install -r requirements.txt
 cp .env.example .env
-uvicorn app.main:app --reload
+python -m uvicorn app.main:app --host 127.0.0.1 --port 8000 --log-config app/logging.json
 ```
 
 - Presentation UI (Persian/RTL): http://127.0.0.1:8000/
@@ -24,10 +28,12 @@ No AI credentials needed: `DJ_AI_PROVIDER=mock` is a deterministic offline provi
 
 ## Presentation deployment
 
-The frontend is deployed on Netlify and proxies `/api/*` to the existing FastAPI
-service. Deploy the FastAPI container using `Dockerfile` and `render.yaml`, then
-set the real service origin as the Netlify build environment variable
-`DANDOONJAN_BACKEND_URL`. Do not put provider credentials in `netlify.toml`.
+The repository contains Netlify proxy and Render configuration, but this is not
+verification of a working hosted deployment. Do not publish the frontend without
+a functional backend. The existing Render production/Mock configuration is refused
+by production fail-closed policy; it is not an RC deployment recipe. Hosted work,
+credentials and paid services require separate approval. The RC serves its frontend
+and API from the same local origin.
 
 ## Tests
 

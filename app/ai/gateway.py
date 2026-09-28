@@ -19,6 +19,7 @@ from app.ai.schemas import SCHEMA_VERSIONS
 from app.config import get_settings
 from app.domain.models import ModelRun
 from app.errors import ExtractionValidationError, ModelProviderError, ProviderUnavailableError
+from app.safe_logging import safe_error_code
 
 T = TypeVar("T", bound=BaseModel)
 
@@ -75,11 +76,10 @@ class ModelGateway:
             if settings.environment == "production" or provider.name not in REAL_PROVIDER_NAMES:
                 # Fail closed in production; preserve mock/test schema-firewall behavior.
                 run.status = "FAILED"
-                run.error = f"{type(exc).__name__}: {str(exc)[:500]}"
-                raise ExtractionValidationError(
-                    f"AI output failed for {prompt_id}: {exc}") from exc
+                run.error = safe_error_code(exc)
+                raise ExtractionValidationError("AI output validation failed") from None
             # VISIBLE fallback to the deterministic worker (AI worker boundary only)
-            fallback_reason = f"{type(exc).__name__}: {str(exc)[:300]}"
+            fallback_reason = safe_error_code(exc)
             raw = self._call_raw(self.fallback, prompt, rendered)
             validated = self._validate_schema(schema, raw)  # mock output must validate
             run.provider = self.fallback.name
@@ -99,7 +99,7 @@ class ModelGateway:
         except ProviderUnavailableError:
             raise
         except Exception as exc:
-            raise ProviderUnavailableError(f"provider failure: {exc}") from exc
+            raise ProviderUnavailableError("provider failure") from None
         if not isinstance(raw, dict):
             raise ProviderUnavailableError("provider returned non-object output")
         return raw
