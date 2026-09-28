@@ -188,10 +188,12 @@ def case_report(case_public_id: str, db: Session = Depends(get_db)):
               .order_by(Report.id.desc()).first())
     if report is None:
         raise HTTPException(status_code=404, detail="REPORT_NOT_READY")
+    from app.api.presentation import report_presentation
+    snapshot = db.query(AssessmentSnapshot).filter(
+        AssessmentSnapshot.id == report.snapshot_id).one()
     return {"case_id": case.public_id, "report_id": report.public_id,
             "report_kind": report.content.get("report_kind"),
-            "snapshot_id": db.query(AssessmentSnapshot)
-                             .filter(AssessmentSnapshot.id == report.snapshot_id)
-                             .one().public_id,
+            "snapshot_id": snapshot.public_id,
             "safety_state": report.content.get("safety_state"),
-            "sections": report.content.get("sections", [])}
+            "sections": report.content.get("sections", []),
+            "presentation": report_presentation(db, report, snapshot)}
