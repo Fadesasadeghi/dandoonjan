@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 640" fill="none">
+ <defs>
+  <linearGradient id="enamel" x1="125" y1="100" x2="410" y2="490" gradientUnits="userSpaceOnUse"><stop stop-color="#fff"/><stop offset=".25" stop-color="#f0f0ed"/><stop offset=".5" stop-color="#bcc2bf"/><stop offset=".67" stop-color="#fff"/><stop offset="1" stop-color="#d19a75"/></linearGradient>
+  <linearGradient id="edge" x1="60" y1="60" x2="400" y2="500"><stop stop-color="#fff"/><stop offset=".65" stop-color="#c4c8c4"/><stop offset="1" stop-color="#c7825b"/></linearGradient>
+  <radialGradient id="light"><stop stop-color="#fff" stop-opacity=".9"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient>
+  <filter id="shadow"><feGaussianBlur stdDeviation="12"/></filter>
+ </defs>
+ <ellipse cx="250" cy="592" rx="160" ry="17" fill="#c68560" opacity=".3" filter="url(#shadow)"/>
+ <ellipse cx="250" cy="588" rx="190" ry="27" stroke="#bd825f" stroke-opacity=".45"/>
+ <path d="M247 89C203 49 156 42 111 65C58 91 53 153 70 213C82 257 96 286 102 331C108 389 128 509 165 548C182 566 193 545 197 519L224 379C231 347 247 333 260 350C280 378 286 473 312 530C326 562 343 553 351 522C376 433 376 367 401 296C423 236 448 163 424 111C395 42 332 44 293 67Z" fill="url(#enamel)" stroke="url(#edge)" stroke-width="4"/>
+ <path d="M86 157C97 85 146 73 194 101C220 115 233 127 255 117C309 67 375 61 408 134" stroke="#fff" stroke-width="9" stroke-linecap="round" opacity=".8"/>
+ <path d="M115 213C152 249 194 249 231 227C250 215 268 219 287 228C327 251 374 228 397 192" stroke="#89918a" stroke-opacity=".28" stroke-width="5"/>
+ <path d="M121 300C126 389 147 480 164 517M355 306C337 382 336 445 327 480" stroke="#fff" stroke-opacity=".6" stroke-width="6" stroke-linecap="round"/>
+ <ellipse cx="159" cy="157" rx="63" ry="79" fill="url(#light)"/>
+ <path d="M206 103L249 155L285 105M249 155L228 195" stroke="#86908b" stroke-opacity=".23" stroke-width="5" stroke-linecap="round"/>
+</svg>

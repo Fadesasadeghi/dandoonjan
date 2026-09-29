@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#f7f4ee">
+  <meta name="theme-color" content="#111412">
   <title>دندونجان — فهم بهتر پرونده، قبل از درمان</title>
   <link rel="stylesheet" href="/ui/styles.css">
   <script src="/ui/app.js" defer></script>
@@ -15,24 +15,29 @@
     <section id="view-home" class="view active shell">
       <div class="hero">
         <div class="hero-copy"><p class="eyebrow">قبل از درمان، فرصتی برای فهمیدن</p>
-          <h1>قبل از شروع درمان، پرونده‌ات را بهتر بفهم.</h1>
+          <h1>زیباییِ <em>فهمیدن</em></h1>
           <p class="lede">پیشنهاد دندان‌پزشک را کنار مدارک بگذارید؛ ببینید چه می‌دانیم، چه نمی‌دانیم و پیش از تصمیم چه باید بپرسیم.</p>
-          <div class="actions"><button id="start-case" class="btn primary">بررسی پرونده</button><button id="start-sample" class="btn quiet">مشاهده پرونده نمونه</button></div>
+          <div class="actions"><button id="start-case" class="btn primary">ساخت پرونده</button><button id="start-sample" class="btn quiet">مشاهده پرونده نمونه</button></div>
           <p class="small">نمونه کاملاً ساختگی است و از همین مسیر بررسی می‌شود.</p>
           <button id="resume-case" class="btn text hidden">ادامهٔ پروندهٔ این مرورگر</button>
         </div>
-        <aside class="editorial-note" aria-label="سه پرسش پیش از تصمیم"><span class="eyebrow">یادداشت پیش از تصمیم</span><p>چه می‌دانیم؟</p><p>چه نمی‌دانیم؟</p><p>چه باید بپرسیم؟</p><div class="note-rule"></div><span>پیشنهاد درمان، به‌تنهایی<br>اثبات ضرورت درمان نیست.</span></aside>
+        <figure class="tooth-scene"><img src="/ui/tooth.svg" width="500" height="640" alt="تصویر تزئینی یک دندان مرواریدی؛ نمایش پروندهٔ واقعی نیست"><figcaption>هر مدرک، بخشی از تصویر روشن‌تر.</figcaption></figure>
       </div>
       <div class="story"><h2>از مدارک تا سؤال‌های روشن‌تر</h2><div class="steps"><article><span>۰۱ / پرونده</span><h3>سؤال شما</h3><p>فقط سؤال و پیشنهادی که شنیده‌اید.</p></article><article><span>۰۲ / شواهد</span><h3>مدارک در کنار هم</h3><p>منبع هر گفته و محدودیت هر مدرک مشخص می‌ماند.</p></article><article><span>۰۳ / گفت‌وگو</span><h3>پیش از تصمیم</h3><p>گزارشی برای پرسیدن؛ نه تشخیص یا تجویز درمان.</p></article></div></div>
     </section>
     <section id="view-workspace" class="view shell workspace">
+      <div class="workspace-art" aria-hidden="true"><img src="/ui/tooth.svg" width="500" height="640" alt=""><span>پرونده‌ای حول شواهد شما</span><span class="source-layer layer-one">علائم و شرح حال</span><span class="source-layer layer-two">تصاویر و مدارک</span><span class="source-layer layer-three">سابقه و سؤال شما</span></div>
       <p class="eyebrow">پرونده شما</p>
       <p id="sample-notice" class="notice hidden">پروندهٔ نمونهٔ ساختگی — هیچ دادهٔ بیمار واقعی در این نمونه نیست.</p>
       <section id="intake-panel" class="paper">
-        <h1 tabindex="-1">از سؤال شما شروع کنیم</h1><p>همین دو مورد کافی است. در قدم بعد مدارک را اضافه می‌کنید.</p>
+        <h1 tabindex="-1">پرونده را کامل کنیم</h1><p>از هر بخشی که می‌دانید شروع کنید. اطلاعات خالی، «نامشخص» می‌ماند؛ تکمیل همهٔ بخش‌ها اجباری نیست.</p>
         <form id="case-form">
           <label for="question">سؤال شما <span>(ضروری)</span></label><textarea id="question" required maxlength="10000" placeholder="چه چیزی دربارهٔ پیشنهاد درمان برایتان روشن نیست؟"></textarea>
           <label for="dentist">دندان‌پزشک چه پیشنهادی داده است؟ <span>(اختیاری)</span></label><textarea id="dentist" maxlength="10000" placeholder="پیشنهاد را همان‌طور که شنیده‌اید بنویسید."></textarea>
+          <details class="dossier-section"><summary>علائم و مدت آن‌ها</summary><label for="symptoms">شرح علائم</label><textarea id="symptoms" maxlength="10000"></textarea><label for="duration">مدت علائم</label><input id="duration" maxlength="10000" placeholder="مثلاً سه روز"></details>
+          <details class="dossier-section"><summary>سابقه پزشکی، داروها و حساسیت‌ها</summary><label for="medical_history">سابقه پزشکی</label><textarea id="medical_history" maxlength="10000"></textarea><label for="medications">داروهای مصرفی</label><textarea id="medications" maxlength="10000" placeholder="اگر دارویی مصرف نمی‌شود، صریحاً بنویسید «ندارد»."></textarea><label for="allergies">حساسیت‌ها</label><textarea id="allergies" maxlength="10000"></textarea></details>
+          <details class="dossier-section"><summary>طرح درمان یا نسخه</summary><label for="treatment_plan">متن طرح درمان یا نسخه</label><textarea id="treatment_plan" maxlength="10000"></textarea><p class="small">تصویر یا PDF را در بخش مدارک همین پرونده اضافه کنید.</p></details>
+          <details class="dossier-section"><summary>گزارش‌ها و درمان‌های قبلی</summary><label for="previous_reports">گزارش قبلی</label><textarea id="previous_reports" maxlength="10000"></textarea><label for="previous_treatments">درمان‌های قبلی</label><textarea id="previous_treatments" maxlength="10000"></textarea></details>
           <div class="actions"><button id="submit-case" class="btn primary" type="submit">ساخت پرونده و افزودن مدارک</button><button id="back-home" class="btn text" type="button">صفحه اصلی</button></div>
         </form>
       </section>
@@ -40,19 +45,24 @@
         <h1 tabindex="-1">مدارک این پرونده</h1><p id="case-question"></p>
         <p>طرح درمان، رادیوگرافی یا عکس، فاکتور یا برآورد هزینه و یادداشت مکتوب را اضافه کنید.</p>
         <p class="small">PDF و TXT؛ تصاویر JPG، PNG و HEIC در صورت پشتیبانی سرویس. فایل‌ها تا ۲۵ مگابایت. PDF تصویری بدون متن قابل استخراج ممکن است نیازمند مدرک تکمیلی باشد.</p>
-        <p class="notice">تحلیل تصویر غیرفعال است. آپلود عکس یا رادیوگرافی به معنی بررسی بالینی آن نیست.</p>
+        <p class="notice">این نسخهٔ آفلاین از Mock استفاده می‌کند؛ تصویر واقعاً تفسیر نمی‌شود. آپلود مدرک به معنی تأیید بالینی آن نیست.</p>
+        <p id="completeness" role="status"></p>
+        <label for="document-role">نوع مدرک برای فایل‌های بعدی</label><select id="document-role"><option value="unspecified">سایر مدارک</option value="treatment_plan">طرح درمان</option><option value="prescription">نسخه</option><option value="dental_image">رادیوگرافی یا تصویر دندان</option><option value="previous_report">گزارش قبلی</option></select>
         <label id="dropzone" class="dropzone" for="files"><strong>انتخاب مدارک یا رها کردن فایل‌ها در اینجا</strong><input id="files" type="file" multiple accept=".pdf,.txt,.jpg,.jpeg,.png,.heic"></label>
         <ul id="file-list" class="file-list" aria-label="وضعیت هر فایل" aria-live="polite"></ul>
         <div class="actions"><button id="process-case" class="btn primary">بررسی مدارک و تهیهٔ نتیجه</button><button id="edit-case" class="btn text">ویرایش سؤال و پیشنهاد</button></div>
       </section>
       <p id="activity" role="status" aria-live="polite"></p>
+      <section id="analysis-scene" class="hidden" aria-label="خواندن پرونده"><div class="analysis-tooth"><img src="/ui/tooth.svg" width="500" height="640" alt=""><div class="scan-line"></div></div><div><p class="eyebrow">خواندن مدارک</p><h2>هر نتیجه، متصل به منبعش</h2><p>در انتظار پاسخ سرور؛ نتیجه فقط پس از اعتبارسنجی نمایش داده می‌شود.</p></div></section>
       <div id="workspace-error" class="notice error hidden" role="alert"></div>
       <section id="outcome" class="paper hidden" aria-live="polite"><h2 id="outcome-title" tabindex="-1"></h2><p id="outcome-text"></p><button id="retry-process" class="btn quiet hidden">تلاش دوباره برای همین پرونده</button></section>
     </section>
     <section id="view-report" class="view shell report-wrap">
+      <div class="result-tooth" aria-hidden="true"><img src="/ui/tooth.svg" width="500" height="640" alt=""><span>آنچه پرونده نشان می‌دهد</span></div>
       <div class="report-head"><div><p class="eyebrow">گزارش تصمیم‌گیری</p><h1 tabindex="-1">پرونده شما، در روشنای شواهد</h1></div><span id="report-badge" class="badge"></span></div>
       <p class="notice demo-label">دموی کنترل‌شده، فقط برای دادهٔ ساختگی؛ پشتیبان تصمیم است، نه تشخیص. دانشنامهٔ توسعه از نظر بالینی اعتبارسنجی نشده است.</p>
       <div class="actions report-actions"><button id="print-report" class="btn primary">چاپ / ذخیره PDF</button><button id="add-evidence" class="btn quiet">افزودن مدرک به همین پرونده</button></div>
+      <div id="audience-controls" class="actions hidden" role="group" aria-label="نوع گزارش"><button id="patient-view" class="btn primary" aria-pressed="true">خلاصه برای شما</button><button id="professional-view" class="btn quiet" aria-pressed="false">گزارش تخصصی</button></div>
       <div id="report-content"></div>
       <section id="upload-summary" class="upload-summary"><h2>وضعیت فایل‌های انتخاب‌شده</h2><ul id="report-files" class="file-list"></ul></section>
       <p class="report-footer">این گزارش تشخیص پزشکی نیست و ضرورت درمان را تعیین نمی‌کند. تصمیم درمانی به معاینه و گفت‌وگو با دندان‌پزشک نیاز دارد. تصاویر تحلیل بالینی نشده‌اند.</p>

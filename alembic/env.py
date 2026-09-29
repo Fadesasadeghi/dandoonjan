@@ -52,6 +52,22 @@ def run_migrations_online():
                 markers <= {column["name"] for column in inspector.get_columns(table)}
                 for table, markers in required_markers.items()) and
                 required_fks <= actual_fks)
+            adoption_revision = current_head
+            if not valid:
+                # Recognize only the exact known RC table/column/type shape.
+                # Never stamp an unknown or partial database as current.
+                added = {'dossier_revisions', 'review_runs', 'diagnostic_hypotheses', 'hypothesis_evidence'}
+                rc_tables = expected - added
+                def matches_rc(table):
+                    columns = {c['name']: c for c in inspector.get_columns(table)}
+                    expected_columns = {c.name: c for c in target_metadata.tables[table].columns
+                                        if not (table == 'artifacts' and c.name == 'document_role')}
+                    return (set(columns) == set(expected_columns) and all(
+                        columns[name]['type']._type_affinity == column.type._type_affinity
+                        for name, column in expected_columns.items()))
+                valid = (tables == rc_tables and all(matches_rc(t) for t in rc_tables)
+                         and required_fks <= actual_fks)
+                adoption_revision = '4f2c9d7e1a10'
             if not valid:
                 raise RuntimeError(
                     "refusing Alembic adoption: database is not a complete current application schema")
@@ -59,7 +75,7 @@ def run_migrations_online():
                 "CREATE TABLE alembic_version (version_num VARCHAR(32) NOT NULL PRIMARY KEY)"))
             connection.execute(text(
                 "INSERT INTO alembic_version (version_num) VALUES (:head)"),
-                {"head": current_head})
+                {"head": adoption_revision})
         context.configure(connection=connection, target_metadata=target_metadata,
                           render_as_batch=True)
         with context.begin_transaction():

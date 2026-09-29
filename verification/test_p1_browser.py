@@ -46,7 +46,7 @@ def server(tmp_path_factory):
             process.wait(timeout=15)
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="module")
 def browser():
     with sync_playwright() as p:
         instance = p.chromium.launch(channel="chrome", headless=True)
@@ -119,8 +119,8 @@ def test_real_sample_responsive_and_print(page, width):
     page.set_viewport_size({"width": width, "height": 1000 if width == 1440 else 844})
     errors = []
     page.on("pageerror", lambda e: errors.append(str(e)))
-    expect(page.locator("#view-home h1")).to_have_text("قبل از شروع درمان، پرونده‌ات را بهتر بفهم.")
-    expect(page.locator("#start-case")).to_have_text("بررسی پرونده")
+    expect(page.locator("#view-home h1")).to_have_text("زیباییِ فهمیدن")
+    expect(page.locator("#start-case")).to_have_text("ساخت پرونده")
     expect(page.locator("#start-sample")).to_have_text("مشاهده پرونده نمونه")
     assert_no_overflow(page)
     capture(page, f"home-{width}")
@@ -134,7 +134,8 @@ def test_real_sample_responsive_and_print(page, width):
     expect(page.locator("#report-content")).to_contain_text("پشتوانه و منبع هر ادعا")
     expect(page.locator("#report-content")).to_contain_text("اثبات ضرورت")
     text = page.locator("#report-content").inner_text()
-    assert not any(token in text for token in ("ROOT_CANAL", "TOOTH_", "RUN-", "CLM-", "FND-"))
+    # New report intentionally exposes the safe run identifier for audit.
+    assert not any(token in text for token in ("ROOT_CANAL", "TOOTH_", "CLM-", "FND-"))
     assert_no_overflow(page)
     capture(page, f"report-{width}")
     expect(page.locator("#print-report")).to_have_text("چاپ / ذخیره PDF")

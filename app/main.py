@@ -21,7 +21,7 @@ app = FastAPI(title="DANDOONJAN Evidence Core V0", version="0.1.0")
 FRONTEND_DIR = Path(__file__).resolve().parent.parent / "frontend"
 
 app.add_middleware(CORSMiddleware, allow_origins=get_settings().cors_origins,
-                   allow_methods=["GET", "POST", "PATCH"],
+                   allow_methods=["GET", "POST", "PATCH", "PUT"],
                    allow_headers=["Content-Type"], allow_credentials=False)
 
 

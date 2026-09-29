@@ -28,7 +28,7 @@ SNAPSHOT_PROTECTED_FIELDS = ("payload", "versions", "content_hash", "case_versio
                              "safety_state", "immutable", "case_id", "public_id")
 
 ARTIFACT_IDENTITY_FIELDS = ("storage_key", "sha256", "file_size", "original_filename",
-                            "safe_filename", "detected_mime_type")
+                            "safe_filename", "detected_mime_type", "document_role")
 
 
 class ImmutabilityViolationError(Exception):

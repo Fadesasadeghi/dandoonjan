@@ -31,7 +31,8 @@ def fields(case):
 
 def presentation(case):
     values = fields(case)
-    missing = [key for key, value in values.items() if not value.strip()]
+    missing = [key for key, value in values.items()
+               if value.strip().lower() in ('', 'unknown', 'نامشخص', 'نمی‌دانم', 'نمی دانم')]
     if not case.question_text.strip():
         missing.append('main_question')
     if not any(a.detected_mime_type.startswith('image/') for a in case.artifacts):
@@ -43,7 +44,7 @@ def presentation(case):
 def update(db, case, patch):
     values = fields(case)
     updated = {**values, **{k: v.strip() for k, v in patch.model_dump(exclude_none=True).items()}}
-    if updated != values:
+    if updated != values or latest(case) is None:
         case.version += 1
         db.add(DossierRevision(public_id=public_id('DSR'), case_id=case.id,
                                case_version=case.version, **updated))

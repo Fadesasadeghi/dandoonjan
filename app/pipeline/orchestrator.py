@@ -206,7 +206,9 @@ def _activate_derivation(db: Session, case: Case, derivation: ProcessingRun) -> 
 
 
 def run_case_pipeline(db: Session, case: Case) -> dict:
-    gw = ModelGateway(db)
+    from app.core.cases.dossier import latest
+    next_phase = latest(case) is not None
+    gw = ModelGateway(db, strict_real=True) if next_phase else ModelGateway(db)
     result: dict = {"case_public_id": case.public_id}
 
     # Materialize artifact text so the effective-input hash is stable (P0-04).
@@ -273,7 +275,7 @@ def run_case_pipeline(db: Session, case: Case) -> dict:
                        decisions[a.public_id].decision !=
                        stages.QualityDecision.REJECT_ARTIFACT]
 
-        if not processable or len(needs_more) == len(case.artifacts):
+        if not processable or (len(needs_more) == len(case.artifacts) and not next_phase):
             # Evidence dimension: NEEDS_MORE_EVIDENCE (terminal, reusable — D2).
             # Safety dimension preserved from intake screening (D3).
             if intake_state == SafetyState.BLOCKED:
@@ -360,6 +362,13 @@ def run_case_pipeline(db: Session, case: Case) -> dict:
             safety = assessment_mod.run_safety_gate(db, case, derivation_run_id)
         db.commit()
         result["assessments"] = len(assessments)
+        if next_phase and safety.state in (SafetyState.NORMAL, SafetyState.CAUTION):
+            review = gw.review(case, derivation_run_id)
+            from app.ai.review_schema import escalated_state
+            safety.state = SafetyState(escalated_state(safety.state.value, review.output['safety_red_flags']))
+            if review.output['safety_red_flags']:
+                safety.reasons = [*safety.reasons, 'model concern; deterministic restrictions retained']
+            db.commit()
         result["safety_state"] = safety.state.value
 
         _advance(case, CaseStatus.READY_FOR_ASSESSMENT)

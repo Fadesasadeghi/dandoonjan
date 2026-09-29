@@ -1,8 +1,9 @@
 """Domain-resource API (V0 surface). No internal pipeline mutation endpoints."""
 from __future__ import annotations
+from typing import Literal
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
-from fastapi.responses import PlainTextResponse
+from fastapi.responses import PlainTextResponse, Response
 from sqlalchemy.orm import Session
 
 from app.core.artifacts.ingestion import ingest_artifact
@@ -43,6 +44,18 @@ Crown recommended after RCT
 def demo_sample():
     """Return synthetic, non-sensitive evidence for the real demo flow."""
     return DEMO_SAMPLE_TEXT
+
+
+@router.get('/demo/sample-image')
+def demo_image():
+    from app.core.cases.sample import image_pattern
+    return Response(image_pattern(), media_type='image/png')
+
+
+@router.get('/demo/sample-plan')
+def demo_plan():
+    from app.core.cases.sample import plan_pdf
+    return Response(plan_pdf(), media_type='application/pdf')
 
 
 def _ensure_user(db: Session) -> User:
@@ -100,12 +113,13 @@ def get_case(case_public_id: str, db: Session = Depends(get_db, scope="function"
 
 @router.post("/cases/{case_public_id}/artifacts", status_code=201)
 def upload_artifact(case_public_id: str, file: UploadFile = File(...),
+                    document_role: Literal['unspecified', 'treatment_plan', 'prescription', 'dental_image', 'previous_report'] = Form('unspecified'),
                     db: Session = Depends(get_db, scope="function")):
     case = _case_or_404(db, case_public_id)
     try:
         data = file.file.read()
         result = ingest_artifact(db, case, file.filename or "file",
-                                 file.content_type or "", data)
+                                 file.content_type or "", data, document_role=document_role)
     except DandoonjanError as exc:
         audit_db = database.SessionLocal()
         try:
@@ -211,4 +225,5 @@ def case_report(case_public_id: str, db: Session = Depends(get_db, scope="functi
             "snapshot_id": snapshot.public_id,
             "safety_state": report.content.get("safety_state"),
             "sections": report.content.get("sections", []),
+            "review": snapshot.payload.get('review') if report.content.get('report_kind') == 'STANDARD' else None,
             "presentation": report_presentation(db, report, snapshot)}

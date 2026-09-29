@@ -15,6 +15,8 @@ class Settings(BaseSettings):
     # AI provider: "mock" (default, offline, deterministic) or "openai" (adapter stub)
     ai_provider: str = "mock"
     ai_model_name: str = "mock-evidence-v1"
+    # Deliberate authorization gate. Offline tests inject a transport instead.
+    live_provider_enabled: bool = False
     openai_api_key: str = ""  # never hardcoded; read from env
     openrouter_api_key: str = ""  # never hardcoded; read from env
     max_upload_bytes: int = 25 * 1024 * 1024

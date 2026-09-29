@@ -228,6 +228,18 @@ def create_snapshot(db: Session, case: Case, safety: SafetyResult,
         "derivation_run": derivation.public_id if derivation else None,
         "derivation_attempt": derivation.attempt if derivation else None,
     }
+    from app.domain.models import ReviewRun
+    from app.core.cases.dossier import fields
+    review = db.query(ReviewRun).filter_by(case_id=case.id,
+        derivation_run_id=derivation_run_id, status='SUCCEEDED').order_by(ReviewRun.id.desc()).first()
+    if review:
+        payload['review'] = {**review.output, 'source_index': review.source_index,
+            'run': {'run_id': review.public_id, 'provider': review.provider,
+                    'model': review.model, 'runtime_ms': review.runtime_ms,
+                    'created_at': review.created_at.isoformat(),
+                    'schema_version': review.schema_version, 'mode': 'MOCK' if review.provider == 'mock' else 'REAL'}}
+        payload['dossier'] = fields(case)
+        versions['review_schema'] = review.schema_version
     content_hash = snapshot_content_hash(payload, versions)
     snapshot = AssessmentSnapshot(
         public_id=public_id("SNP"), case_id=case.id, case_version=case.version,

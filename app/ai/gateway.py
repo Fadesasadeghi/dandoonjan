@@ -27,8 +27,9 @@ REAL_PROVIDER_NAMES = {"openrouter"}
 
 
 class ModelGateway:
-    def __init__(self, db: Session):
+    def __init__(self, db: Session, strict_real: bool = False):
         self.db = db
+        self.strict_real = strict_real
         settings = get_settings()
         self.fallback = MockProvider()
         if settings.environment == "production" and settings.ai_provider not in REAL_PROVIDER_NAMES:
@@ -39,17 +40,23 @@ class ModelGateway:
                     api_key=settings.openrouter_api_key,
                     model=settings.ai_model_name)
             except ProviderUnavailableError:
-                if settings.environment == "production":
+                if settings.environment == "production" or strict_real:
                     raise
                 # no key configured -> run fully in mock (DEMO) mode
                 self.provider = self.fallback
         else:
+            if strict_real and settings.ai_provider != 'mock':
+                raise ProviderUnavailableError('Unsupported real provider')
             self.provider = self.fallback
 
     @property
     def provider_mode(self) -> str:
         """Mode the configuration intends: AI when a real provider is active."""
         return "AI" if self.provider.name in REAL_PROVIDER_NAMES else "DEMO"
+
+    def review(self, case, derivation_run_id):
+        from app.ai.review import run_review
+        return run_review(self, case, derivation_run_id)
 
     def run(self, prompt_id: str, schema: type[T], content: str,
         temperature: float = 0.0) -> tuple[T, ModelRun]:
@@ -73,7 +80,7 @@ class ModelGateway:
             raw = self._call_raw(provider, prompt, rendered)
             validated = self._validate_schema(schema, raw)
         except (ProviderUnavailableError, ValidationError) as exc:
-            if settings.environment == "production" or provider.name not in REAL_PROVIDER_NAMES:
+            if settings.environment == "production" or self.strict_real or provider.name not in REAL_PROVIDER_NAMES:
                 # Fail closed in production; preserve mock/test schema-firewall behavior.
                 run.status = "FAILED"
                 run.error = safe_error_code(exc)

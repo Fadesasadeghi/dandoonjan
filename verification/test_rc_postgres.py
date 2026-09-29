@@ -77,7 +77,8 @@ def test_postgres_fresh_and_populated_migrations(pg_url, predecessor):
         enums = {e["name"]: e["labels"] for e in inspector.get_enums()}
         assert "TREATMENT" in enums["claimtype"]
         with engine.connect() as conn:
-            assert conn.execute(text("SELECT version_num FROM alembic_version")).scalar_one() == "4f2c9d7e1a10"
+            # The next-phase migrations extend the protected RC schema.
+            assert conn.execute(text("SELECT version_num FROM alembic_version")).scalar_one() == "83b20cd5e702"
             if predecessor:
                 assert conn.execute(text("SELECT statement, derivation_status FROM findings")).one() == ("Tooth 46", "NON_AUTHORITATIVE_LEGACY")
                 assert conn.execute(text("SELECT authority FROM processing_runs")).scalar_one() == "NON_AUTHORITATIVE"

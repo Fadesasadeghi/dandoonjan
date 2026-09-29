@@ -53,7 +53,7 @@ class IngestResult:
 
 
 def ingest_artifact(db: Session, case: Case, filename: str, declared_mime: str,
-                    data: bytes) -> IngestResult:
+                    data: bytes, document_role: str = 'unspecified') -> IngestResult:
     settings = get_settings()
     if len(data) == 0:
         raise UnreadableArtifactError("empty file")
@@ -96,6 +96,7 @@ def ingest_artifact(db: Session, case: Case, filename: str, declared_mime: str,
         public_id=f"ART-{hashlib.sha1(key.encode()).hexdigest()[:12]}",
         case_id=case.id,
         original_filename=filename[:500],
+        document_role=document_role,
         safe_filename=storage.sanitize_filename(filename),
         mime_type=declared_mime[:250],
         detected_mime_type=detected,

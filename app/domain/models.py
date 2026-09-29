@@ -62,6 +62,7 @@ class Artifact(Base):
     public_id: Mapped[str] = mapped_column(String(64), unique=True, index=True)
     case_id: Mapped[int] = mapped_column(ForeignKey("cases.id"), index=True)
     original_filename: Mapped[str] = mapped_column(String(512))
+    document_role: Mapped[str] = mapped_column(String(32), default='unspecified')
     safe_filename: Mapped[str] = mapped_column(String(512))
     mime_type: Mapped[str] = mapped_column(String(255), default="")
     detected_mime_type: Mapped[str] = mapped_column(String(255), default="")
@@ -432,6 +433,43 @@ class AuditEvent(Base):
     detail: Mapped[dict] = mapped_column(MutableDict.as_mutable(JSON),
                                          default=dict)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+class ReviewRun(Base):
+    __tablename__ = 'review_runs'
+    id: Mapped[int] = mapped_column(primary_key=True)
+    public_id: Mapped[str] = mapped_column(String(64), unique=True)
+    case_id: Mapped[int] = mapped_column(ForeignKey('cases.id'), index=True)
+    derivation_run_id: Mapped[int] = mapped_column(ForeignKey('processing_runs.id'), index=True)
+    provider: Mapped[str] = mapped_column(String(64))
+    model: Mapped[str] = mapped_column(String(128))
+    schema_version: Mapped[str] = mapped_column(String(64))
+    status: Mapped[str] = mapped_column(String(32))
+    runtime_ms: Mapped[int] = mapped_column(Integer, default=0)
+    error_code: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    output: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    source_index: Mapped[list] = mapped_column(JSON, default=list)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
+class DiagnosticHypothesis(Base):
+    __tablename__ = 'diagnostic_hypotheses'
+    id: Mapped[int] = mapped_column(primary_key=True)
+    review_run_id: Mapped[int] = mapped_column(ForeignKey('review_runs.id'), index=True)
+    rank: Mapped[int] = mapped_column(Integer)
+    label: Mapped[str] = mapped_column(Text)
+    confidence_label: Mapped[str] = mapped_column(String(8))
+    insufficient_support: Mapped[bool] = mapped_column(Boolean)
+
+
+class HypothesisEvidence(Base):
+    __tablename__ = 'hypothesis_evidence'
+    id: Mapped[int] = mapped_column(primary_key=True)
+    hypothesis_id: Mapped[int] = mapped_column(ForeignKey('diagnostic_hypotheses.id'), index=True)
+    source_ref: Mapped[str] = mapped_column(String(255))
+    artifact_id: Mapped[int | None] = mapped_column(ForeignKey('artifacts.id'), nullable=True)
+    dossier_revision_id: Mapped[int | None] = mapped_column(ForeignKey('dossier_revisions.id'), nullable=True)
+    relationship_type: Mapped[str] = mapped_column(String(16))
 
 
 class DossierRevision(Base):

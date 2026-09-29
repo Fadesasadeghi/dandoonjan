@@ -29,3 +29,15 @@ def test_dossier_rejects_unknown_and_preserves_history(api_client):
     with Session() as db:
         case = db.query(Case).filter_by(public_id=cid).one()
         assert [r.medications for r in db.query(DossierRevision).filter_by(case_id=case.id).order_by(DossierRevision.id)] == ['none', 'unknown']
+
+
+def test_empty_dossier_enrolls_once_without_fabricating_information(api_client):
+    from app.domain.models import DossierRevision
+    client, sessions, _ = api_client
+    cid = client.post('/api/cases', data={'question':'Synthetic'}).json()['case_id']
+    first = client.put(f'/api/cases/{cid}/dossier', json={}).json()
+    second = client.put(f'/api/cases/{cid}/dossier', json={}).json()
+    assert first['case_version'] == second['case_version']
+    with sessions() as db:
+        assert db.query(DossierRevision).count() == 1
+    assert client.post(f'/api/cases/{cid}/process').json()['status'] == 'NEEDS_MORE_EVIDENCE'
