@@ -1,0 +1,86 @@
+{
+  "scope": "Final diff from 973fb86 plus new evidence/documentation; supplied ZIP excluded and preserved untracked. All twelve stage PNGs and three PDF pages reviewed visually; PDF text scanned.",
+  "patterns": [
+    "private_key",
+    "provider_key",
+    "github_token",
+    "credential_url",
+    "inline_image_payload"
+  ],
+  "files_checked": [
+    "alembic/env.py",
+    "alembic/versions/83b20cd5e702_multimodal_reviews.py",
+    "app/ai/gateway.py",
+    "app/ai/multimodal.py",
+    "app/ai/providers.py",
+    "app/ai/review.py",
+    "app/ai/review_schema.py",
+    "app/api/routes.py",
+    "app/config.py",
+    "app/core/artifacts/ingestion.py",
+    "app/core/cases/dossier.py",
+    "app/core/cases/sample.py",
+    "app/domain/models.py",
+    "app/governance/immutability.py",
+    "app/main.py",
+    "app/pipeline/orchestrator.py",
+    "app/pipeline/reporting.py",
+    "docs/next-phase/ACCEPTANCE.md",
+    "docs/next-phase/evidence/contrast.json",
+    "docs/next-phase/evidence/final-linux-junit.xml",
+    "docs/next-phase/evidence/final-linux-pytest.log",
+    "docs/next-phase/evidence/final-offline-junit.xml",
+    "docs/next-phase/evidence/final-offline-pytest.log",
+    "docs/next-phase/evidence/initial-linux-junit.xml",
+    "docs/next-phase/evidence/initial-linux-pytest.log",
+    "docs/next-phase/evidence/interrupted-environment-attempt.log",
+    "docs/next-phase/evidence/linux-environment.json",
+    "docs/next-phase/evidence/offline-report.pdf",
+    "docs/next-phase/evidence/offline-run.json",
+    "docs/next-phase/evidence/offline-runtime.json",
+    "docs/next-phase/evidence/offline-server.log",
+    "docs/next-phase/evidence/privacy-review.json",
+    "docs/next-phase/evidence/rc-runtime-linux/postgresql-runtime.json",
+    "docs/next-phase/evidence/rc-runtime-linux/postgresql-server.log",
+    "docs/next-phase/evidence/rc-runtime-linux/sqlite-runtime.json",
+    "docs/next-phase/evidence/rc-runtime-linux/sqlite-server.log",
+    "docs/next-phase/evidence/rc-runtime/sqlite-runtime.json",
+    "docs/next-phase/evidence/rc-runtime/sqlite-server.log",
+    "docs/next-phase/evidence/verification-environment-install.log",
+    "docs/next-phase/evidence/verification-metadata.json",
+    "frontend/app.js",
+    "frontend/index.html",
+    "frontend/styles.css",
+    "frontend/tooth.svg",
+    "tests/next_phase/test_contract.py",
+    "tests/next_phase/test_dossier.py",
+    "tests/next_phase/test_dossier_migration.py",
+    "tests/next_phase/test_multimodal.py",
+    "tests/next_phase/test_review_flow.py",
+    "verification/record_next_phase_metadata.py",
+    "verification/test_next_phase_browser.py",
+    "verification/test_next_phase_runtime.py",
+    "verification/test_p1_browser.py",
+    "verification/test_rc_postgres.py"
+  ],
+  "findings": [],
+  "application_logs": {
+    "docs/next-phase/evidence/offline-server.log": {
+      "records": 63,
+      "only_level_event_status": true
+    },
+    "docs/next-phase/evidence/rc-runtime/sqlite-server.log": {
+      "records": 70,
+      "only_level_event_status": true
+    },
+    "docs/next-phase/evidence/rc-runtime-linux/postgresql-server.log": {
+      "records": 82,
+      "only_level_event_status": true
+    },
+    "docs/next-phase/evidence/rc-runtime-linux/sqlite-server.log": {
+      "records": 82,
+      "only_level_event_status": true
+    }
+  },
+  "limitation": "Pattern scan plus manual diff/artifact review; not proof against all possible secret formats."
+}

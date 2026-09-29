@@ -1,0 +1,14 @@
+{
+  "backend": "postgresql",
+  "data": "synthetic only",
+  "simultaneous_cases": 5,
+  "request_start_spread_seconds": 0.0028,
+  "all_five_request_intervals_overlap": true,
+  "isolated_assessments_and_reports": true,
+  "persisted_files": 5,
+  "restart_report_and_file_equality": true,
+  "reuse_after_restart": true,
+  "production_mock_configuration_refused": true,
+  "private_content_or_token_canaries_in_logs": false,
+  "log_records_inspected": 82
+}

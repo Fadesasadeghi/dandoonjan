@@ -1,0 +1,11 @@
+{
+  "mode": "MOCK",
+  "live_provider_used": false,
+  "cases": 5,
+  "persisted_files": 15,
+  "shared_reports_unchanged_after_restart": true,
+  "source_case_isolation": true,
+  "log_records_checked": 63,
+  "content_canaries_present": false,
+  "radiograph": "NOT VERIFIED: nonclinical transport pattern only"
+}

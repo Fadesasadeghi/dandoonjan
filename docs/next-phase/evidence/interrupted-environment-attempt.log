@@ -1,0 +1,19 @@
+Error processing line 1 of C:\Users\Admin\AppData\Local\Temp\dandoonjan-p0-regression-venv\Lib\site-packages\distutils-precedence.pth:
+
+  Traceback (most recent call last):
+    File "<frozen site>", line 186, in addpackage
+    File "<string>", line 1, in <module>
+  AttributeError: module '_distutils_hack' has no attribute 'add_shim'
+
+Remainder of file ignored
+Error processing line 1 of C:\Users\Admin\AppData\Local\Temp\dandoonjan-p0-regression-venv\Lib\site-packages\distutils-precedence.pth:
+
+  Traceback (most recent call last):
+    File "<frozen site>", line 186, in addpackage
+    File "<string>", line 1, in <module>
+  AttributeError: module '_distutils_hack' has no attribute 'add_shim'
+
+Remainder of file ignored
+Traceback (most recent call last):
+  File "<string>", line 1, in <module>
+AttributeError: module 'pytest' has no attribute 'main'

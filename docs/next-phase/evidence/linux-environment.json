@@ -1,0 +1,15 @@
+{
+  "python": "3.11.16",
+  "platform": "Linux",
+  "postgresql": "postgres (PostgreSQL) 16.15",
+  "packages": {
+    "pytest": "9.1.1",
+    "fastapi": "0.141.1",
+    "starlette": "1.7.0",
+    "sqlalchemy": "2.1.1",
+    "pymupdf": "1.28.2",
+    "pillow": "12.3.0",
+    "anyio": "4.15.1",
+    "psycopg": "3.3.6"
+  }
+}
