@@ -66,7 +66,11 @@ def _reject_delete(mapper, connection, target, entity):
 
 def register_immutability_guards() -> None:
     # Imported lazily to avoid a circular import with app.domain.models
-    from app.domain.models import Artifact, AssessmentSnapshot, AuditEvent
+    from app.domain.models import Artifact, AssessmentSnapshot, AuditEvent, DossierRevision
+    event.listen(DossierRevision, "before_update", lambda m, c, t: _check_frozen(
+        m, c, t, tuple(col.name for col in DossierRevision.__table__.columns), "DossierRevision"))
+    event.listen(DossierRevision, "before_delete",
+                 lambda m, c, t: _reject_delete(m, c, t, "DossierRevision"))
     event.listen(AssessmentSnapshot, "before_update", lambda m, c, t: _check_frozen(
         m, c, t, SNAPSHOT_PROTECTED_FIELDS, "AssessmentSnapshot"))
     event.listen(AuditEvent, "before_update", lambda m, c, t: _check_frozen(

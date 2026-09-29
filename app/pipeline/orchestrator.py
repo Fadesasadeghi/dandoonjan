@@ -91,7 +91,9 @@ def effective_input_hash(db: Session, case: Case) -> str:
     """Stable case inputs and versioned processing configuration for reuse."""
     settings = get_settings()
     pack = get_active_pack(db)
+    from app.core.cases.dossier import fields
     material = {
+        "dossier": fields(case),
         "schema": PIPELINE_SCHEMA_VERSION,
         "modules": MODULE_VERSIONS,
         "provider": settings.ai_provider,

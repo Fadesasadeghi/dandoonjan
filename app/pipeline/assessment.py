@@ -110,8 +110,9 @@ def screen_case_text(case: Case) -> tuple[SafetyState, list[str]]:
     """Intake safety screening (D3): text-only, artifact-independent. Runs BEFORE
     any document-dependent early exit so safety and evidence sufficiency stay
     orthogonal."""
+    from app.core.cases.dossier import fields
     joined = " ".join(filter(None, [case.question_text or "", case.context_text or "",
-                                    case.dentist_recommendation_text or ""])).lower()
+                                    case.dentist_recommendation_text or "", *fields(case).values()])).lower()
     if any(p in joined for p in BLOCKED_PATTERNS):
         return SafetyState.BLOCKED, ["unsafe request pattern"]
     if any(p in joined for p in URGENT_PATTERNS):

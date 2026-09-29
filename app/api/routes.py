@@ -17,6 +17,21 @@ from app.governance.record import audit
 from app.pipeline.orchestrator import run_case_pipeline
 
 router = APIRouter()
+from app.core.cases import dossier
+
+
+@router.get('/cases/{case_public_id}/dossier')
+def get_dossier(case_public_id: str, db: Session = Depends(get_db, scope='function')):
+    return dossier.presentation(_case_or_404(db, case_public_id))
+
+
+@router.put('/cases/{case_public_id}/dossier')
+def put_dossier(case_public_id: str, patch: dossier.DossierPatch,
+                db: Session = Depends(get_db, scope='function')):
+    case = _case_or_404(db, case_public_id)
+    result = dossier.update(db, case, patch)
+    audit(db, 'dossier_saved', case_id=case.id, case_version=case.version)
+    return result
 
 DEMO_SAMPLE_TEXT = """Treatment Plan
 Tooth 46: RCT

@@ -434,6 +434,25 @@ class AuditEvent(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
 
+class DossierRevision(Base):
+    """Append-only intake history; empty fields mean not supplied, never 'none'."""
+    __tablename__ = "dossier_revisions"
+    __table_args__ = (UniqueConstraint("case_id", "case_version"),)
+    id: Mapped[int] = mapped_column(primary_key=True)
+    public_id: Mapped[str] = mapped_column(String(64), unique=True)
+    case_id: Mapped[int] = mapped_column(ForeignKey("cases.id"), index=True)
+    case_version: Mapped[int] = mapped_column(Integer)
+    symptoms: Mapped[str] = mapped_column(Text, default="")
+    duration: Mapped[str] = mapped_column(Text, default="")
+    medical_history: Mapped[str] = mapped_column(Text, default="")
+    medications: Mapped[str] = mapped_column(Text, default="")
+    allergies: Mapped[str] = mapped_column(Text, default="")
+    treatment_plan: Mapped[str] = mapped_column(Text, default="")
+    previous_reports: Mapped[str] = mapped_column(Text, default="")
+    previous_treatments: Mapped[str] = mapped_column(Text, default="")
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+
+
 # Register real-immutability event guards (P0-05) once all mapped classes exist.
 from app.governance.immutability import register_immutability_guards  # noqa: E402
 register_immutability_guards()
