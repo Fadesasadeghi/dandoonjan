@@ -1,0 +1,21 @@
+{
+  "starting_head": "5262c3e82761e65acdad07f8fee1eeb2cd98f649",
+  "sha256": {
+    "frontend/index.html": "12872252eabd09eab2158f436919f335ebd78f5dd719570bbf533c29fe8d54a2",
+    "frontend/styles.css": "fef29dc6d33b21147ebe65ff4a0f233819873d5886f33c0f58b314f3cdcc2a95",
+    "frontend/landing.css": "b228bf5a635909cc5822429a5764a2da372d0992bc007b8e22089465a2201b9e",
+    "frontend/landing.js": "b77418c179ca8b24ba23c0a0bcbca87a1806a01f2111868996a8c715713e75c5",
+    "frontend/landing-tooth.webp": "391632e1e8930be0fa883f7f9bdafc9f857ca8dc8f3563c4c11ef8e738eb33bf",
+    "frontend/landing-tooth-small.webp": "a0546acfc8827ef9cd53151c44603181da7c3efea4a88811966accb65d1fc9a6",
+    "tools/artwork/render_tooth.js": "71c7118b9ede7675b109195f18a3f6e23972c089bfb56992a85114f4e675502e",
+    "tools/artwork/render_tooth.py": "e987a404a7357ef2caa80da2aeeec1024b1e6d8375c9eaf165dbe2d2a1b102f3"
+  },
+  "checks": {
+    "downstream_dom_identical": true,
+    "backend_appjs_old_tooth_unchanged": true,
+    "historical_evidence_unchanged": true,
+    "credential_pattern_matches": 0,
+    "no_remote_frontend_resources": true
+  },
+  "scope": "Explicit new/changed visual source files only; ZIP never opened. Pattern checks do not constitute a universal secret audit."
+}

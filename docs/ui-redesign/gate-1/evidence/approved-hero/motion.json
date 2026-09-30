@@ -1,0 +1,10 @@
+{
+  "browser": "154.0.8037.92",
+  "animations": [
+    {
+      "state": "finished",
+      "iterations": 1
+    }
+  ],
+  "scope": "finite entrance, hover, create action; local Chrome"
+}

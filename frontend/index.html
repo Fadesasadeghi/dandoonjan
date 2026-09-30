@@ -3,27 +3,47 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#111412">
+  <meta name="theme-color" content="#0d0f10">
   <title>دندونجان — فهم بهتر پرونده، قبل از درمان</title>
   <link rel="stylesheet" href="/ui/styles.css">
+  <link rel="stylesheet" href="/ui/landing.css">
   <script src="/ui/app.js" defer></script>
+  <script src="/ui/landing.js" defer></script>
 </head>
 <body>
   <a class="skip-link" href="#main">رفتن به محتوای اصلی</a>
   <header class="shell site-header"><a class="brand" href="/">دندونجان<span class="brand-mark" aria-hidden="true"></span></a><span>همراه گفت‌وگوی شما با دندان‌پزشک</span></header>
   <main id="main">
-    <section id="view-home" class="view active shell">
-      <div class="hero">
-        <div class="hero-copy"><p class="eyebrow">قبل از درمان، فرصتی برای فهمیدن</p>
-          <h1>زیباییِ <em>فهمیدن</em></h1>
-          <p class="lede">پیشنهاد دندان‌پزشک را کنار مدارک بگذارید؛ ببینید چه می‌دانیم، چه نمی‌دانیم و پیش از تصمیم چه باید بپرسیم.</p>
-          <div class="actions"><button id="start-case" class="btn primary">ساخت پرونده</button><button id="start-sample" class="btn quiet">مشاهده پرونده نمونه</button></div>
-          <p class="small">نمونه کاملاً ساختگی است و از همین مسیر بررسی می‌شود.</p>
-          <button id="resume-case" class="btn text hidden">ادامهٔ پروندهٔ این مرورگر</button>
+    <section id="view-home" class="view active" aria-labelledby="landing-title">
+      <div class="landing-scene">
+        <div class="landing-heading">
+          <p class="landing-eyebrow">قبل از درمان، فرصتی برای فهمیدن</p>
+          <h1 id="landing-title">زیباییِ <em>فهمیدن</em></h1>
         </div>
-        <figure class="tooth-scene"><img src="/ui/tooth.svg" width="500" height="640" alt="تصویر تزئینی یک دندان مرواریدی؛ نمایش پروندهٔ واقعی نیست"><figcaption>هر مدرک، بخشی از تصویر روشن‌تر.</figcaption></figure>
+        <figure class="landing-art" aria-label="تصویر هنری یک دندان مرواریدی؛ نمایش پرونده یا یافتهٔ پزشکی نیست">
+          <div class="landing-artwork" aria-hidden="true">
+            <div class="landing-fallback" role="status">تصویر قهرمان بارگذاری نشد؛ صفحه همچنان قابل استفاده است.</div>
+            <img id="landing-tooth" src="/ui/hero-tooth.png" width="1312" height="1199" fetchpriority="high" decoding="async" alt="">
+          </div>
+          <figcaption><span class="art-caption-rule" aria-hidden="true"></span>هر مدرک، بخشی از تصویر روشن‌تر</figcaption>
+        </figure>
+        <div class="landing-invitation">
+          <p class="lede">مدارک و پیشنهاد درمان را کنار هم ببینید؛<br class="landing-desktop-break"> با شناخت شواهد و آنچه هنوز روشن نیست.</p>
+          <div class="landing-actions">
+            <button id="start-case" class="btn primary" type="button">ساخت پرونده<span aria-hidden="true"></span></button>
+            <button id="start-sample" class="btn landing-secondary" type="button" aria-describedby="sample-context">مشاهده پرونده نمونه</button>
+          </div>
+          <p id="sample-context" class="landing-sample-note">پروندهٔ نمونه کاملاً ساختگی است.</p>
+          <p class="landing-limitation">برای فهم شواهد و گفت‌وگو با دندان‌پزشک؛<br>جایگزین معاینه، تشخیص یا تجویز درمان نیست.</p>
+          <button id="resume-case" class="btn text hidden" type="button">ادامهٔ پروندهٔ این مرورگر</button>
+        </div>
+        <div class="landing-scene-index" aria-hidden="true"><span>DANDOONJAN</span><span>شواهد، پیش از تصمیم</span></div>
       </div>
-      <div class="story"><h2>از مدارک تا سؤال‌های روشن‌تر</h2><div class="steps"><article><span>۰۱ / پرونده</span><h3>سؤال شما</h3><p>فقط سؤال و پیشنهادی که شنیده‌اید.</p></article><article><span>۰۲ / شواهد</span><h3>مدارک در کنار هم</h3><p>منبع هر گفته و محدودیت هر مدرک مشخص می‌ماند.</p></article><article><span>۰۳ / گفت‌وگو</span><h3>پیش از تصمیم</h3><p>گزارشی برای پرسیدن؛ نه تشخیص یا تجویز درمان.</p></article></div></div>
+      <section class="landing-story" aria-labelledby="landing-story-title">
+        <p class="landing-eyebrow">از مدارک تا گفت‌وگو</p>
+        <h2 id="landing-story-title">تصمیم روشن‌تر،<br><span>با سؤال‌های بهتر.</span></h2>
+        <div class="landing-story-copy"><p>سؤال شما نقطهٔ شروع است. مدارک را کنار پیشنهاد درمان می‌گذاریم تا پشتوانهٔ هر گفته و محدودیت‌های آن روشن بماند.</p><p>آنچه می‌دانیم، آنچه هنوز نمی‌دانیم و آنچه باید از دندان‌پزشک بپرسیم.</p></div>
+      </section>
     </section>
     <section id="view-workspace" class="view shell workspace">
       <div class="workspace-art" aria-hidden="true"><img src="/ui/tooth.svg" width="500" height="640" alt=""><span>پرونده‌ای حول شواهد شما</span><span class="source-layer layer-one">علائم و شرح حال</span><span class="source-layer layer-two">تصاویر و مدارک</span><span class="source-layer layer-three">سابقه و سؤال شما</span></div>

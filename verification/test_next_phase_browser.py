@@ -1,6 +1,7 @@
 """Offline Chrome acceptance. Evidence stays separate from the protected RC."""
 import importlib.util
 import json
+import os
 from pathlib import Path
 import pytest
 from playwright.sync_api import expect
@@ -9,7 +10,7 @@ spec = importlib.util.spec_from_file_location('prior_browser', Path(__file__).wi
 prior = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(prior)
 server, browser, page = prior.server, prior.browser, prior.page
-EVIDENCE = Path('docs/next-phase/evidence')
+EVIDENCE = Path(os.environ.get('NEXT_PHASE_EVIDENCE', 'docs/next-phase/evidence'))
 
 
 @pytest.mark.parametrize('width', [390, 768, 1440])

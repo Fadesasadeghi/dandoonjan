@@ -1,0 +1,420 @@
+{
+  "case_id": "CASE-e93dfd71ec62",
+  "report_id": "RPT-01fc391cf50d",
+  "report_kind": "STANDARD",
+  "snapshot_id": "SNP-ae6f3758ccf2",
+  "safety_state": "NORMAL",
+  "sections": [
+    {
+      "section": "your_question",
+      "text": "آیا پیشنهاد عصب‌کشی برای دندان ۴۶ پشتیبانی کافی دارد؟"
+    },
+    {
+      "section": "dentist_recommendation",
+      "text": "دندان‌پزشک عصب‌کشی و روکش را پیشنهاد کرده است."
+    },
+    {
+      "section": "found_in_documents",
+      "text": "پیشنهاد دندان‌پزشک: ROOT_CANAL دندان 46 (پیشنهاد شده).\nپیشنهاد دندان‌پزشک: CROWN دندان 46 (پیشنهاد شده).\nدر مدارک، ROOT_CANAL دندان 46 (در طرح درمان ثبت شده) دیده شد.\nدر مدارک، ROOT_CANAL (پیشنهاد شده) دیده شد.\nدر مدارک، CROWN (پیشنهاد شده) دیده شد.\nدر مدارک، ROOT_CANAL دندان 46 (پیشنهاد شده) دیده شد."
+    },
+    {
+      "section": "evidence_status",
+      "text": "• مدارک فعلی برای قضاوت درباره این ادعا کافی نیست — ROOT_CANAL دندان 46 (پیشنهاد شده) (این به معنی اثبات ضرورت پزشکی نیست).\n• مدارک فعلی برای قضاوت درباره این ادعا کافی نیست — CROWN دندان 46 (پیشنهاد شده) (این به معنی اثبات ضرورت پزشکی نیست).\n• مدارک فعلی برای قضاوت درباره این ادعا کافی نیست — ROOT_CANAL دندان 46 (در طرح درمان ثبت شده) (این به معنی اثبات ضرورت پزشکی نیست).\n• مدارک فعلی برای قضاوت درباره این ادعا کافی نیست — ROOT_CANAL (پیشنهاد شده) (این به معنی اثبات ضرورت پزشکی نیست).\n• مدارک فعلی برای قضاوت درباره این ادعا کافی نیست — CROWN (پیشنهاد شده) (این به معنی اثبات ضرورت پزشکی نیست).\n• مدارک فعلی برای قضاوت درباره این ادعا کافی نیست — ROOT_CANAL دندان 46 (پیشنهاد شده) (این به معنی اثبات ضرورت پزشکی نیست)."
+    },
+    {
+      "section": "still_unclear",
+      "text": "• ROOT_CANAL دندان 46 (پیشنهاد شده): مدارک فعلی برای قضاوت درباره این ادعا کافی نیست\n• CROWN دندان 46 (پیشنهاد شده): مدارک فعلی برای قضاوت درباره این ادعا کافی نیست\n• ROOT_CANAL دندان 46 (در طرح درمان ثبت شده): مدارک فعلی برای قضاوت درباره این ادعا کافی نیست\n• ROOT_CANAL (پیشنهاد شده): مدارک فعلی برای قضاوت درباره این ادعا کافی نیست\n• CROWN (پیشنهاد شده): مدارک فعلی برای قضاوت درباره این ادعا کافی نیست\n• ROOT_CANAL دندان 46 (پیشنهاد شده): مدارک فعلی برای قضاوت درباره این ادعا کافی نیست"
+    },
+    {
+      "section": "missing_evidence",
+      "text": "• تست حیات عصب دندان (پالپ)\n• ثبت رسمی طرح درمان\n• رادیوگرافی مناسب\n• شرح کامل علائم و سابقه\n• معاینه حضوری بالینی"
+    },
+    {
+      "section": "topics_to_discuss",
+      "text": "نتایج تست‌های لازم و دلیل بالینی پیشنهاد درمان"
+    },
+    {
+      "section": "questions_to_ask",
+      "text": "• چه یافته‌هایی در معاینه و رادیوگرافی باعث این پیشنهاد شده است؟\n• آیا گزینه‌های درمانی جایگزینی وجود دارد؟\n• اگر درمان انجام نشود چه اتفاقی ممکن است بیفتد؟"
+    },
+    {
+      "section": "confidence",
+      "text": "سطح اطمینان کلی: نامشخص (شواهد ناکافی)"
+    },
+    {
+      "section": "safety_note",
+      "text": "این گزارش توضیح شواهد است و جایگزین معاینه دندان‌پزشک نیست."
+    }
+  ],
+  "review": {
+    "patient_summary": [
+      {
+        "text": "این خروجی نمونهٔ ساختگی است. برای روشن‌شدن علت علائم، معاینه لازم است.",
+        "source_refs": [],
+        "insufficient_support": true
+      }
+    ],
+    "professional_report": [
+      {
+        "text": "مدارک ثبت‌شده برای بررسی منبع‌محور آماده‌اند؛ در اجرای Mock تحلیل بالینی تصویر غیرفعال است.",
+        "source_refs": [
+          "ART-196a1a7d3072:text"
+        ],
+        "insufficient_support": false
+      }
+    ],
+    "diagnostic_hypotheses": [
+      {
+        "truth_type": "MODEL_INFERRED",
+        "label": "حساسیت دندانی — فرضیهٔ نمایشی Mock",
+        "confidence_label": "LOW",
+        "supporting_evidence_refs": [],
+        "contradicting_evidence_refs": [],
+        "missing_information": [],
+        "recommended_checks": [
+          {
+            "text": "دربارهٔ معاینه و بررسی تکمیلی با دندان‌پزشک گفت‌وگو کنید.",
+            "source_refs": [],
+            "insufficient_support": true
+          }
+        ],
+        "insufficient_support": true
+      }
+    ],
+    "safety_red_flags": [],
+    "limitations": [
+      {
+        "text": "Mock؛ بدون تحلیل واقعی تصویر یا اعتبارسنجی بالینی. اطمینان کیفی، احتمال بیماری نیست.",
+        "source_refs": [],
+        "insufficient_support": true
+      }
+    ],
+    "source_index": [
+      {
+        "source_ref": "CASE-e93dfd71ec62:v6:main_question",
+        "kind": "PATIENT_REPORTED",
+        "artifact_id": null,
+        "page": null,
+        "label": "main_question",
+        "sha256": "b678295f9e8fa8b77a248fdb7afadd09d16a438ea76b3e009dadedfba73d584f"
+      },
+      {
+        "source_ref": "CASE-e93dfd71ec62:v6:clinician_recommendation",
+        "kind": "CLINICIAN_REPORTED",
+        "artifact_id": null,
+        "page": null,
+        "label": "clinician_recommendation",
+        "sha256": "3010173c7d6e791f9df4ad4d0c072aac590ecaffc5e5c43c8cf45c89206f20ee"
+      },
+      {
+        "source_ref": "CASE-e93dfd71ec62:v6:symptoms",
+        "kind": "PATIENT_REPORTED",
+        "artifact_id": null,
+        "page": null,
+        "label": "symptoms",
+        "sha256": "d53ec9cdc8f0d21f548b150701190a6040d65f2ebbe51417758ab4a2325ea78c"
+      },
+      {
+        "source_ref": "CASE-e93dfd71ec62:v6:duration",
+        "kind": "PATIENT_REPORTED",
+        "artifact_id": null,
+        "page": null,
+        "label": "duration",
+        "sha256": "9b5e3b8ed93bc2b3f28a6577b49055cc1ccca80ca01266ff36a27b0a12286232"
+      },
+      {
+        "source_ref": "CASE-e93dfd71ec62:v6:medical_history",
+        "kind": "PATIENT_REPORTED",
+        "artifact_id": null,
+        "page": null,
+        "label": "medical_history",
+        "sha256": "62fe4d1d2a3b3f28ac0aef2c2f77946c95e1f5a40316997e81f58d0bdc14abd6"
+      },
+      {
+        "source_ref": "CASE-e93dfd71ec62:v6:medications",
+        "kind": "PATIENT_REPORTED",
+        "artifact_id": null,
+        "page": null,
+        "label": "medications",
+        "sha256": "8c2d826d721e558b692f8c986b0f582fc5c5dd3c010b853d05ff8fac7d97700d"
+      },
+      {
+        "source_ref": "CASE-e93dfd71ec62:v6:allergies",
+        "kind": "PATIENT_REPORTED",
+        "artifact_id": null,
+        "page": null,
+        "label": "allergies",
+        "sha256": "8c2d826d721e558b692f8c986b0f582fc5c5dd3c010b853d05ff8fac7d97700d"
+      },
+      {
+        "source_ref": "CASE-e93dfd71ec62:v6:treatment_plan",
+        "kind": "PATIENT_REPORTED",
+        "artifact_id": null,
+        "page": null,
+        "label": "treatment_plan",
+        "sha256": "1c30f19d02f65e00f97b1686b1b2c98dda20fb30e2974923d5974f4cd11ec852"
+      },
+      {
+        "source_ref": "CASE-e93dfd71ec62:v6:previous_reports",
+        "kind": "PATIENT_REPORTED",
+        "artifact_id": null,
+        "page": null,
+        "label": "previous_reports",
+        "sha256": "4bb1192a2275115880f11b170d611330ec035c61e9fc965e6b9182704999e15d"
+      },
+      {
+        "source_ref": "CASE-e93dfd71ec62:v6:previous_treatments",
+        "kind": "PATIENT_REPORTED",
+        "artifact_id": null,
+        "page": null,
+        "label": "previous_treatments",
+        "sha256": "8c2d826d721e558b692f8c986b0f582fc5c5dd3c010b853d05ff8fac7d97700d"
+      },
+      {
+        "source_ref": "ART-196a1a7d3072:text",
+        "kind": "DOCUMENT_EXTRACTED",
+        "artifact_id": "ART-196a1a7d3072",
+        "page": null,
+        "label": "document-11",
+        "document_role": "unspecified",
+        "sha256": "bd9e385f65a7e11fa722bb93afe6249a5c0ddcdb1cb7fda62a22b66e25e2988d"
+      },
+      {
+        "source_ref": "ART-d1588c907de5:page:1",
+        "kind": "DOCUMENT_EXTRACTED",
+        "artifact_id": "ART-d1588c907de5",
+        "page": 1,
+        "label": "document-12",
+        "document_role": "dental_image",
+        "sha256": "b799d431bf45f5a1a716fcd415cac619637ef784875376caa5eb6bd7b08a9c42",
+        "derivative_sha256": "0591b06aa245c805968bd77f37a711a993e8c875978f45d92a6046e2bf45b845"
+      },
+      {
+        "source_ref": "ART-3e39b8587c40:page:1",
+        "kind": "DOCUMENT_EXTRACTED",
+        "artifact_id": "ART-3e39b8587c40",
+        "page": 1,
+        "label": "document-13",
+        "document_role": "treatment_plan",
+        "sha256": "0bcf19260b433b740490a0b40a8c5e5a8da170670decb35f9ceeb76b4a5cf968",
+        "derivative_sha256": "a867fec6f06ab95b5c3cdb606bd50d48f45d9bf3eda006440fc04c5eaa03484c"
+      },
+      {
+        "source_ref": "ART-e375b0512acc:text",
+        "kind": "DOCUMENT_EXTRACTED",
+        "artifact_id": "ART-e375b0512acc",
+        "page": null,
+        "label": "document-14",
+        "document_role": "previous_report",
+        "sha256": "55951068fa50d0e00570f1b45ea323fb2a600f09257bcb74ab7baa27320149f1"
+      }
+    ],
+    "run": {
+      "run_id": "MRUN-8870070fe549",
+      "provider": "mock",
+      "model": "mock-review-v1",
+      "runtime_ms": 47,
+      "created_at": "2026-09-30T07:03:29.675347+00:00",
+      "schema_version": "multimodal-review-v1",
+      "mode": "MOCK"
+    }
+  },
+  "presentation": {
+    "materials": [
+      {
+        "filename": "طرح-درمان-نمونه.txt",
+        "image_analysis_disabled": false
+      },
+      {
+        "filename": "synthetic-pattern-not-radiograph.png",
+        "image_analysis_disabled": true
+      },
+      {
+        "filename": "synthetic-plan.pdf",
+        "image_analysis_disabled": false
+      },
+      {
+        "filename": "synthetic-prior-report.txt",
+        "image_analysis_disabled": false
+      }
+    ],
+    "claims": [
+      {
+        "label": "عصب‌کشی دندان 46 (پیشنهاد شده)",
+        "source": "گفتهٔ دندان‌پزشک به روایت شما",
+        "status": "مدارک فعلی برای قضاوت درباره این ادعا کافی نیست",
+        "evidence": [
+          {
+            "filename": "طرح-درمان-نمونه.txt",
+            "relationship": "مرتبط با ادعا؛ اثبات ضرورت درمان نیست"
+          },
+          {
+            "filename": "طرح-درمان-نمونه.txt",
+            "relationship": "مرتبط با ادعا؛ اثبات ضرورت درمان نیست"
+          },
+          {
+            "filename": "طرح-درمان-نمونه.txt",
+            "relationship": "مرتبط با ادعا؛ اثبات ضرورت درمان نیست"
+          },
+          {
+            "filename": "synthetic-plan.pdf",
+            "relationship": "مرتبط با ادعا؛ اثبات ضرورت درمان نیست"
+          },
+          {
+            "filename": "synthetic-plan.pdf",
+            "relationship": "مرتبط با ادعا؛ اثبات ضرورت درمان نیست"
+          },
+          {
+            "filename": "synthetic-prior-report.txt",
+            "relationship": "مرتبط با ادعا؛ اثبات ضرورت درمان نیست"
+          }
+        ],
+        "missing": [
+          "معاینه حضوری بالینی",
+          "شرح کامل علائم و سابقه",
+          "تست حیات عصب دندان (پالپ)",
+          "رادیوگرافی مناسب"
+        ]
+      },
+      {
+        "label": "روکش دندان 46 (پیشنهاد شده)",
+        "source": "گفتهٔ دندان‌پزشک به روایت شما",
+        "status": "مدارک فعلی برای قضاوت درباره این ادعا کافی نیست",
+        "evidence": [
+          {
+            "filename": "طرح-درمان-نمونه.txt",
+            "relationship": "مرتبط با ادعا؛ اثبات ضرورت درمان نیست"
+          },
+          {
+            "filename": "طرح-درمان-نمونه.txt",
+            "relationship": "مرتبط با ادعا؛ اثبات ضرورت درمان نیست"
+          },
+          {
+            "filename": "synthetic-plan.pdf",
+            "relationship": "مرتبط با ادعا؛ اثبات ضرورت درمان نیست"
+          },
+          {
+            "filename": "synthetic-prior-report.txt",
+            "relationship": "مرتبط با ادعا؛ اثبات ضرورت درمان نیست"
+          }
+        ],
+        "missing": [
+          "ثبت رسمی طرح درمان"
+        ]
+      },
+      {
+        "label": "عصب‌کشی دندان 46 (در طرح درمان ثبت شده)",
+        "source": "استخراج‌شده از سند",
+        "status": "مدارک فعلی برای قضاوت درباره این ادعا کافی نیست",
+        "evidence": [
+          {
+            "filename": "طرح-درمان-نمونه.txt",
+            "relationship": "مرتبط با ادعا؛ اثبات ضرورت درمان نیست"
+          },
+          {
+            "filename": "طرح-درمان-نمونه.txt",
+            "relationship": "مرتبط با ادعا؛ اثبات ضرورت درمان نیست"
+          },
+          {
+            "filename": "طرح-درمان-نمونه.txt",
+            "relationship": "مرتبط با ادعا؛ اثبات ضرورت درمان نیست"
+          },
+          {
+            "filename": "synthetic-plan.pdf",
+            "relationship": "مرتبط با ادعا؛ اثبات ضرورت درمان نیست"
+          },
+          {
+            "filename": "synthetic-plan.pdf",
+            "relationship": "مرتبط با ادعا؛ اثبات ضرورت درمان نیست"
+          },
+          {
+            "filename": "synthetic-prior-report.txt",
+            "relationship": "مرتبط با ادعا؛ اثبات ضرورت درمان نیست"
+          }
+        ],
+        "missing": [
+          "معاینه حضوری بالینی",
+          "شرح کامل علائم و سابقه",
+          "تست حیات عصب دندان (پالپ)",
+          "رادیوگرافی مناسب"
+        ]
+      },
+      {
+        "label": "عصب‌کشی (پیشنهاد شده)",
+        "source": "استخراج‌شده از سند",
+        "status": "مدارک فعلی برای قضاوت درباره این ادعا کافی نیست",
+        "evidence": [
+          {
+            "filename": "طرح-درمان-نمونه.txt",
+            "relationship": "مرتبط با ادعا؛ اثبات ضرورت درمان نیست"
+          },
+          {
+            "filename": "طرح-درمان-نمونه.txt",
+            "relationship": "مرتبط با ادعا؛ اثبات ضرورت درمان نیست"
+          },
+          {
+            "filename": "synthetic-plan.pdf",
+            "relationship": "مرتبط با ادعا؛ اثبات ضرورت درمان نیست"
+          }
+        ],
+        "missing": [
+          "معاینه حضوری بالینی",
+          "شرح کامل علائم و سابقه",
+          "تست حیات عصب دندان (پالپ)",
+          "رادیوگرافی مناسب"
+        ]
+      },
+      {
+        "label": "روکش (پیشنهاد شده)",
+        "source": "استخراج‌شده از سند",
+        "status": "مدارک فعلی برای قضاوت درباره این ادعا کافی نیست",
+        "evidence": [
+          {
+            "filename": "طرح-درمان-نمونه.txt",
+            "relationship": "مرتبط با ادعا؛ اثبات ضرورت درمان نیست"
+          }
+        ],
+        "missing": [
+          "ثبت رسمی طرح درمان"
+        ]
+      },
+      {
+        "label": "عصب‌کشی دندان 46 (پیشنهاد شده)",
+        "source": "استخراج‌شده از سند",
+        "status": "مدارک فعلی برای قضاوت درباره این ادعا کافی نیست",
+        "evidence": [
+          {
+            "filename": "طرح-درمان-نمونه.txt",
+            "relationship": "مرتبط با ادعا؛ اثبات ضرورت درمان نیست"
+          },
+          {
+            "filename": "طرح-درمان-نمونه.txt",
+            "relationship": "مرتبط با ادعا؛ اثبات ضرورت درمان نیست"
+          },
+          {
+            "filename": "طرح-درمان-نمونه.txt",
+            "relationship": "مرتبط با ادعا؛ اثبات ضرورت درمان نیست"
+          },
+          {
+            "filename": "synthetic-plan.pdf",
+            "relationship": "مرتبط با ادعا؛ اثبات ضرورت درمان نیست"
+          },
+          {
+            "filename": "synthetic-plan.pdf",
+            "relationship": "مرتبط با ادعا؛ اثبات ضرورت درمان نیست"
+          },
+          {
+            "filename": "synthetic-prior-report.txt",
+            "relationship": "مرتبط با ادعا؛ اثبات ضرورت درمان نیست"
+          }
+        ],
+        "missing": [
+          "معاینه حضوری بالینی",
+          "شرح کامل علائم و سابقه",
+          "تست حیات عصب دندان (پالپ)",
+          "رادیوگرافی مناسب"
+        ]
+      }
+    ]
+  }
+}

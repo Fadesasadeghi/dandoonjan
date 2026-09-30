@@ -1,0 +1,73 @@
+{
+  "python": "3.11.3",
+  "platform": "Windows",
+  "packages": {
+    "pytest": "9.1.1",
+    "fastapi": "0.141.1",
+    "starlette": "1.7.0",
+    "sqlalchemy": "2.1.1",
+    "playwright": "1.63.0",
+    "pymupdf": "1.28.2",
+    "pillow": "12.3.0",
+    "anyio": "4.15.1"
+  },
+  "chrome": "154.0.8037.92",
+  "reduced_motion": {
+    "media_matches": true,
+    "tooth_animation": "none",
+    "scan_display": "none",
+    "scroll_behavior": "auto"
+  },
+  "screenshots": {
+    "landing-390.png": [
+      390,
+      1364
+    ],
+    "landing-768.png": [
+      768,
+      1444
+    ],
+    "landing-1440.png": [
+      1440,
+      1398
+    ],
+    "dossier-390.png": [
+      390,
+      2065
+    ],
+    "dossier-768.png": [
+      768,
+      1758
+    ],
+    "dossier-1440.png": [
+      1440,
+      1707
+    ],
+    "analysis-390.png": [
+      390,
+      1035
+    ],
+    "analysis-768.png": [
+      768,
+      983
+    ],
+    "analysis-1440.png": [
+      1440,
+      1105
+    ],
+    "results-390.png": [
+      390,
+      2960
+    ],
+    "results-768.png": [
+      768,
+      2315
+    ],
+    "results-1440.png": [
+      1440,
+      2342
+    ]
+  },
+  "pdf_pages": 3,
+  "pdf_matches_recorded_snapshot_run_model": true
+}

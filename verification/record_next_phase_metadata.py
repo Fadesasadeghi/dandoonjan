@@ -1,6 +1,7 @@
 """Supplemental offline Chrome/PDF evidence; run as a module from the repo root."""
 import importlib.metadata
 import json
+import os
 import platform
 import tempfile
 from pathlib import Path
@@ -10,7 +11,7 @@ from playwright.sync_api import sync_playwright
 from verification.test_rc_runtime import running_server
 
 def main():
-    evidence = Path('docs/next-phase/evidence')
+    evidence = Path(os.environ.get('NEXT_PHASE_EVIDENCE', 'docs/next-phase/evidence'))
     record = {'python': platform.python_version(), 'platform': platform.system(),
               'packages': {n: importlib.metadata.version(n) for n in
                            ['pytest', 'fastapi', 'starlette', 'sqlalchemy', 'playwright', 'pymupdf', 'pillow', 'anyio']}}
@@ -24,7 +25,7 @@ def main():
                 page.goto(str(client.base_url))
                 record['reduced_motion'] = page.evaluate('''() => ({
                     media_matches: matchMedia('(prefers-reduced-motion: reduce)').matches,
-                    tooth_animation: getComputedStyle(document.querySelector('.tooth-scene img')).animationName,
+                    tooth_animation: getComputedStyle(document.querySelector('.landing-artwork')).animationName,
                     scan_display: getComputedStyle(document.querySelector('.scan-line')).display,
                     scroll_behavior: getComputedStyle(document.documentElement).scrollBehavior
                 })''')

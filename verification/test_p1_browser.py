@@ -26,7 +26,8 @@ def server(tmp_path_factory):
         port = sock.getsockname()[1]
     env = {**os.environ, "DJ_DATABASE_URL": f"sqlite:///{(folder / 'demo.db').as_posix()}",
         "DJ_ARTIFACT_STORAGE_DIR": str(folder / "store"), "DJ_AI_PROVIDER": "mock",
-        "DJ_ENVIRONMENT": "development", "DJ_OPENROUTER_API_KEY": "", "DJ_OPENAI_API_KEY": "",
+        "DJ_ENVIRONMENT": "development", "DJ_LIVE_PROVIDER_ENABLED": "false",
+        "DJ_OPENROUTER_API_KEY": "", "DJ_OPENAI_API_KEY": "",
         "DJ_REQUIRE_CLINICIAN_REVIEWED_KNOWLEDGE_PACK": "false"}
     with (folder / "server.log").open("w") as log:
         process = subprocess.Popen([sys.executable, "-m", "uvicorn", "app.main:app", "--host", "127.0.0.1", "--port", str(port)], cwd=ROOT, env=env, stdout=log, stderr=log)

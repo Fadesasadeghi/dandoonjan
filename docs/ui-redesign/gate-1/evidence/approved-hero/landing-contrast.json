@@ -1,0 +1,37 @@
+{
+  "scope": "sampled composited desktop text/CTA backgrounds",
+  "results": [
+    {
+      "selector": "#landing-title",
+      "minimum_ratio": 16.01294719234184
+    },
+    {
+      "selector": "#landing-title em",
+      "minimum_ratio": 7.372242353495995
+    },
+    {
+      "selector": ".landing-eyebrow",
+      "minimum_ratio": 7.583895383395426
+    },
+    {
+      "selector": ".lede",
+      "minimum_ratio": 9.832822442771617
+    },
+    {
+      "selector": "#start-case",
+      "minimum_ratio": 5.868332294126294
+    },
+    {
+      "selector": "#start-sample",
+      "minimum_ratio": 16.900549343507574
+    },
+    {
+      "selector": ".landing-sample-note",
+      "minimum_ratio": 8.704281006367035
+    },
+    {
+      "selector": ".landing-limitation",
+      "minimum_ratio": 8.276404941310284
+    }
+  ]
+}
