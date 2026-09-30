@@ -4,7 +4,10 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 os.environ.setdefault("DJ_DATABASE_URL", "sqlite:///./test_global.db")
 os.environ.setdefault("DJ_ARTIFACT_STORAGE_DIR", "./test_artifact_store")
-os.environ.setdefault("DJ_AI_PROVIDER", "mock")
+os.environ["DJ_AI_PROVIDER"] = "mock"
+os.environ["DJ_LIVE_PROVIDER_ENABLED"] = "false"
+os.environ["DJ_OPENROUTER_API_KEY"] = ""
+os.environ["DJ_OPENAI_API_KEY"] = ""
 
 import shutil
 

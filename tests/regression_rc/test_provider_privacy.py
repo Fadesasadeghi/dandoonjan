@@ -20,8 +20,9 @@ VALID = {"claims": [{"claim_type": "TREATMENT", "subject": "TOOTH_46",
 def offline_gateway(db, monkeypatch, payload):
     # Bypass credential initialization and replace the HTTP boundary completely.
     provider = object.__new__(OpenRouterProvider)
+    provider.model = "vendor/fixed-model"
     monkeypatch.setattr(provider, "_post", lambda *args: {
-        "choices": [{"message": {"content": json.dumps(payload)}}]})
+        "model": "vendor/fixed-model", "choices": [{"finish_reason": "stop", "message": {"content": json.dumps(payload)}}]})
     monkeypatch.setattr("app.ai.gateway.OpenRouterProvider", lambda **kwargs: provider)
     monkeypatch.setattr(get_settings(), "environment", "production")
     monkeypatch.setattr(get_settings(), "ai_provider", "openrouter")
@@ -65,6 +66,7 @@ def test_production_pipeline_uses_claim_builder_firewalls(api_client, monkeypatc
     monkeypatch.setattr(get_settings(), "environment", "production")
     monkeypatch.setattr(get_settings(), "ai_provider", "openrouter")
     provider = object.__new__(OpenRouterProvider)
+    provider.model = "vendor/fixed-model"
     seen = []
     def post(prompt, content):
         seen.append(prompt.prompt_id)
@@ -81,7 +83,7 @@ def test_production_pipeline_uses_claim_builder_firewalls(api_client, monkeypatc
             payload["extra"] = MARKER
         if prompt.prompt_id == "claim_builder" and invalid == "ontology":
             payload["claims"][0]["subject"] = "INVALID_TOOTH"
-        return {"choices": [{"message": {"content": json.dumps(payload)}}]}
+        return {"model": "vendor/fixed-model", "choices": [{"finish_reason": "stop", "message": {"content": json.dumps(payload)}}]}
     monkeypatch.setattr(provider, "_post", post)
     monkeypatch.setattr("app.ai.gateway.OpenRouterProvider", lambda **kwargs: provider)
     monkeypatch.setattr("app.ai.providers.MockProvider.run", lambda *args: pytest.fail("Mock used"))

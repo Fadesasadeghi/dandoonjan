@@ -1,0 +1,81 @@
+{
+  "date": "2026-09-30",
+  "status": "NOT VERIFIED: required existing local PostgreSQL tooling unavailable",
+  "branch": "agent/sadeghi-next-phase",
+  "head": "eb837e1f0dcda3d1d0c88b951726123e148f51ce",
+  "current_postgresql_version": null,
+  "historical_postgresql_version": "16.15 (historical evidence only; not verified in current environment)",
+  "inspection": {
+    "path_binaries_found": [],
+    "binary_names_searched": [
+      "postgres",
+      "initdb",
+      "pg_ctl",
+      "psql"
+    ],
+    "locations_searched": [
+      "user home installation locations",
+      "user-managed Python installation",
+      "user virtual environment",
+      "standard optional-software directory",
+      "standard system library directory",
+      "standard local-software directory",
+      "temporary directory"
+    ],
+    "standard_postgresql_directories_present": false,
+    "dpkg_postgresql_result": "postgresql-pgmp un; no installed PostgreSQL server package identified",
+    "postgres_processes_visible": 0,
+    "python_environments": [
+      {
+        "version": "3.14.7",
+        "missing": [
+          "pytest",
+          "psycopg",
+          "sqlalchemy",
+          "fastapi",
+          "pymupdf"
+        ],
+        "environment": "user-managed Python environment"
+      },
+      {
+        "version": "3.12.3",
+        "missing": [
+          "pytest",
+          "psycopg",
+          "sqlalchemy",
+          "fastapi",
+          "pymupdf"
+        ],
+        "environment": "user virtual environment"
+      }
+    ]
+  },
+  "cluster_location": null,
+  "socket_location": null,
+  "tcp_disabled": null,
+  "cluster_started": false,
+  "shutdown": "Not applicable: no cluster/server started; process inspection found no visible postgres process.",
+  "tests_run": [],
+  "passed": 0,
+  "failed": 0,
+  "skipped": 0,
+  "tests_not_run": [
+    "verification/test_rc_postgres.py::test_postgres_fresh_and_populated_migrations (3 parameter cases)",
+    "verification/test_rc_postgres.py::test_concurrent_first_pack_seed_is_idempotent",
+    "verification/test_rc_postgres.py::test_postgres_injected_openrouter_dossier_lifecycle",
+    "verification/test_rc_runtime.py::test_postgres_concurrent_cases_restart_and_logs"
+  ],
+  "expected_migration_head_from_test_source": "83b20cd5e702",
+  "database_migration_head_verified": false,
+  "runtime_restart_isolation_verified": false,
+  "live_provider_enabled": false,
+  "external_provider_requests": 0,
+  "packages_installed": false,
+  "credentials_used": false,
+  "sudo_used": false,
+  "staged": false,
+  "committed": false,
+  "pushed": false,
+  "stop_reason": "Owner instructed stop if PostgreSQL tooling is unavailable; installation is prohibited.",
+  "evidence_sanitization": "User-specific paths replaced with environment/location labels; availability and execution findings unchanged."
+}

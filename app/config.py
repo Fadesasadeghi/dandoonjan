@@ -12,7 +12,7 @@ class Settings(BaseSettings):
     app_name: str = "DANDOONJAN_EVIDENCE_CORE_V0"
     database_url: str = "sqlite:///./dandoonjan_dev.db"
     artifact_storage_dir: str = "./artifact_store"
-    # AI provider: "mock" (default, offline, deterministic) or "openai" (adapter stub)
+    # AI provider: explicit "mock" (offline) or "openrouter" (fail closed).
     ai_provider: str = "mock"
     ai_model_name: str = "mock-evidence-v1"
     # Deliberate authorization gate. Offline tests inject a transport instead.

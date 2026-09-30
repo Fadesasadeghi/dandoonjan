@@ -2,8 +2,9 @@
 import re
 from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field
+from app.ai.preflight import failure
 
-VERSION = 'multimodal-review-v1'
+VERSION = 'multimodal-review-v3'
 
 
 class Strict(BaseModel):
@@ -52,21 +53,21 @@ def validate_review(raw, allowed_refs):
     allowed = set(allowed_refs)
     supplied = [s.source_ref for s in output.source_index]
     if len(supplied) != len(set(supplied)) or set(supplied) != allowed:
-        raise ValueError('SOURCE_INDEX_INVALID')
+        raise failure('reference')
     assertions = [*output.patient_summary, *output.professional_report,
                   *output.safety_red_flags, *output.limitations]
     texts = []
     for hypothesis in output.diagnostic_hypotheses:
         refs = hypothesis.supporting_evidence_refs + hypothesis.contradicting_evidence_refs
         if not set(refs) <= allowed or (not hypothesis.supporting_evidence_refs and not hypothesis.insufficient_support):
-            raise ValueError('HYPOTHESIS_SOURCE_INVALID')
+            raise failure('reference')
         if set(hypothesis.supporting_evidence_refs) & set(hypothesis.contradicting_evidence_refs):
-            raise ValueError('AMBIGUOUS_EVIDENCE_RELATION')
+            raise failure('reference')
         assertions += hypothesis.missing_information + hypothesis.recommended_checks
         texts.append(hypothesis.label)
     for assertion in assertions:
         if not set(assertion.source_refs) <= allowed or (not assertion.source_refs and not assertion.insufficient_support):
-            raise ValueError('ASSERTION_SOURCE_INVALID')
+            raise failure('reference')
         texts.append(assertion.text)
     # Defense in depth, not a clinical validator. Provider instructions and schema
     # constrain the task; these checks reject known prescription/overclaim forms.
@@ -76,7 +77,13 @@ def validate_review(raw, allowed_refs):
         joined = joined.replace(disclaimer, '')
     forbidden = [*FORBIDDEN_PHRASES, 'definitive diagnosis', 'diagnosed with',
                  'take amoxicillin', 'take ibuprofen', 'prescribe', 'تشخیص قطعی',
-                 'مصرف کنید', 'مصرف کن', 'قطع کنید', 'تجویز می', 'حتماً مبتلا', 'definitely have']
-    if any(term in joined for term in forbidden) or re.search(r'\d\s*(%|percent|درصد|mg\b|میلی.?گرم)', joined):
-        raise ValueError('UNSAFE_MODEL_LANGUAGE')
+                 'مصرف کنید', 'مصرف کن', 'قطع کنید', 'تجویز می', 'حتماً مبتلا', 'definitely have', 'you have pulpitis', 'you have periodontitis',
+                 'start antibiotics', 'stop taking', 'take aspirin', 'undergo extraction',
+                 'you need a root canal', 'you must take']
+    numeric_confidence = re.search(
+        r'(confidence|probability|likelihood|اطمینان|احتمال)[^.!?\n]{0,40}(?:[.,٫،]\s*)?\d|\d[\d.,٫/ ]*\s*(confidence|probability|احتمال|اطمینان)', joined)
+    directive = re.search(
+        r'\byou (?:have|are suffering from)\b|\b(?:take|start|stop|increase|decrease)\s+(?:\w+\s+){0,2}(?:antibiotics?|medication|aspirin|amoxicillin|ibuprofen|treatment)\b', joined)
+    if numeric_confidence or directive or any(term in joined for term in forbidden) or re.search(r'\d\s*(%|٪|percent|درصد|mg\b|میلی.?گرم)', joined):
+        raise failure('safety')
     return output

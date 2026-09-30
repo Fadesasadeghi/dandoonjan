@@ -92,7 +92,13 @@ def effective_input_hash(db: Session, case: Case) -> str:
     settings = get_settings()
     pack = get_active_pack(db)
     from app.core.cases.dossier import fields
+    from app.ai import review_schema, multimodal, preflight, prompts
     material = {
+        "review_schema": review_schema.VERSION,
+        "review_prompt": preflight.REVIEW_PROMPT_VERSION,
+        "provider_contract": preflight.CONTRACT_VERSION,
+        "outbound_derivative": multimodal.VERSION,
+        "prompts": {key: value.version for key, value in prompts.PROMPTS.items()},
         "dossier": fields(case),
         "schema": PIPELINE_SCHEMA_VERSION,
         "modules": MODULE_VERSIONS,
@@ -114,14 +120,24 @@ def effective_input_hash(db: Session, case: Case) -> str:
 
 def _reusable_derivation(db: Session, case: Case, input_hash: str) -> ProcessingRun | None:
     """Authoritative terminal result for the same effective input (D2/D-Q1).
-    FAILED runs are never reusable."""
-    return (db.query(ProcessingRun)
+    A newer failed or running attempt invalidates the older success."""
+    prior = (db.query(ProcessingRun)
             .filter(ProcessingRun.case_id == case.id,
                     ProcessingRun.module == "pipeline",
                     ProcessingRun.status == ProcessingRunStatus.SUCCEEDED,
                     ProcessingRun.authority == RunAuthority.ACTIVE,
                     ProcessingRun.input_hash == input_hash)
             .order_by(ProcessingRun.id.desc()).first())
+
+    if prior is not None:
+        newer_attempt = (db.query(ProcessingRun.id).filter(
+            ProcessingRun.case_id == case.id, ProcessingRun.module == 'pipeline',
+            ProcessingRun.id > prior.id,
+            ProcessingRun.status.in_([ProcessingRunStatus.FAILED,
+                                      ProcessingRunStatus.RUNNING])).first())
+        if newer_attempt is not None:
+            return None
+    return prior
 
 
 def _reused_result(db: Session, case: Case, prior: ProcessingRun) -> dict:
@@ -208,7 +224,14 @@ def _activate_derivation(db: Session, case: Case, derivation: ProcessingRun) -> 
 def run_case_pipeline(db: Session, case: Case) -> dict:
     from app.core.cases.dossier import latest
     next_phase = latest(case) is not None
-    gw = ModelGateway(db, strict_real=True) if next_phase else ModelGateway(db)
+    configuration_error = None
+    try:
+        gw = ModelGateway(db, strict_real=True) if next_phase else ModelGateway(db)
+    except Exception as exc:
+        from app.errors import ProviderUnavailableError
+        if not isinstance(exc, ProviderUnavailableError):
+            raise
+        configuration_error = exc
     result: dict = {"case_public_id": case.public_id}
 
     # Materialize artifact text so the effective-input hash is stable (P0-04).
@@ -222,7 +245,7 @@ def run_case_pipeline(db: Session, case: Case) -> dict:
     # ---- Reuse resolution BEFORE creating a derivation run (Correction 2)
     input_hash = effective_input_hash(db, case)
     prior = _reusable_derivation(db, case, input_hash)
-    if prior is not None:
+    if prior is not None and configuration_error is None:
         return _reused_result(db, case, prior)
 
     # ---- Create the derivation run (attempt = max(prev)+1, D1)
@@ -244,6 +267,17 @@ def run_case_pipeline(db: Session, case: Case) -> dict:
     intake_state, intake_reasons = screen_case_text(case)
 
     try:
+        if configuration_error is not None:
+            if next_phase:
+                from app.domain.models import ReviewRun
+                from app.ai.review_schema import VERSION
+                db.add(ReviewRun(public_id=public_id('MRUN'), case_id=case.id,
+                    derivation_run_id=derivation_run_id, provider='unconfigured',
+                    model='unconfigured', schema_version=VERSION,
+                    status='FAILED', source_index=[], output=None,
+                    error_code=safe_error_code(configuration_error), runtime_ms=0))
+                db.commit()
+            raise configuration_error
         # ---- Classification
         with processing_run(db, case, "classification",
                             [a.public_id for a in case.artifacts],

@@ -104,34 +104,17 @@ DOCUMENT_CONTENT:
 >>>
 """
 
-FINANCIAL_EXTRACTOR_V2 = ISOLATION_RULE + """
-
-Task: extract structured information from a dental FINANCIAL document (invoice,
-estimate). Persian and English are both possible. Return ONLY a JSON object:
-{"fields": [
-    {"field_name": "tooth_reference", ...},
-    {"field_name": "price", "raw_value": "<amount + currency>",
-     "normalized_value": null, "confidence": <0.0-1.0>,
-     "page": <int|null>, "source_span": "<short locator|null>"}
- ],
- "treatment_items": [same schema as clinical extraction]}
-
-Treatment/price extracted from a financial document is DOCUMENT information only.
-- One treatment_item per EXPLICIT treatment relationship; do not infer.
-- "tooth": null when unclear. Do not guess.
-
-DOCUMENT_CONTENT:
-<<<
-{content}
->>>
+FINANCIAL_EXTRACTOR_V2 = EXTRACTOR_V2 + """
+Financial-document rule: extracted treatment/price is DOCUMENT information only,
+not a clinical recommendation or evidence of necessity.
 """
 
 PROMPTS: dict[str, Prompt] = {
     "artifact_classifier": Prompt("artifact_classifier", "v2", CLASSIFIER_V2),
     "treatment_plan_extractor": Prompt("treatment_plan_extractor", "v2", EXTRACTOR_V2),
-    "invoice_extractor": Prompt("invoice_extractor", "v2", FINANCIAL_EXTRACTOR_V2),
+    "invoice_extractor": Prompt("invoice_extractor", "v3", FINANCIAL_EXTRACTOR_V2),
     "claim_builder": Prompt(
-        "claim_builder", "v1",
+        "claim_builder", "v2",
         ISOLATION_RULE + "\nPropose claim candidates from case facts. FACTS:\n<<<\n{content}\n>>>",
     ),
     "report_composer": Prompt(

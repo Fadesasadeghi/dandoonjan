@@ -1,0 +1,27 @@
+{
+  "head": "eb837e1f0dcda3d1d0c88b951726123e148f51ce",
+  "staged_files": [],
+  "diff_check": "PASS",
+  "proposed_scope_file_count": 34,
+  "frontend_tracked_changes": [],
+  "excluded_files_verified_outside_scope": [
+    "DANDOONJAN_SADEGHI_NEXT_PHASE.zip",
+    "frontend/landing-tooth.webp",
+    "frontend/landing-tooth-small.webp",
+    "tools/artwork/render_tooth.js",
+    "tools/artwork/render_tooth.py"
+  ],
+  "scan_categories": [
+    "API keys and tokens",
+    "private keys and credentials",
+    "patient-data markers",
+    "usernames and hostnames",
+    "machine-specific absolute paths",
+    "credential-bearing URLs"
+  ],
+  "secret_pattern_findings": [],
+  "machine_specific_path_findings": [],
+  "evidence_metadata_findings": [],
+  "scan_scope_complete": true,
+  "scan_limitation": "Pattern scan plus manual read-only review; no claim of exhaustive secret or clinical-content detection. Synthetic fixtures and provider test placeholders are intentional."
+}

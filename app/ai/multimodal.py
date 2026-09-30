@@ -10,7 +10,7 @@ MAX_PAGES = 8
 MAX_PIXELS = 20_000_000
 MAX_IMAGES = 16
 MAX_BYTES = 12 * 1024 * 1024
-VERSION = 'outbound-v1'
+VERSION = 'outbound-v2'
 
 
 def prepare_image(data: bytes) -> bytes:
@@ -93,3 +93,37 @@ def bundle(case):
     if sum(len(t['text']) for t in text) > 100000:
         raise ValueError('OUTBOUND_TEXT_LIMIT')
     return {'version': VERSION, 'sources': sources, 'text': text, 'images': images}
+
+
+def provider_bundle(local):
+    """Fresh aliases per request; mapping never leaves this process."""
+    import secrets
+    aliases = {s['source_ref']: 'src_' + secrets.token_hex(16) for s in local['sources']}
+    sources = []
+    for source in local['sources']:
+        sources.append({'source_ref': aliases[source['source_ref']],
+            **{key: source[key] for key in ('kind', 'page', 'label', 'document_role') if key in source}})
+    outbound = {'sources': sources,
+        'text': [{'source_ref': aliases[t['source_ref']], 'text': t['text']} for t in local['text']],
+        'images': [{'source_ref': aliases[i['source_ref']], 'data': i['data']} for i in local['images']]}
+    return outbound, {alias: ref for ref, alias in aliases.items()}
+
+
+def resolve_review(output, mapping):
+    """Only a validated ReviewOutput may cross back to local provenance."""
+    value = output.model_dump()
+    def resolve(node):
+        if isinstance(node, list):
+            return [resolve(item) for item in node]
+        if isinstance(node, dict):
+            result = {}
+            for key, item in node.items():
+                if key == 'source_ref':
+                    result[key] = mapping[item]
+                elif key in ('source_refs', 'supporting_evidence_refs', 'contradicting_evidence_refs'):
+                    result[key] = [mapping[ref] for ref in item]
+                else:
+                    result[key] = resolve(item)
+            return result
+        return node
+    return resolve(value)

@@ -1,8 +1,6 @@
 """Model Gateway. The only path from domain modules to an AI provider.
 
-Production fails closed on missing provider configuration, provider failures, and
-invalid responses. Development/test retain the existing recorded Mock fallback.
-Fallback never applies to assessment, gaps, safety policy, or case state.
+Explicit real-provider selection fails closed in every environment.
 """
 from __future__ import annotations
 
@@ -14,7 +12,7 @@ from pydantic import BaseModel, ValidationError
 from sqlalchemy.orm import Session
 
 from app.ai.providers import MockProvider, OpenRouterProvider, content_hash
-from app.ai.prompts import Prompt, get_prompt, render_prompt
+from app.ai.prompts import Prompt, get_prompt
 from app.ai.schemas import SCHEMA_VERSIONS
 from app.config import get_settings
 from app.domain.models import ModelRun
@@ -33,21 +31,14 @@ class ModelGateway:
         settings = get_settings()
         self.fallback = MockProvider()
         if settings.environment == "production" and settings.ai_provider not in REAL_PROVIDER_NAMES:
-            raise ProviderUnavailableError("production requires a configured real provider")
+            raise ProviderUnavailableError(category='configuration')
         if settings.ai_provider == "openrouter":
-            try:
-                self.provider = OpenRouterProvider(
-                    api_key=settings.openrouter_api_key,
-                    model=settings.ai_model_name)
-            except ProviderUnavailableError:
-                if settings.environment == "production" or strict_real:
-                    raise
-                # no key configured -> run fully in mock (DEMO) mode
-                self.provider = self.fallback
-        else:
-            if strict_real and settings.ai_provider != 'mock':
-                raise ProviderUnavailableError('Unsupported real provider')
+            self.provider = OpenRouterProvider(
+                api_key=settings.openrouter_api_key, model=settings.ai_model_name)
+        elif settings.ai_provider == 'mock':
             self.provider = self.fallback
+        else:
+            raise ProviderUnavailableError(category='configuration')
 
     @property
     def provider_mode(self) -> str:
@@ -61,8 +52,8 @@ class ModelGateway:
     def run(self, prompt_id: str, schema: type[T], content: str,
         temperature: float = 0.0) -> tuple[T, ModelRun]:
         prompt: Prompt = get_prompt(prompt_id)
-        rendered = render_prompt(prompt, content=content)
-        input_hash = content_hash(rendered)
+        input_hash = content_hash(json.dumps(
+            [prompt.prompt_id, prompt.version, content], ensure_ascii=False))
         settings = get_settings()
 
         provider = self.provider
@@ -75,24 +66,16 @@ class ModelGateway:
         self.db.add(run)
         self.db.flush()
 
-        fallback_reason: str | None = None
         try:
-            raw = self._call_raw(provider, prompt, rendered)
+            raw = self._call_raw(provider, prompt, content)
             validated = self._validate_schema(schema, raw)
         except (ProviderUnavailableError, ValidationError) as exc:
-            if settings.environment == "production" or self.strict_real or provider.name not in REAL_PROVIDER_NAMES:
-                # Fail closed in production; preserve mock/test schema-firewall behavior.
-                run.status = "FAILED"
-                run.error = safe_error_code(exc)
-                raise ExtractionValidationError("AI output validation failed") from None
-            # VISIBLE fallback to the deterministic worker (AI worker boundary only)
-            fallback_reason = safe_error_code(exc)
-            raw = self._call_raw(self.fallback, prompt, rendered)
-            validated = self._validate_schema(schema, raw)  # mock output must validate
-            run.provider = self.fallback.name
+            run.status = "FAILED"
+            run.error = safe_error_code(exc)
+            raise ExtractionValidationError("AI output validation failed") from None
 
         run.status = "SUCCEEDED"
-        run.error = f"fallback: {fallback_reason}" if fallback_reason else None
+        run.error = None
         run.output_hash = hashlib.sha256(
             json.dumps(raw, sort_keys=True, default=str).encode()).hexdigest()
         run.validated_output = json.loads(validated.model_dump_json())

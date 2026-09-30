@@ -1,6 +1,6 @@
 """Candidate review behind ModelGateway; durable content-free failure audit."""
 import time
-from app.ai.multimodal import bundle
+from app.ai.multimodal import bundle, provider_bundle, resolve_review
 from app.ai.review_schema import VERSION, validate_review
 from app.core.cases.dossier import latest, presentation
 from app.domain.models import ReviewRun, DiagnosticHypothesis, HypothesisEvidence, public_id
@@ -41,8 +41,12 @@ def run_review(gateway, case, derivation_run_id):
     start = time.monotonic()
     try:
         data = bundle(case)
-        raw = (mock_review(data, presentation(case)['missing_information'])
-               if provider.name == 'mock' else provider.review(data))
+        if provider.name == 'mock':
+            raw = mock_review(data, presentation(case)['missing_information'])
+        else:
+            outbound, mapping = provider_bundle(data)
+            candidate = validate_review(provider.review(outbound), mapping)
+            raw = resolve_review(candidate, mapping)
         output = validate_review(raw, [s['source_ref'] for s in data['sources']])
         run.output = output.model_dump()
         run.source_index = data['sources']
@@ -67,10 +71,12 @@ def run_review(gateway, case, derivation_run_id):
                         relationship_type=relation))
         db.commit()
         return run
-    except Exception:
+    except Exception as exc:
         db.rollback()
         run.status = 'FAILED'
-        run.error_code = 'REVIEW_FAILED'
+        from app.safe_logging import safe_error_code
+        code = safe_error_code(exc)
+        run.error_code = 'REVIEW_FAILED' if code == 'INTERNAL_ERROR' else code
         run.output = None
         run.runtime_ms = int((time.monotonic() - start) * 1000)
         db.commit()

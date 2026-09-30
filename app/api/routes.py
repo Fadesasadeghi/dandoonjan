@@ -203,6 +203,13 @@ def case_assessment(case_public_id: str, db: Session = Depends(get_db, scope="fu
 @router.get("/cases/{case_public_id}/report")
 def case_report(case_public_id: str, db: Session = Depends(get_db, scope="function")):
     case = _case_or_404(db, case_public_id)
+    # An earlier snapshot remains history after a failed/new processing contract.
+    from app.pipeline.orchestrator import effective_input_hash
+    current_hash = effective_input_hash(db, case)
+    latest_attempt = (db.query(ProcessingRun).filter(ProcessingRun.case_id == case.id,
+        ProcessingRun.module == 'pipeline').order_by(ProcessingRun.id.desc()).first())
+    if latest_attempt is None or latest_attempt.status != ProcessingRunStatus.SUCCEEDED:
+        raise HTTPException(status_code=404, detail="REPORT_NOT_READY")
     report = (db.query(Report)
               .join(ProcessingRun, Report.derivation_run_id == ProcessingRun.id)
               .join(AssessmentSnapshot, Report.snapshot_id == AssessmentSnapshot.id)
@@ -211,6 +218,8 @@ def case_report(case_public_id: str, db: Session = Depends(get_db, scope="functi
                       ProcessingRun.module == "pipeline",
                       ProcessingRun.status == ProcessingRunStatus.SUCCEEDED,
                       ProcessingRun.authority == RunAuthority.ACTIVE,
+                      ProcessingRun.input_hash == current_hash,
+                      ProcessingRun.id == latest_attempt.id,
                       AssessmentSnapshot.case_id == case.id,
                       AssessmentSnapshot.derivation_run_id == ProcessingRun.id,
                       AssessmentSnapshot.case_version == case.version)

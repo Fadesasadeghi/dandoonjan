@@ -1,0 +1,26 @@
+ M .env.example
+ M app/ai/gateway.py
+ M app/ai/multimodal.py
+ M app/ai/prompts.py
+ M app/ai/providers.py
+ M app/ai/review.py
+ M app/ai/review_schema.py
+ M app/api/routes.py
+ M app/config.py
+ M app/errors.py
+ M app/pipeline/orchestrator.py
+ M app/safe_logging.py
+ M tests/conftest.py
+ M tests/next_phase/test_review_flow.py
+ M tests/regression_p1/test_production_provider.py
+ M tests/regression_rc/test_provider_privacy.py
+ M verification/test_rc_postgres.py
+?? DANDOONJAN_SADEGHI_NEXT_PHASE.zip
+?? app/ai/preflight.py
+?? docs/real-multimodal-preflight/
+?? frontend/landing-tooth-small.webp
+?? frontend/landing-tooth.webp
+?? tests/next_phase/test_openrouter_e2e.py
+?? tests/next_phase/test_preflight.py
+?? tools/
+?? verification/offline_openrouter.py

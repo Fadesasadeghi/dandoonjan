@@ -17,14 +17,8 @@ def test_missing_key(db, monkeypatch, environment):
     monkeypatch.setattr(settings, "environment", environment)
     monkeypatch.setattr(settings, "ai_provider", "openrouter")
     monkeypatch.setattr(settings, "openrouter_api_key", "")
-    if environment == "production":
-        with pytest.raises(ProviderUnavailableError):
-            ModelGateway(db)
-    else:
-        gateway = ModelGateway(db)
-        assert isinstance(gateway.provider, MockProvider)
-        _, run = gateway.run("artifact_classifier", ClassificationOutput, CONTENT)
-        assert run.status == "SUCCEEDED" and run.provider == "mock"
+    with pytest.raises(ProviderUnavailableError):
+        ModelGateway(db)
 
 
 @pytest.mark.parametrize("environment", ["production", "development", "test"])
@@ -49,20 +43,13 @@ def test_provider_failure_policy(db, monkeypatch, environment, failure):
 
     monkeypatch.setattr("app.ai.gateway.OpenRouterProvider", OfflineProvider)
     gateway = ModelGateway(db)
-    if environment == "production":
-        def forbidden_mock(*args):
-            pytest.fail("production invoked Mock fallback")
-        monkeypatch.setattr(gateway.fallback, "run", forbidden_mock)
-        with pytest.raises(DandoonjanError):
-            gateway.run("artifact_classifier", ClassificationOutput, CONTENT)
-        run = db.query(ModelRun).one()
-        assert run.status == "FAILED"
-        assert run.provider == "openrouter"
-        assert run.validated_output is None
-    else:
-        _, run = gateway.run("artifact_classifier", ClassificationOutput, CONTENT)
-        assert run.status == "SUCCEEDED" and run.provider == "mock"
-        assert run.error.startswith("fallback:")
+    monkeypatch.setattr(gateway.fallback, "run", lambda *args: pytest.fail("Mock fallback"))
+    with pytest.raises(DandoonjanError):
+        gateway.run("artifact_classifier", ClassificationOutput, CONTENT)
+    run = db.query(ModelRun).one()
+    assert run.status == "FAILED"
+    assert run.provider == "openrouter"
+    assert run.validated_output is None
 
 
 @pytest.mark.parametrize("provider", ["mock", "openai", "unknown"])

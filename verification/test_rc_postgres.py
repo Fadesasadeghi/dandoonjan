@@ -115,3 +115,44 @@ def test_concurrent_first_pack_seed_is_idempotent(pg_url):
         assert len(set(results)) == 1
     finally:
         engine.dispose()
+
+
+def test_postgres_injected_openrouter_dossier_lifecycle(pg_url, tmp_path, monkeypatch):
+    """Opt-in database rehearsal only. The provider transport is always synthetic."""
+    from fastapi.testclient import TestClient
+    from sqlalchemy.orm import sessionmaker
+    from app.config import get_settings
+    import app.db as database
+    import app.main as main
+    from verification.offline_openrouter import OfflineRouter, verify_success
+    from app.domain.models import ReviewRun, AssessmentSnapshot
+    migrate(pg_url)
+    settings = get_settings()
+    monkeypatch.setattr(settings, 'database_url', pg_url)
+    monkeypatch.setattr(settings, 'artifact_storage_dir', str(tmp_path / 'store'))
+    monkeypatch.setattr(settings, 'environment', 'test')
+    monkeypatch.setattr(settings, 'require_clinician_reviewed_knowledge_pack', False)
+    router = OfflineRouter(monkeypatch)
+    engine = database.make_engine(pg_url)
+    sessions = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)
+    monkeypatch.setattr(database, 'SessionLocal', sessions)
+    monkeypatch.setattr(main, 'engine', engine)
+    try:
+        with TestClient(main.app) as client:
+            cid, report, frozen = verify_success(client, sessions, router)
+        engine.dispose()
+        with TestClient(main.app) as client:
+            count = len(router.requests)
+            assert client.get(f'/api/cases/{cid}/report').json() == report
+            assert client.post(f'/api/cases/{cid}/process').json()['reused']
+            assert len(router.requests) == count
+            client.put(f'/api/cases/{cid}/dossier', json={'duration': '4 days'})
+            router.failure = 'authentication'
+            assert client.post(f'/api/cases/{cid}/process').json()['report'] is None
+            assert client.get(f'/api/cases/{cid}/report').status_code == 404
+        with sessions() as db:
+            assert db.query(AssessmentSnapshot).one().payload == frozen
+            failed = db.query(ReviewRun).order_by(ReviewRun.id.desc()).first()
+            assert failed.status == 'FAILED' and failed.output is None
+    finally:
+        engine.dispose()

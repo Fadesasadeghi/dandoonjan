@@ -1,0 +1,71 @@
+{
+  "gate": "Narrow remediation of final read-only review findings",
+  "head": "eb837e1f0dcda3d1d0c88b951726123e148f51ce",
+  "environment": "Existing project Windows virtual environment; no dependencies installed",
+  "reproduction": {
+    "passed": 17,
+    "failed": 7,
+    "warnings": 3,
+    "note": "Before fixes; included missing explicit injection API regression"
+  },
+  "focused": {
+    "command": ".venv/Scripts/python.exe -m pytest tests/next_phase/test_preflight_remediation.py -q",
+    "passed": 35,
+    "failed": 0,
+    "skipped": 0,
+    "warnings": 3
+  },
+  "expanded": {
+    "command": ".venv/Scripts/python.exe -m pytest tests/next_phase tests/regression_p1/test_production_provider.py tests/regression_rc/test_provider_privacy.py -q",
+    "passed": 158,
+    "failed": 0,
+    "skipped": 0,
+    "warnings": 3
+  },
+  "protected": {
+    "command": ".venv/Scripts/python.exe -m pytest tests verification/test_rc_postgres.py -q -ra --junitxml=docs/real-multimodal-preflight/evidence/offline-junit.xml",
+    "passed": 321,
+    "failed": 0,
+    "skipped": 7,
+    "warnings": 3,
+    "skip_reasons": {
+      "Windows symlink privilege unavailable": 2,
+      "PostgreSQL private cluster unavailable": 5
+    }
+  },
+  "sqlite_runtime": {
+    "test": "verification/test_rc_runtime.py::test_sqlite_concurrent_cases_restart_and_logs",
+    "passed": 1,
+    "failed": 0,
+    "skipped": 0,
+    "warnings": 0,
+    "mode": "Explicit Mock; loopback only",
+    "verified": [
+      "five concurrent synthetic cases",
+      "isolation",
+      "actual application process restart",
+      "report and file preservation",
+      "reuse",
+      "production misconfiguration refusal",
+      "content-free logs"
+    ]
+  },
+  "postgresql": "NOT VERIFIED: inspection found no available executable; no cluster created or server started. Five tests skipped, not executed.",
+  "live_provider_enabled": false,
+  "external_provider_requests": 0,
+  "evidence_sanitization": [
+    "JUnit hostnames and timestamps removed",
+    "User-specific skip paths replaced by categorical reasons",
+    "PostgreSQL installation paths replaced by location/environment labels",
+    "New runtime text normalized to LF",
+    "Test counts, case names, outcomes and skip categories preserved"
+  ],
+  "limitations": [
+    "No comprehensive semantic or clinical safety claim",
+    "No live provider, model compatibility or cost verification",
+    "No deployment verification",
+    "No PostgreSQL runtime verification",
+    "No OS-process restart verification using OpenRouter",
+    "Transport cleanup may outlast the bounded caller deadline"
+  ]
+}

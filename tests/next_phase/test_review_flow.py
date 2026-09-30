@@ -51,8 +51,8 @@ def test_offline_real_adapter_images_and_retry():
         seen.append(json.loads(request.content))
         if len(seen) == 1:
             return httpx.Response(503)
-        return httpx.Response(200, json={'choices': [{'message': {'content': '{"offline": true}'}}]})
-    provider = OpenRouterProvider('OFFLINE_TEST_ONLY', 'offline-model', client=httpx.Client(transport=httpx.MockTransport(handler)))
+        return httpx.Response(200, json={'model': 'vendor/fixed-model', 'choices': [{'finish_reason': 'stop', 'message': {'content': '{"offline": true}'}}]})
+    provider = OpenRouterProvider('OFFLINE_TEST_ONLY', 'vendor/fixed-model', offline_handler=handler)
     assert provider.review({'sources': [], 'text': [], 'images': [{'source_ref': 's1', 'data': 'AA=='}]}) == {'offline': True}
     assert len(seen) == 2
     assert seen[-1]['messages'][1]['content'][-1]['type'] == 'image_url'
@@ -61,8 +61,8 @@ def test_offline_real_adapter_images_and_retry():
 def test_live_transport_disabled(regression_settings):
     from app.ai.providers import OpenRouterProvider
     from app.errors import ProviderUnavailableError
-    with pytest.raises(ProviderUnavailableError, match='NOT_AUTHORIZED'):
-        OpenRouterProvider('OFFLINE_TEST_ONLY', 'offline-model').review({'sources': [], 'text': [], 'images': []})
+    with pytest.raises(ProviderUnavailableError, match='CONFIGURATION'):
+        OpenRouterProvider('OFFLINE_TEST_ONLY', 'vendor/fixed-model').review({'sources': [], 'text': [], 'images': []})
 
 
 @pytest.mark.parametrize('mode', ['openrouter', 'unknown-provider'])
@@ -81,7 +81,7 @@ def test_retry_exhaustion_is_bounded():
     def fail(request):
         requests.append(request)
         return httpx.Response(503)
-    provider = OpenRouterProvider('OFFLINE_TEST_ONLY', 'offline-model', client=httpx.Client(transport=httpx.MockTransport(fail)))
+    provider = OpenRouterProvider('OFFLINE_TEST_ONLY', 'vendor/fixed-model', offline_handler=fail)
     with pytest.raises(ProviderUnavailableError):
         provider.review({'sources': [], 'text': [], 'images': []})
     assert len(requests) == 2

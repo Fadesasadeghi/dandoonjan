@@ -7,6 +7,8 @@ from pathlib import Path
 
 def safe_error_code(exc: Exception) -> str:
     from app import errors
+    if isinstance(exc, errors.ProviderUnavailableError):
+        return "REAL_PROVIDER_" + exc.category.upper()
     for cls in vars(errors).values():
         if isinstance(cls, type) and issubclass(cls, errors.DandoonjanError):
             if type(exc) is cls:

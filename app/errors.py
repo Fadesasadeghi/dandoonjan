@@ -57,10 +57,16 @@ class ModelProviderError(DandoonjanError):
     user_message_fa = "خطا در سرویس پردازش هوشمند."
 
 
-class ProviderUnavailableError(ModelProviderError):
-    """Real provider unreachable/timeout/429/5xx. Triggers visible Mock fallback
-    at the AI worker boundary ONLY (never at assessment/policy level)."""
+class ProviderUnavailableError(ModelProviderError, ValueError):
+    """Content-free real-provider failure; never authorizes a fallback."""
     code = "PROVIDER_UNAVAILABLE"
+    CATEGORIES = frozenset({'configuration', 'authentication', 'timeout', 'rate_limit',
+        'provider', 'malformed_envelope', 'schema', 'reference', 'safety'})
+
+    def __init__(self, message=None, *, category='provider'):
+        self.category = category if category in self.CATEGORIES else 'provider'
+        super().__init__('REAL_PROVIDER_' + self.category.upper())
+
 
 
 class CaseNotFoundError(DandoonjanError):
