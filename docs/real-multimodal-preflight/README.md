@@ -1,5 +1,126 @@
 # Real multimodal preflight — offline gate
 
+## 2026-10-01 — two synthetic live attempts and offline budget remediation
+
+The operator reports two distinct live attempts with the same fixed model,
+`qwen/qwen3.8-27b:free`, and the same small synthetic text-only bundle. No real
+patient data was used in either attempt:
+
+1. **First attempt:** accepted by the provider and generated tokens, then
+   cancelled/timed out before a successful complete response, as detailed below.
+2. **Post-remediation retry:** the one separately authorized LOCAL SYNTHETIC live
+   retry was performed and failed with `rate_limit` before successful completion.
+   The exact operator-supplied result is:
+
+   ```text
+   LIVE PROVIDER FAILED
+   error_type: ProviderUnavailableError
+   category: rate_limit
+   ```
+
+The 1200-token remediation remains **VERIFIED OFFLINE but NOT VERIFIED LIVE**
+because the retry was rate-limited. This result does not establish that the
+remediation solved the timeout. No successful live completion or validated report
+is established by either attempt. The retry evidence is operator-supplied, not
+an execution or independent provider-log inspection performed during this update.
+
+The operator supplied the following evidence from the separately authorized LOCAL
+SYNTHETIC live-provider test. These are operator observations, not a new execution
+or independently retrieved provider logs:
+
+| Observation | Exact supplied evidence |
+| --- | --- |
+| Fixed model | `qwen/qwen3.8-27b:free` |
+| Cost | $0.00 |
+| Data policy shown by OpenRouter | No data training |
+| Input | 957 tokens |
+| Generated before cancellation | 1,785 tokens |
+| Throughput | 45.3 tok/s |
+| Generation time | 39.4s |
+| OpenRouter finish reason | `cancelled` |
+| Provider response | ModelRun 499 |
+| DANDOONJAN result | `ProviderUnavailableError category=timeout` |
+| Data | No real patient data was used |
+
+**Final live response: NOT VERIFIED because the request was cancelled.** No accepted
+complete JSON, schema-valid review, resolved provenance, or successful live report
+is established. The displayed policy/cost are evidence for that attempt only.
+
+Root cause analysis (PARTIALLY VERIFIED): the old review request allowed 6,000
+generated tokens, approximately 132.5 seconds at the observed rate, despite a
+45-second caller deadline. Small input does not bound output. The schema permits
+six patient assertions, twenty professional assertions, eight nested hypotheses,
+twenty safety flags, twenty limitations and one hundred source entries; those are
+maxima, not required counts. The old prompt did not discourage filling these limits
+or repeating evidence. Generation alone consumed 39.4s before cancellation; queueing,
+prefill, network and response delivery also consume the deadline. Their individual
+durations and the reasoning/final-output token split were not supplied. Therefore
+reasoning overhead is a plausible contributor, not a verified model-specific cause.
+
+The 45-second contract bounds each `_request` caller (including up to two attempts),
+not an entire pipeline or guaranteed remote cancellation. The default HTTP operation
+timeout is 30 seconds, bounded further by remaining caller time. Late worker results
+are discarded; transport cleanup can outlast the caller. ModelRun 499/cancelled does
+not establish the precise local timeout/cancellation sequence.
+
+Offline inspection found only `max_tokens`, temperature and JSON-object formatting
+in the existing request contract. There is no local capability record proving this
+exact model/provider supports disabling or budgeting reasoning. No web/model discovery
+was performed. No speculative `reasoning`, `enable_thinking`, or alternative token
+parameter was added; hiding reasoning would not itself prove reduced computation.
+Provider enforcement of the existing token parameter remains NOT VERIFIED live.
+
+Narrow changes: review `max_tokens` is now 1,200 (legacy remains 2,000); schema display
+titles and JSON whitespace are removed from the review prompt/data serialization.
+All schema validation keywords, required fields, source data and image parts remain.
+The prompt asks for short, nonrepetitive assertions, treats array limits as ceilings,
+and explicitly forbids omitting safety concerns or source references to save space.
+`REVIEW_PROMPT_VERSION` is now `review-instructions-v3`, invalidating old review reuse.
+No ReviewOutput schema, validator, fixed-model equality, privacy authorization,
+deterministic safety, deadline, retry or fail-closed rule changed.
+
+At the observed rate, 1,200 tokens correspond to approximately 26.5 seconds of
+generation. This is a conservative trial budget, not a measured completion requirement
+or latency guarantee. Large source inventories or reasoning may exhaust it. A `length`
+or `cancelled` completion is rejected even if its content is valid JSON; no truncation
+repair, field deletion, source dropping or automatic budget escalation is allowed.
+
+Prior offline remediation verification: the new regression first produced **1 failed, 2 passed**
+(6,000-token budget reproduced). Focused offline suite: **219 passed, 3 warnings**.
+Full offline suite: **382 passed, 7 skipped, 3 warnings in 60.50s**. Skips were two
+Windows symlink privilege checks and five PostgreSQL checks without a private cluster.
+Warnings were existing FastAPI/Starlette deprecations. Commands run with the existing
+Windows virtual environment (sandbox WSL bridge failed, then approved execution):
+
+```text
+.venv/Scripts/python.exe -m pytest tests/next_phase/test_review_budget.py -q
+.venv/Scripts/python.exe -m pytest tests/next_phase tests/regression_p1/test_production_provider.py tests/regression_rc/test_provider_privacy.py -q
+.venv/Scripts/python.exe -m pytest tests verification/test_rc_postgres.py -q -ra
+```
+
+The first command is the pre-fix reproduction; the latter two include the post-fix
+regressions, deadline tests, validation/provenance/safety tests and lifecycle tests.
+`git diff --check` passed. No supplemental browser or process-runtime suite was rerun.
+Tests use owned injected
+HTTP transport and synthetic credentials; test setup clears provider credentials and
+disables live authorization. Existing historical evidence files below are unchanged.
+
+The separately authorized single retry has now been performed by the operator,
+with the rate-limit failure recorded above. Stop after this documentation update;
+no further live request is authorized. Do not access/read/print/log the API key,
+change models, use paid services, increase the deadline, weaken fail-closed behavior,
+deploy, modify PR #4/#5, or commit. This update changes documentation only; prior
+offline test results above are historical and pytest is not rerun for this update.
+Live completion, reasoning controls, token-cap enforcement, output adequacy for larger
+bundles, clinical correctness, PostgreSQL runtime, deployment and OpenRouter process
+restart remain NOT VERIFIED. No key was accessed/read/printed/logged; no live request,
+paid service, commit, push, deploy, or PR #4/#5 modification was performed in this task.
+Existing unrelated working-tree changes are preserved.
+No commit was created. Current HEAD is `c6a1cea3ba7652a1b74f09515d21ba5af3d3e90f`;
+the working tree remains dirty with this remediation and pre-existing local changes.
+
+## Historical offline gate (2026-09-30)
+
 Date: 2026-09-30. Backend-only, pending manual review. Base/HEAD remains
 `eb837e1f0dcda3d1d0c88b951726123e148f51ce` (approved Gate 1 Landing).
 No staging, commit, push, PR modification, deployment, dependency installation,
@@ -48,7 +169,7 @@ supply protocol headers such as Host and Content-Length.
 | Layer | Fields / values |
 | --- | --- |
 | HTTP | POST to the fixed OpenRouter chat-completions URL; Authorization: backend bearer secret; Content-Type: application/json; Accept-Encoding: identity. No redirects. |
-| JSON envelope | `model`, `temperature` (0), `max_tokens` (2000 legacy / 6000 review), `response_format` (`type: json_object`), `messages` |
+| JSON envelope | `model`, `temperature` (0), `max_tokens` (2000 legacy / 1200 review after 2026-10-01 remediation), `response_format` (`type: json_object`), `messages` |
 | Message | `role`, `content`; system instructions plus JSON schema; user data |
 | Review first text part | `type: text`, `text`: serialized object containing `sources`, `documents` |
 | Review source | `source_ref` (opaque alias), `kind`, `page`, `label`; `document_role` when present |
@@ -132,6 +253,49 @@ Never place keys in browser state, UI, reports, fixtures, logs, commits or test 
 Failure audit stores category codes only, not exception text, prompt, raw response,
 case/dossier text, images, connection URL or secret. Validated successful output and
 local provenance retain their existing persistence semantics.
+
+### Controlled local synthetic fixed-free exception (2026-10-01)
+
+The original validator rejected every `:free` identifier along with automatic/free
+routing selectors. This conservative policy enforced the fixed-model preflight
+boundary but also excluded explicitly selected fixed free variants. The narrow
+exception now requires both backend settings `DJ_ENVIRONMENT=local-synthetic` and
+`DJ_LOCAL_SYNTHETIC_ACCEPTANCE_ENABLED=true` and accepts exactly
+`qwen/qwen3.8-27b:free`. The opt-in defaults false and has no HTTP request/UI control.
+It does not change the configured model or enable live execution.
+
+With the opt-in enabled, any other model (including paid models and other fixed
+free models), or any other environment (including production), fails configuration.
+Without it, `:free` remains rejected. `/free`, `/auto`, and model components named
+`free`, `auto`, `router`, or `dynamic` (including suffixed variants) are rejected.
+The exception's exact allowlist also excludes all other dynamic selectors.
+Existing normal-mode syntactic validation is not a complete provider model registry.
+
+The separate `DJ_LIVE_PROVIDER_ENABLED` and provider/key checks remain required for
+live execution. Validation runs at construction and before dispatch. Offline handlers
+retain their existing trusted test-only boundary; response-model equality, bounded
+retries, schema validation, sanitized failures, and no Mock fallback remain unchanged.
+No live request is authorized by this documentation or implementation gate.
+
+This is an operator-declared local synthetic mode, not detection of synthetic data
+or network binding. Any later separately authorized execution must use an isolated,
+loopback-only backend and fresh synthetic database/storage. Never enable it on a
+deployed service or submit patient data. The exact ID is the owner's supplied choice;
+availability, provider pricing, modality support, and live response compatibility
+are NOT VERIFIED. No provider lookup or live call was performed for this change.
+
+Verification uses dummy credentials and injected offline HTTP only. The new
+regression-first suite initially reported 30 failures and 8 setup errors because
+the new configuration interface did not exist. After implementation and additional
+alias coverage, the focused command
+`.venv/Scripts/python.exe -m pytest tests/next_phase/test_local_synthetic_free.py tests/next_phase/test_preflight.py tests/next_phase/test_preflight_remediation.py -q --tb=short`
+passed **162 tests**, with three FastAPI/Starlette deprecation warnings.
+The expanded command `.venv/Scripts/python.exe -m pytest tests -q -ra --tb=short`
+passed **379 tests**, with **2 skipped** (Windows directory-symlink privilege
+unavailable) and the same **3 warnings**. These are new offline results for this
+change, not live acceptance. PostgreSQL, browser/runtime acceptance, and the two
+skipped symlink cases were not verified at this gate. `git diff --check` passed.
+No commit, push, PR modification, or deployment was performed.
 
 ## Verification
 

@@ -17,6 +17,8 @@ class Settings(BaseSettings):
     ai_model_name: str = "mock-evidence-v1"
     # Deliberate authorization gate. Offline tests inject a transport instead.
     live_provider_enabled: bool = False
+    # Backend-only; requires environment=local-synthetic and the exact approved model.
+    local_synthetic_acceptance_enabled: bool = False
     openai_api_key: str = ""  # never hardcoded; read from env
     openrouter_api_key: str = ""  # never hardcoded; read from env
     max_upload_bytes: int = 25 * 1024 * 1024

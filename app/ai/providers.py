@@ -32,7 +32,19 @@ _MAX_ATTEMPTS = 2
 MAX_REQUEST_BYTES = 18 * 1024 * 1024
 MAX_RESPONSE_BYTES = 256000
 MAX_DURATION = 45.0
+# Generation target, not a latency guarantee. Truncation still fails closed.
+REVIEW_MAX_TOKENS = 1200
 _TRANSPORT_SLOTS = threading.BoundedSemaphore(8)
+
+
+def _review_schema_for_prompt(value):
+    """Remove display titles only; preserve all schema validation keywords."""
+    if isinstance(value, dict):
+        return {key: _review_schema_for_prompt(item)
+                for key, item in value.items() if key != 'title'}
+    if isinstance(value, list):
+        return [_review_schema_for_prompt(item) for item in value]
+    return value
 
 
 def _fenced(content: str) -> str:
@@ -207,7 +219,10 @@ class OpenRouterProvider:
         if self._offline_handler is None and get_settings().ai_provider != 'openrouter':
             raise ProviderUnavailableError(category='configuration')
         validate_configuration(model, api_key, get_settings().live_provider_enabled,
-                               offline=self._offline_handler is not None)
+                               offline=self._offline_handler is not None,
+                               environment=getattr(get_settings(), 'environment', None),
+                               local_synthetic_acceptance_enabled=getattr(
+                                   get_settings(), 'local_synthetic_acceptance_enabled', False))
         if not 0 < timeout <= 45:
             raise ProviderUnavailableError(category='configuration')
         self.api_key, self.model, self.timeout = api_key, model, timeout
@@ -253,7 +268,10 @@ class OpenRouterProvider:
         if self._offline_handler is None and get_settings().ai_provider != 'openrouter':
             raise failure('configuration')
         validate_configuration(self.model, self.api_key, get_settings().live_provider_enabled,
-                               offline=self._offline_handler is not None)
+                               offline=self._offline_handler is not None,
+                               environment=getattr(get_settings(), 'environment', None),
+                               local_synthetic_acceptance_enabled=getattr(
+                                   get_settings(), 'local_synthetic_acceptance_enabled', False))
         serialized = json.dumps(payload, ensure_ascii=False, separators=(',', ':')).encode('utf-8')
         if len(serialized) > MAX_REQUEST_BYTES:
             raise failure('configuration')
@@ -369,14 +387,20 @@ class OpenRouterProvider:
             'Separate patient short summary from professional evidence discussion. '
             'Recommended checks are examinations/questions, never treatment instructions. '
             'Report safety concerns without clearing deterministic restrictions. '
+            'Be concise: short assertions, no repeated evidence or narrative preamble. '
+            'Keep every required field; use empty arrays only where there is nothing to report. '
+            'Schema array limits are ceilings, not targets. Do not invent hypotheses to fill arrays. '
+            'Do not omit safety concerns or source refs to save space. '
             'source_index must contain every supplied source_ref exactly once. Schema: '
-            + json.dumps(ReviewOutput.model_json_schema(), ensure_ascii=False))
+            + json.dumps(_review_schema_for_prompt(ReviewOutput.model_json_schema()),
+                         ensure_ascii=False, separators=(',', ':')))
         parts = [{'type': 'text', 'text': json.dumps(
-            {'sources': bundle['sources'], 'documents': bundle['text']}, ensure_ascii=False)}]
+            {'sources': bundle['sources'], 'documents': bundle['text']},
+            ensure_ascii=False, separators=(',', ':'))}]
         for item in bundle['images']:
             parts.extend([{'type': 'text', 'text': 'Source: ' + item['source_ref']},
                           {'type': 'image_url', 'image_url': {'url': 'data:image/jpeg;base64,' + item['data']}}])
-        payload = {'model': self.model, 'temperature': 0, 'max_tokens': 6000,
+        payload = {'model': self.model, 'temperature': 0, 'max_tokens': REVIEW_MAX_TOKENS,
                    'response_format': {'type': 'json_object'},
                    'messages': [{'role': 'system', 'content': instructions},
                                 {'role': 'user', 'content': parts}]}
