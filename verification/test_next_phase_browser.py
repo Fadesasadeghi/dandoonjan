@@ -25,7 +25,10 @@ def test_four_stages_reports_pdf_and_fallback(page, width):
     prior.assert_no_overflow(page)
     page.screenshot(path=str(EVIDENCE / f'landing-{width}.png'), full_page=True)
     page.locator('#start-case').click()
-    page.locator('summary').first.click()
+    summary = page.locator('#intake-panel .dossier-section summary').first
+    expect(summary).to_be_visible()
+    summary.click()
+    expect(page.locator('#symptoms')).to_be_visible()
     page.locator('#symptoms').fill('Synthetic cold sensitivity')
     page.locator('#duration').fill('3 days')
     prior.assert_no_overflow(page)
@@ -74,6 +77,7 @@ def test_four_stages_reports_pdf_and_fallback(page, width):
 
 
 def test_tooth_asset_failure_does_not_block_intake(page):
+    page.route('**/hero-tooth-aqua.png', lambda route: route.abort())
     page.route('**/tooth.svg', lambda route: route.abort())
     page.reload()
     page.locator('#start-case').click()
@@ -95,20 +99,16 @@ def test_process_saves_edits_in_visible_dossier(page):
     assert page.evaluate('(cid) => fetch(`/api/cases/${cid}`).then(r => r.json())', cid)['question'] == 'Synthetic updated question'
 
 
-def test_rendered_palette_contrast(page):
-    pairs = page.evaluate('''() => {
-      const colors = text => [...text.matchAll(/rgba?\\(([^)]+)\\)/g)].map(m => m[1].split(',').slice(0,3).map(Number));
-      const body = getComputedStyle(document.body);
-      const backgrounds = colors(body.backgroundColor + ' ' + body.backgroundImage);
-      const fg = selector => colors(getComputedStyle(document.querySelector(selector)).color)[0];
-      const primary = getComputedStyle(document.querySelector('#start-case'));
-      return [...backgrounds.map(bg => [fg('body'), bg]), ...backgrounds.map(bg => [fg('.lede'), bg]),
-              ...colors(primary.backgroundImage).map(bg => [fg('#start-case'), bg])];
-    }''')
-    def luminance(rgb):
-        channels = [value / 255 for value in rgb]
-        return sum(weight * (v / 12.92 if v <= .04045 else ((v + .055) / 1.055) ** 2.4)
-                   for weight, v in zip([.2126,.7152,.0722], channels))
-    ratios = [(max(luminance(a), luminance(b)) + .05) / (min(luminance(a), luminance(b)) + .05) for a,b in pairs]
-    assert ratios and min(ratios) >= 4.5
-    (EVIDENCE / 'contrast.json').write_text(json.dumps({'scope':'body, lede, primary CTA against rendered gradient endpoints', 'minimum_ratio':min(ratios), 'threshold':4.5}, indent=2))
+@pytest.mark.parametrize('width,height', [(1440, 900), (768, 1024), (390, 844)])
+def test_rendered_palette_contrast(page, width, height):
+    """Keep the 4.5:1 requirement; sample the backdrop actually behind the text.
+
+    The former body-color comparison ignored the approved home light field and
+    solid CTA backgrounds. Share the landing pixel sampler so this wider flow
+    suite verifies eight text/control samples at all three required viewports.
+    """
+    spec = importlib.util.spec_from_file_location(
+        'landing_contrast', Path(__file__).with_name('test_landing_browser.py'))
+    landing = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(landing)
+    landing.test_landing_rendered_contrast(page, width, height)

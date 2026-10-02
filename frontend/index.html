@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#0d0f10">
+  <meta name="theme-color" content="#9ED7E0">
   <title>دندونجان — فهم بهتر پرونده، قبل از درمان</title>
   <link rel="stylesheet" href="/ui/styles.css">
   <link rel="stylesheet" href="/ui/landing.css">
@@ -12,41 +12,84 @@
 </head>
 <body>
   <a class="skip-link" href="#main">رفتن به محتوای اصلی</a>
-  <header class="shell site-header"><a class="brand" href="/">دندونجان<span class="brand-mark" aria-hidden="true"></span></a><span>همراه گفت‌وگوی شما با دندان‌پزشک</span></header>
+  <header class="shell site-header">
+    <a class="brand" href="/" aria-label="دندونجان"><span class="brand-name">دندونجان</span><span class="brand-home-wordmark" dir="ltr">DANDOONJAN</span><span class="brand-mark" aria-hidden="true"></span></a>
+    <nav class="landing-nav" aria-label="راهنمای صفحهٔ اصلی"><a href="#view-home" aria-current="page">خانه</a><a href="#landing-story-title">درباره ما</a><a href="#landing-features">چطور کار می‌کند؟</a><a href="#landing-faq">سوالات متداول</a></nav>
+    <button id="landing-auth" class="landing-auth" type="button" disabled aria-label="ورود / ثبت‌نام — در نسخهٔ آینده فعال خواهد شد" title="ورود / ثبت‌نام در نسخهٔ آینده فعال خواهد شد">ورود / ثبت‌نام</button>
+  </header>
   <main id="main">
     <section id="view-home" class="view active" aria-labelledby="landing-title">
       <div class="landing-scene">
         <div class="landing-heading">
           <p class="landing-eyebrow">قبل از درمان، فرصتی برای فهمیدن</p>
-          <h1 id="landing-title">زیباییِ <em>فهمیدن</em></h1>
+          <h1 id="landing-title">همراه هوشمند <em>سلامت دندان شما</em></h1>
         </div>
         <figure class="landing-art" aria-label="تصویر هنری یک دندان مرواریدی؛ نمایش پرونده یا یافتهٔ پزشکی نیست">
           <div class="landing-artwork" aria-hidden="true">
+            <div class="landing-orbits"><span></span><span></span><span></span><span class="lower-ring-companion"></span></div>
+            <div class="landing-reflection"><img src="/ui/hero-tooth-aqua.png" width="1175" height="1338" alt=""></div>
             <div class="landing-fallback" role="status">تصویر قهرمان بارگذاری نشد؛ صفحه همچنان قابل استفاده است.</div>
-            <img id="landing-tooth" src="/ui/hero-tooth.png" width="1312" height="1199" fetchpriority="high" decoding="async" alt="">
+            <img id="landing-tooth" src="/ui/hero-tooth-aqua.png" width="1175" height="1338" fetchpriority="high" decoding="async" alt="">
           </div>
-          <figcaption><span class="art-caption-rule" aria-hidden="true"></span>هر مدرک، بخشی از تصویر روشن‌تر</figcaption>
+
         </figure>
         <div class="landing-invitation">
-          <p class="lede">مدارک و پیشنهاد درمان را کنار هم ببینید؛<br class="landing-desktop-break"> با شناخت شواهد و آنچه هنوز روشن نیست.</p>
+          <p class="lede">تحلیل تصاویر و توضیحات شما با هوش مصنوعی<br class="landing-desktop-break"> و ارائه راهنمایی‌های اولیه و قابل فهم، در کنار شما.</p>
           <div class="landing-actions">
-            <button id="start-case" class="btn primary" type="button">ساخت پرونده<span aria-hidden="true"></span></button>
-            <button id="start-sample" class="btn landing-secondary" type="button" aria-describedby="sample-context">مشاهده پرونده نمونه</button>
+            <button id="start-case" class="btn primary" type="button">ساخت پرونده جدید<span aria-hidden="true"><svg viewBox="0 0 32 32" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 10h6l2-4h7l2 4h5v16H5z"/><circle cx="16" cy="17" r="5"/></svg></span></button>
+            <a id="landing-more" class="btn landing-secondary" href="#landing-story-title">بیشتر بدانید<span aria-hidden="true">‹</span></a>
           </div>
-          <p id="sample-context" class="landing-sample-note">پروندهٔ نمونه کاملاً ساختگی است.</p>
-          <p class="landing-limitation">برای فهم شواهد و گفت‌وگو با دندان‌پزشک؛<br>جایگزین معاینه، تشخیص یا تجویز درمان نیست.</p>
-          <button id="resume-case" class="btn text hidden" type="button">ادامهٔ پروندهٔ این مرورگر</button>
         </div>
-        <div class="landing-scene-index" aria-hidden="true"><span>DANDOONJAN</span><span>شواهد، پیش از تصمیم</span></div>
+
       </div>
-      <section class="landing-story" aria-labelledby="landing-story-title">
-        <p class="landing-eyebrow">از مدارک تا گفت‌وگو</p>
-        <h2 id="landing-story-title">تصمیم روشن‌تر،<br><span>با سؤال‌های بهتر.</span></h2>
-        <div class="landing-story-copy"><p>سؤال شما نقطهٔ شروع است. مدارک را کنار پیشنهاد درمان می‌گذاریم تا پشتوانهٔ هر گفته و محدودیت‌های آن روشن بماند.</p><p>آنچه می‌دانیم، آنچه هنوز نمی‌دانیم و آنچه باید از دندان‌پزشک بپرسیم.</p></div>
+      <section id="landing-features" class="landing-features" aria-label="از سؤال تا گفت‌وگو">
+        <div class="landing-feature"><span class="feature-icon" aria-hidden="true"><svg viewBox="0 0 40 40" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M8 5h18l7 7v23H8zM26 5v8h7M13 17h9M13 23h15M13 29h15"/></svg></span><h2>راهنمایی قابل فهم</h2><p>به زبان ساده و کاربردی</p></div>
+        <div class="landing-feature"><span class="feature-icon" aria-hidden="true"><svg viewBox="0 0 40 40" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 9c-4-6-10-2-10 3-5 1-6 7-3 10-3 4 0 9 4 9 0 6 7 8 9 3V9zm0 0c4-6 10-2 10 3 5 1 6 7 3 10 3 4 0 9-4 9 0 6-7 8-9 3M13 12l2 4-3 4m-2 5 5 1 1 5m11-19-2 4 3 4m2 5-5 1-1 5M15 7l1 3M25 7l-1 3M8 17l4 1M32 17l-4 1"/></svg></span><h2>تحلیل هوشمند</h2><p>با فناوری هوش مصنوعی</p></div>
+        <div class="landing-feature"><span class="feature-icon" aria-hidden="true"><svg viewBox="0 0 40 40" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M35.2 20a15.2 15.2 0 1 1-30.4 0 15.2 15.2 0 0 1 30.4 0zM20 10v10h7"/></svg></span><h2>سریع و ساده</h2><p>نتیجه در چند دقیقه</p></div>
+        <div class="landing-feature"><span class="feature-icon" aria-hidden="true"><svg viewBox="0 0 40 40" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 4.2c4.2 3.5 9.3 5.1 14.3 6.2v9.3c0 7.1-6.4 12.4-14.3 16.1C12.1 32.1 5.7 26.8 5.7 19.7v-9.3C10.7 9.3 15.8 7.7 20 4.2zM13.8 20l4.3 4.3 8.3-8.5"/></svg></span><h2>حفظ حریم خصوصی</h2><p>اطلاعات شما محرمانه است</p></div>
       </section>
+      <div class="landing-lower">
+        <section class="landing-product-context" aria-labelledby="landing-demo-title">
+          <span class="landing-info-icon" aria-hidden="true"><svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="16" cy="16" r="12"/><path d="M16 14v9M16 9v1"/></svg></span>
+          <div class="landing-info-copy">
+            <h2 id="landing-demo-title">دربارهٔ این نسخهٔ آزمایشی</h2>
+            <p id="sample-context" class="landing-sample-note">پروندهٔ نمونه کاملاً ساختگی است؛ این دموی آفلاین تصاویر را واقعاً تحلیل نمی‌کند. زمان نتیجه تضمین نشده است؛ از اطلاعات حساس در دمو استفاده نکنید.</p>
+            <p class="landing-limitation">برای فهم شواهد و گفت‌وگو با دندان‌پزشک؛<br>جایگزین معاینه، تشخیص یا تجویز درمان نیست.</p>
+            <div class="landing-info-actions">
+              <button id="start-sample" type="button" aria-describedby="sample-context">مشاهده پرونده نمونه</button>
+              <button id="resume-case" class="btn text hidden" type="button">ادامهٔ پروندهٔ این مرورگر</button>
+            </div>
+          </div>
+        </section>
+        <section class="landing-story" aria-labelledby="landing-story-title">
+          <div class="landing-story-intro">
+            <p class="landing-eyebrow">از مدارک تا گفت‌وگو</p>
+            <h2 id="landing-story-title">تصمیم روشن‌تر،<br><span>با سؤال‌های بهتر.</span></h2>
+            <p class="landing-story-support">سؤال شما نقطهٔ شروع است.</p>
+          </div>
+          <div class="landing-story-copy">
+            <p>مدارک را کنار پیشنهاد درمان می‌گذاریم تا پشتوانهٔ هر گفته و محدودیت‌های آن روشن بماند.</p>
+            <ol class="landing-process" aria-label="مسیر فهم پرونده">
+              <li><span aria-hidden="true"><svg viewBox="0 0 32 32"><path d="M9 4h10l5 5v19H9zM19 4v6h5M13 15h7M13 20h7"/></svg></span><div><h3>مدارک و توضیحات</h3><p>کنار پیشنهاد درمان</p></div></li>
+              <li><span aria-hidden="true"><svg viewBox="0 0 32 32"><path d="M7 7h18v6H7zM7 18h18v7H7zM11 10h10M11 21h10"/></svg></span><div><h3>مرتب‌سازی شواهد</h3><p>پشتوانهٔ هر گفته</p></div></li>
+              <li><span aria-hidden="true"><svg viewBox="0 0 32 32"><circle cx="16" cy="16" r="12"/><path d="M12 12a4 4 0 0 1 8 0c0 3-4 3-4 6M16 23v1"/></svg></span><div><h3>مشخص شدن ابهام‌ها</h3><p>آنچه هنوز نمی‌دانیم</p></div></li>
+              <li><span aria-hidden="true"><svg viewBox="0 0 32 32"><path d="M5 6h22v16H16l-7 5v-5H5zM10 11h12M10 16h8"/></svg></span><div><h3>سؤال‌های بهتر برای دندان‌پزشک</h3><p>برای گفت‌وگو دربارهٔ پرونده</p></div></li>
+            </ol>
+            <p>آنچه می‌دانیم، آنچه هنوز نمی‌دانیم و آنچه باید از دندان‌پزشک بپرسیم.</p>
+          </div>
+        </section>
+        <section id="landing-faq" class="landing-faq" aria-labelledby="landing-faq-title">
+          <div class="landing-faq-intro"><p class="landing-eyebrow">پرسش دربارهٔ این نسخه</p><h2 id="landing-faq-title">سوالات متداول</h2></div>
+          <div class="landing-faq-items">
+            <details><summary>آیا این ابزار جایگزین دندان‌پزشک است؟</summary><p>خیر؛ برای فهم شواهد و گفت‌وگو با دندان‌پزشک است و جایگزین معاینه، تشخیص یا تجویز درمان نیست.</p></details>
+            <details><summary>آیا پروندهٔ نمونه شامل اطلاعات بیمار واقعی است؟</summary><p>خیر؛ پروندهٔ نمونه کاملاً ساختگی است.</p></details>
+            <details><summary>آیا این نسخه تصاویر را واقعاً تحلیل می‌کند؟</summary><p>این دموی آفلاین از Mock استفاده می‌کند؛ تصاویر واقعاً تفسیر نمی‌شوند و نتیجه، تأیید بالینی نیست.</p></details>
+          </div>
+        </section>
+      </div>
     </section>
     <section id="view-workspace" class="view shell workspace">
-      <div class="workspace-art" aria-hidden="true"><img src="/ui/tooth.svg" width="500" height="640" alt=""><span>پرونده‌ای حول شواهد شما</span><span class="source-layer layer-one">علائم و شرح حال</span><span class="source-layer layer-two">تصاویر و مدارک</span><span class="source-layer layer-three">سابقه و سؤال شما</span></div>
+      <div class="workspace-art" aria-hidden="true"><div class="landing-artwork"><div class="landing-orbits"><span></span><span></span><span></span><span class="lower-ring-companion"></span></div><div class="landing-reflection"><img src="/ui/hero-tooth-aqua.png" width="1175" height="1338" alt=""></div><img class="workspace-tooth" src="/ui/hero-tooth-aqua.png" width="1175" height="1338" alt=""></div><span class="workspace-caption">پرونده‌ای حول شواهد شما</span><span class="source-layer layer-one">علائم و شرح حال</span><span class="source-layer layer-two">تصاویر و مدارک</span><span class="source-layer layer-three">سابقه و سؤال شما</span></div>
       <p class="eyebrow">پرونده شما</p>
       <p id="sample-notice" class="notice hidden">پروندهٔ نمونهٔ ساختگی — هیچ دادهٔ بیمار واقعی در این نمونه نیست.</p>
       <section id="intake-panel" class="paper">

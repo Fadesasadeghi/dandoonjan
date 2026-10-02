@@ -120,8 +120,8 @@ def test_real_sample_responsive_and_print(page, width):
     page.set_viewport_size({"width": width, "height": 1000 if width == 1440 else 844})
     errors = []
     page.on("pageerror", lambda e: errors.append(str(e)))
-    expect(page.locator("#view-home h1")).to_have_text("زیباییِ فهمیدن")
-    expect(page.locator("#start-case")).to_have_text("ساخت پرونده")
+    expect(page.locator("#view-home h1")).to_have_text("همراه هوشمند سلامت دندان شما")
+    expect(page.locator("#start-case")).to_have_text("ساخت پرونده جدید")
     expect(page.locator("#start-sample")).to_have_text("مشاهده پرونده نمونه")
     assert_no_overflow(page)
     capture(page, f"home-{width}")
