@@ -125,10 +125,10 @@
       <div class="report-head"><div><p class="eyebrow">گزارش تصمیم‌گیری</p><h1 tabindex="-1">پرونده شما، در روشنای شواهد</h1></div><span id="report-badge" class="badge"></span></div>
       <p class="notice demo-label">دموی کنترل‌شده، فقط برای دادهٔ ساختگی؛ پشتیبان تصمیم است، نه تشخیص. دانشنامهٔ توسعه از نظر بالینی اعتبارسنجی نشده است.</p>
       <div class="actions report-actions"><button id="print-report" class="btn primary">چاپ / ذخیره PDF</button><button id="add-evidence" class="btn quiet">افزودن مدرک به همین پرونده</button></div>
-      <div id="audience-controls" class="actions hidden" role="group" aria-label="نوع گزارش"><button id="patient-view" class="btn primary" aria-pressed="true">خلاصه برای شما</button><button id="professional-view" class="btn quiet" aria-pressed="false">گزارش تخصصی</button></div>
-      <div id="report-content"></div>
+      <div id="audience-controls" class="actions hidden" role="group" aria-label="انتخاب نمای گزارش"><button id="patient-view" class="btn primary" aria-pressed="true">خلاصه برای شما</button><button id="professional-view" class="btn quiet" aria-pressed="false">گزارش تخصصی</button></div>
+      <div id="report-content" aria-live="polite" aria-atomic="false"></div>
       <section id="upload-summary" class="upload-summary"><h2>وضعیت فایل‌های انتخاب‌شده</h2><ul id="report-files" class="file-list"></ul></section>
-      <p class="report-footer">این گزارش تشخیص پزشکی نیست و ضرورت درمان را تعیین نمی‌کند. تصمیم درمانی به معاینه و گفت‌وگو با دندان‌پزشک نیاز دارد. تصاویر تحلیل بالینی نشده‌اند.</p>
+      <p id="report-footer" class="report-footer">این گزارش تشخیص پزشکی نیست و ضرورت درمان را تعیین نمی‌کند. تصمیم درمانی به معاینه و گفت‌وگو با دندان‌پزشک نیاز دارد.</p>
       <div class="actions report-actions"><button id="new-case" class="btn quiet">ساخت پروندهٔ دیگر</button><button id="home-from-report" class="btn text">صفحه اصلی</button></div>
     </section>
   </main>

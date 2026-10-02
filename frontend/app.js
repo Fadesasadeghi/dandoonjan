@@ -7,6 +7,8 @@ function showCompleteness(data) { $("completeness").textContent = data.missing_i
 const STATUS = {pending: "در انتظار ارسال", uploading: "در حال آپلود", uploaded: "آپلود شد", rejected: "رد شد", duplicate: "تکراری", attention: "نیازمند توجه"};
 const TREATMENTS = {ROOT_CANAL: "عصب‌کشی", EXTRACTION: "کشیدن دندان", CROWN: "روکش", FILLING: "ترمیم", SCALING: "جرم‌گیری", IMPLANT: "ایمپلنت", BRIDGE: "بریج", DENTURE: "دندان مصنوعی", ORTHODONTICS: "ارتودنسی", UNKNOWN: "نامشخص"};
 const SECTIONS = {your_question: "سؤال شما", dentist_recommendation: "درمان پیشنهادی به روایت شما", found_in_documents: "آنچه می‌دانیم", evidence_status: "وضعیت شواهد", still_unclear: "آنچه هنوز نمی‌دانیم", missing_evidence: "شواهد تکمیلی", topics_to_discuss: "نکات نیازمند بررسی", questions_to_ask: "پیش از تصمیم بپرسید", confidence: "محدودیت اطمینان", safety_note: "محدودیت‌های ایمنی", review_pending: "نیازمند بررسی دستی"};
+const SOURCE_KINDS = {PATIENT_REPORTED:"گفتهٔ شما", CLINICIAN_REPORTED:"گفتهٔ دندان‌پزشک به روایت شما", DOCUMENT_EXTRACTED:"محتوای سند", MODEL_INFERRED:"برداشت مدل؛ نیازمند تأیید"};
+const DOCUMENT_ROLES = {unspecified:"سایر مدارک", treatment_plan:"طرح درمان", prescription:"نسخه", dental_image:"تصویر دندان", previous_report:"گزارش قبلی"};
 function escapeHtml(value) { return String(value ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
 function humanText(text) {
   if (["موردی باقی نمانده است.", "شواهد کاملی ثبت شده است."].includes(text)) return "در محدودهٔ این بررسی، مورد تکمیلی ثبت نشده است؛ این به معنی کامل بودن ارزیابی بالینی نیست.";
@@ -126,7 +128,7 @@ async function uploadPending() {
       row.artifactId = result.artifact_id;
       row.status = result.duplicate_of ? "duplicate" : "uploaded";
       row.message = result.duplicate_of ? "این مدرک قبلاً در همین پرونده ثبت شده است." : "";
-      if (/\.(png|jpe?g|heic)$/i.test(row.name)) row.message += " تصویر ذخیره شد؛ تحلیل بالینی تصویر غیرفعال است.";
+      if (/\.(png|jpe?g|heic)$/i.test(row.name)) row.message += " تصویر ذخیره شد؛ نوع بررسی آن به حالت اجرای گزارش بستگی دارد.";
     } catch (e) {
       row.status = e.status === 422 ? "rejected" : "attention";
       row.message = e.message;
@@ -141,11 +143,11 @@ function applyAttention(result) {
   for (const row of state.files) {
     if (limited.has(row.artifactId) && row.status === "uploaded") {
       row.status = "attention";
-      row.message = "آپلود شد؛ بررسی این مدرک محدودیت دارد. تصاویر فقط ذخیره می‌شوند و تحلیل بالینی نمی‌شوند.";
+      row.message = "آپلود شد؛ بررسی این مدرک محدودیت دارد.";
     }
     if (ids.has(row.artifactId) && row.status === "uploaded") {
       row.status = "attention";
-      row.message = "فایل آپلود شده، اما برای بررسی کافی یا قابل استفاده نیست. مدرک متنی روشن‌تری اضافه کنید. تصاویر تحلیل بالینی نمی‌شوند.";
+      row.message = "فایل آپلود شده، اما برای بررسی کافی یا قابل استفاده نیست. مدرک متنی روشن‌تری اضافه کنید.";
     }
   }
   renderFiles();
@@ -213,20 +215,63 @@ async function startSample() {
   if (state.caseId) await processCase();
 }
 function section(title, body) { return `<section class="report-section"><h2>${escapeHtml(title)}</h2>${body}</section>`; }
-function audience(name) {
+function audience(name, focus = false) {
   document.querySelectorAll('[data-audience]').forEach(el => el.classList.toggle('audience-hidden', el.dataset.audience !== name));
   ['patient', 'professional'].forEach(key => { $(key + '-view').setAttribute('aria-pressed', String(key === name)); $(key + '-view').className = 'btn ' + (key === name ? 'primary' : 'quiet'); });
+  if (focus) $(name + '-view').focus();
 }
 function renderReview(report) {
   const review = report.review;
-  const refs = values => values.map(ref => `<a class="source-link" href="#source-${escapeHtml(ref)}"><bdi>${escapeHtml(ref)}</bdi></a>`).join('، ');
-  const assertions = values => (values || []).map(a => `<li>${escapeHtml(a.text)}${a.insufficient_support ? '<small> — بدون پشتوانه کافی</small>' : ''}<div>${refs(a.source_refs || [])}</div></li>`).join('');
-  const disclosure = (title, html) => `<details class="result-disclosure"><summary>${escapeHtml(title)}</summary><div>${html}</div></details>`;
-  const hypotheses = review.diagnostic_hypotheses.map((h, i) => `<article class="hypothesis"><h3>${i+1}. ${escapeHtml(h.label)}</h3><p>پشتیبانی کیفی مدل: <bdi>${escapeHtml(h.confidence_label)}</bdi> — احتمال بیماری یا تشخیص قطعی نیست.</p>${h.insufficient_support ? '<p>بدون پشتوانه کافی</p>' : ''}<p>شواهد پشتیبان: ${refs(h.supporting_evidence_refs) || 'ثبت نشده'}</p><p>شواهد ناسازگار: ${refs(h.contradicting_evidence_refs) || 'ثبت نشده؛ به معنی نبود ناسازگاری نیست'}</p><h4>اطلاعات ناقص</h4><ul>${assertions(h.missing_information)}</ul><h4>بررسی‌های پیشنهادی</h4><ul>${assertions(h.recommended_checks)}</ul></article>`).join('');
-  const sources = `<ol>${review.source_index.map(s => `<li id="source-${escapeHtml(s.source_ref)}"><bdi>${escapeHtml(s.source_ref)}</bdi> — ${escapeHtml(s.kind)}${s.page ? ' · صفحه ' + s.page : ''}<br><small>شناسهٔ محتوا: <bdi>${escapeHtml(s.sha256)}</bdi></small></li>`).join('')}</ol>`;
-  $('report-content').innerHTML = `<p class="notice">${review.run.mode === 'MOCK' ? 'اجرای Mock؛ این پروندهٔ نمونه کاملاً ساختگی است و تحلیل واقعی تصویر انجام نشده است.' : 'اجرای مدل واقعی؛ تفسیر مدل نیازمند بررسی است.'} ثبت پیشنهاد درمان، اثبات ضرورت درمان نیست.</p><section data-audience="patient"><h2>خلاصه برای شما</h2><ul>${assertions(review.patient_summary)}</ul></section><section data-audience="professional"><h2>گزارش تخصصی</h2><ul>${assertions(review.professional_report)}</ul></section>${disclosure('احتمال‌های مطرح', hypotheses)}${disclosure('پشتوانه و منبع هر ادعا', sources)}${disclosure('محدودیت‌ها و آنچه هنوز روشن نیست', '<ul>' + assertions(review.limitations) + '</ul>')}<section class="run-metadata"><h2>مشخصات همین بررسی</h2><p>شناسهٔ snapshot: <bdi>${escapeHtml(report.snapshot_id)}</bdi></p><p><bdi>${escapeHtml(review.run.provider)} / ${escapeHtml(review.run.model)}</bdi></p><p>زمان: <bdi>${escapeHtml(review.run.created_at)}</bdi> · مدت: ${review.run.runtime_ms} ms</p><p>شناسهٔ اجرا: <bdi>${escapeHtml(review.run.run_id)}</bdi></p></section>`;
-  const question = (report.sections || []).find(item => item.section === 'your_question');
-  if (question) $('report-content').insertAdjacentHTML('afterbegin', section('سؤال شما', `<p>${escapeHtml(question.text)}</p>`));
+  const sourceByRef = new Map((review.source_index || []).map(source => [source.source_ref, source]));
+  const artifacts = (report.presentation?.materials || []);
+  const artifactIds = [...new Set((review.source_index || []).filter(s => s.artifact_id).map(s => s.artifact_id))];
+  const artifactPosition = new Map(artifactIds.map((id, index) => [id, index]));
+  const readableSource = source => {
+    const sourceType = SOURCE_KINDS[source.kind] || 'منبع ثبت‌شده';
+    const material = source.artifact_id ? artifacts[artifactPosition.get(source.artifact_id)] : null;
+    const file = material?.filename ? ` · ${escapeHtml(material.filename)}` : '';
+    const role = source.document_role ? ` · ${escapeHtml(DOCUMENT_ROLES[source.document_role] || source.document_role)}` : '';
+    const page = source.page ? ` · صفحهٔ ${escapeHtml(source.page)}` : '';
+    return `${escapeHtml(source.label || sourceType)}${file}${role}${page}`;
+  };
+  const refs = values => (values || []).map(ref => {
+    const source = sourceByRef.get(ref);
+    return source ? `<a class="source-link" href="#source-${escapeHtml(ref)}">${readableSource(source)}</a>` : '';
+  }).filter(Boolean).join('، ');
+  const assertions = values => (values || []).length ? values.map(a => `<li>${escapeHtml(humanText(a.text))}${a.insufficient_support ? '<small class="support-gap"> — پشتوانهٔ کافی ثبت نشده</small>' : ''}${a.source_refs?.length ? `<div class="assertion-sources">منبع: ${refs(a.source_refs)}</div>` : ''}</li>`).join('') : '<li class="empty-state">موردی در این بخش ثبت نشده است.</li>';
+  const disclosure = (title, html, attributes = '') => `<details class="result-disclosure" ${attributes}><summary>${escapeHtml(title)}</summary><div>${html}</div></details>`;
+  const hypotheses = (review.diagnostic_hypotheses || []).length ? review.diagnostic_hypotheses.map((h, i) => `<article class="hypothesis"><h3>${i+1}. ${escapeHtml(h.label)}</h3><p>پشتیبانی کیفی مدل: <bdi>${escapeHtml(h.confidence_label)}</bdi> — این مورد تشخیص یا احتمال قطعی نیست.</p>${h.insufficient_support ? '<p class="support-gap">پشتوانهٔ کافی ثبت نشده است.</p>' : ''}<p>شواهد پشتیبان: ${refs(h.supporting_evidence_refs) || 'ثبت نشده'}</p><p>شواهد ناسازگار: ${refs(h.contradicting_evidence_refs) || 'ثبت نشده؛ به معنی نبود ناسازگاری نیست'}</p><h4>اطلاعات ناقص</h4><ul>${assertions(h.missing_information)}</ul><h4>بررسی‌های قابل گفت‌وگو</h4><ul>${assertions(h.recommended_checks)}</ul></article>`).join('') : '<p class="empty-state">فرضیه‌ای در این بررسی ثبت نشده است.</p>';
+  const sourceRows = (review.source_index || []).map(s => `<li id="source-${escapeHtml(s.source_ref)}">${readableSource(s)} <span class="source-type">${escapeHtml(SOURCE_KINDS[s.kind] || s.kind || 'منبع ثبت‌شده')}</span></li>`).join('');
+  const sourceTechnicalRows = (review.source_index || []).map(s => `<li>${escapeHtml(s.label || SOURCE_KINDS[s.kind] || 'منبع')}<p>شناسهٔ منبع: <bdi>${escapeHtml(s.source_ref)}</bdi></p>${s.sha256 ? `<p>شناسهٔ محتوا: <bdi>${escapeHtml(s.sha256)}</bdi></p>` : ''}</li>`).join('');
+  const gaps = [];
+  for (const item of report.sections || []) if (['still_unclear', 'missing_evidence', 'confidence'].includes(item.section) && item.text) gaps.push(humanText(item.text));
+  for (const hypothesis of review.diagnostic_hypotheses || []) {
+    for (const item of hypothesis.missing_information || []) if (item.text) gaps.push(item.text);
+    if (hypothesis.insufficient_support) gaps.push(`پشتوانهٔ کافی برای فرضیهٔ «${humanText(hypothesis.label)}» ثبت نشده است.`);
+  }
+  for (const item of review.limitations || []) if (item.text) gaps.push(humanText(item.text));
+  for (const item of review.safety_red_flags || []) if (item.text) gaps.push(`نکتهٔ ایمنی: ${humanText(item.text)}`);
+  for (const item of [...(review.patient_summary || []), ...(review.professional_report || [])]) {
+    if (item.insufficient_support && item.text) gaps.push(`پشتوانهٔ کافی ثبت نشده: ${item.text}`);
+  }
+  const uniqueGaps = [...new Set(gaps)];
+  const context = (report.sections || []).filter(item => ['your_question', 'dentist_recommendation'].includes(item.section));
+  const discussion = (report.sections || []).filter(item => ['topics_to_discuss', 'questions_to_ask'].includes(item.section));
+  const recommendedChecks = (review.diagnostic_hypotheses || []).flatMap(h => h.recommended_checks || []).filter(item => item.text);
+  const dataMode = review.run?.mode;
+  const modeNotice = dataMode === 'MOCK'
+    ? 'این خروجی Mock برای نمونهٔ کاملاً ساختگی است؛ تفسیر بالینی تصویر انجام نشده و محتوا اعتبارسنجی بالینی نشده است.'
+    : 'این خروجی حاصل بررسی مدل است و نیازمند تأیید انسانی است؛ تشخیص یا تعیین ضرورت درمان نیست.';
+  const sourceList = sourceRows ? `<ol class="source-list">${sourceRows}</ol>` : '<p class="empty-state">منبعی برای این گزارش ثبت نشده است.</p>';
+  const technicalSourceList = sourceTechnicalRows ? `<ol>${sourceTechnicalRows}</ol>` : '<p class="empty-state">شناسه‌ای ثبت نشده است.</p>';
+  const technical = `<p>شناسهٔ snapshot: <bdi>${escapeHtml(report.snapshot_id || 'ثبت نشده')}</bdi></p><p>اجرا: <bdi>${escapeHtml(review.run?.provider || 'ثبت نشده')} / ${escapeHtml(review.run?.model || 'ثبت نشده')}</bdi></p><p>زمان: <bdi>${escapeHtml(review.run?.created_at || 'ثبت نشده')}</bdi>${Number.isFinite(review.run?.runtime_ms) ? ` · مدت: ${review.run.runtime_ms} ms` : ''}</p><p>شناسهٔ اجرا: <bdi>${escapeHtml(review.run?.run_id || 'ثبت نشده')}</bdi></p>`;
+  const sourceContext = (report.presentation?.materials || []).map(m => `<li><bdi>${escapeHtml(m.filename)}</bdi>${m.image_analysis_disabled && dataMode === 'MOCK' ? ' — در اجرای Mock تفسیر بالینی تصویر انجام نشده است' : ''}</li>`).join('');
+  const question = context.find(item => item.section === 'your_question');
+  const recommendation = context.find(item => item.section === 'dentist_recommendation');
+  $('report-content').innerHTML = `<p class="notice report-mode-notice">${modeNotice} گفته یا پیشنهاد درمان، اثبات ضرورت درمان نیست.</p><section class="case-context"><h2>زمینهٔ پرونده</h2>${question ? `<p><strong>سؤال شما</strong><br>${escapeHtml(question.text)}</p>` : '<p class="empty-state">سؤال پرونده در این گزارش موجود نیست.</p>'}${recommendation ? `<p><strong>پیشنهاد به روایت شما</strong><br>${escapeHtml(recommendation.text)}</p>` : ''}</section><section class="audience-report" data-audience="patient"><h2>خلاصه برای شما</h2><ul>${assertions(review.patient_summary)}</ul></section><section class="report-gaps"><h2>محدودیت‌ها و اطلاعات ناکافی</h2><ul>${uniqueGaps.length ? uniqueGaps.map(text => `<li>${escapeHtml(text)}</li>`).join('') : '<li class="empty-state">محدودیت یا مورد ناکافی جداگانه‌ای در دادهٔ گزارش ثبت نشده است.</li>'}</ul><p>کامل بودن پرونده به معنی کافی بودن شواهد یا ارزیابی بالینی نیست.</p></section>${discussion.length || recommendedChecks.length ? `<section class="discussion-points"><h2>برای گفت‌وگو با دندان‌پزشک</h2>${discussion.map(item => `<div><h3>${escapeHtml(SECTIONS[item.section])}</h3><p>${escapeHtml(humanText(item.text))}</p></div>`).join('')}${recommendedChecks.length ? `<h3>بررسی‌های مطرح‌شده</h3><ul>${assertions(recommendedChecks)}</ul>` : ''}</section>` : ''}<section class="evidence-context"><h2>مدارک در این بررسی</h2><ul>${sourceContext || '<li class="empty-state">مدرکی در گزارش ثبت نشده است.</li>'}</ul></section>${disclosure('پشتوانه و منبع هر ادعا', sourceList)}${disclosure('مشخصات فنی و شناسه‌های منابع', `${technical}${technicalSourceList}`, 'data-technical="true"')}<section class="audience-report" data-audience="professional"><h2>گزارش تخصصی</h2><ul>${assertions(review.professional_report)}</ul>${(review.diagnostic_hypotheses || []).length ? disclosure('فرضیه‌های بررسی‌شده', hypotheses) : ''}</section>`;
+  $('report-footer').textContent = dataMode === 'MOCK'
+    ? 'در اجرای Mock تصاویر تفسیر بالینی نشده‌اند. این گزارش تشخیص پزشکی نیست و ضرورت درمان را تعیین نمی‌کند؛ تصمیم درمانی به معاینه و گفت‌وگو با دندان‌پزشک نیاز دارد.'
+    : 'تفسیر مدل نیازمند تأیید است و تشخیص پزشکی یا تعیین ضرورت درمان نیست؛ تصمیم درمانی به معاینه و گفت‌وگو با دندان‌پزشک نیاز دارد.';
   audience('patient');
   // Native disclosures remain keyboard operable; source links open their target.
   document.querySelectorAll('.source-link').forEach(link => link.addEventListener('click', () => {
@@ -241,7 +286,7 @@ function renderReport(report) {
   state.report = report;
   const urgent = report.report_kind === "URGENT";
   const review = report.report_kind === "REVIEW_PENDING";
-  $("report-badge").textContent = urgent ? "نیازمند ارزیابی فوری" : review ? "در انتظار بررسی دستی" : report.safety_state === "CAUTION" ? "با توجه به محدودیت‌ها بخوانید" : "گزارش شواهد آماده است";
+  $("report-badge").textContent = urgent ? "نیازمند ارزیابی فوری" : review ? "گزارش ارزیابی شواهد آماده نیست" : report.safety_state === "CAUTION" ? "با توجه به محدودیت‌ها بخوانید" : "گزارش شواهد آماده است";
   $("report-badge").className = "badge" + (urgent ? " urgent" : "");
   let html = "";
   const p = report.presentation || {};
@@ -258,13 +303,16 @@ function renderReport(report) {
     // Preserve safety-only report boundaries even if an unexpected extra section arrives.
     if (urgent && item.section !== "safety_note") continue;
     if (review && item.section !== "review_pending") continue;
-    const text = ["your_question", "dentist_recommendation"].includes(item.section) ? item.text : humanText(item.text);
+    const text = review && item.section === "review_pending"
+      ? "این پرونده به بررسی دستی نیاز دارد و این نسخه امکان ارجاع به بازبین را ندارد؛ بنابراین گزارش ارزیابی شواهد ارائه نمی‌شود. دربارهٔ تصمیم درمانی با دندان‌پزشک گفت‌وگو کنید."
+      : ["your_question", "dentist_recommendation"].includes(item.section) ? item.text : humanText(item.text);
     html += section(SECTIONS[item.section] || "جزئیات بررسی", `<p>${escapeHtml(text)}</p>`);
     if (item.section === "dentist_recommendation") html += '<p class="small">این گفته به روایت شماست؛ تأیید مستقل دندان‌پزشک یا اثبات ضرورت پزشکی نیست.</p>';
     if (item.section === "evidence_status") {
       html += section("پشتوانه و منبع هر ادعا", (p.claims || []).map(c => `<article class="claim"><h3>${escapeHtml(c.label)}</h3><p class="source">منبع: ${escapeHtml(c.source)}</p><p>${escapeHtml(c.status)}</p><ul>${c.evidence.length ? c.evidence.map(e => `<li><bdi>${escapeHtml(e.filename)}</bdi> — ${escapeHtml(e.relationship)}</li>`).join("") : "<li>پشتوانهٔ سندی مرتبط برای این ادعا ثبت نشده است.</li>"}</ul>${c.missing.length ? `<p>شواهد ناکافی؛ نیازمند: ${c.missing.map(escapeHtml).join("، ")}</p>` : ""}<p class="small">ثبت یا پیشنهاد درمان به معنی اثبات ضرورت پزشکی آن نیست.</p></article>`).join("") || "<p>ادعایی برای ارزیابی ثبت نشده است.</p>");
     }
   }
+  if (!(report.review?.run?.mode)) $("report-footer").textContent = "تفسیر تصویر در مشخصات این گزارش ثبت نشده است. این گزارش تشخیص پزشکی نیست و ضرورت درمان را تعیین نمی‌کند؛ تصمیم درمانی به معاینه و گفت‌وگو با دندان‌پزشک نیاز دارد.";
   $("report-content").innerHTML = html; renderFiles(); showView("report");
   $("view-report").querySelector("h1").focus();
 }
@@ -273,7 +321,9 @@ async function printReport() {
   setBusy(true);
   try {
     // Revalidate authority/version immediately before offering export.
+    const selectedAudience = document.querySelector('[data-audience]:not(.audience-hidden)')?.dataset.audience || 'patient';
     renderReport(await api(`/api/cases/${state.caseId}/report`));
+    if (state.report?.review) audience(selectedAudience);
     window.print();
   } catch (e) { clearReport(); evidenceView(); error(e.message); }
   finally { setBusy(false); }

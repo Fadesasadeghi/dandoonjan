@@ -136,7 +136,8 @@ def test_real_sample_responsive_and_print(page, width):
     expect(page.locator("#report-content")).to_contain_text("اثبات ضرورت")
     text = page.locator("#report-content").inner_text()
     # New report intentionally exposes the safe run identifier for audit.
-    assert not any(token in text for token in ("ROOT_CANAL", "TOOTH_", "CLM-", "FND-"))
+    leaked_tokens = [token for token in ("ROOT_CANAL", "TOOTH_", "CLM-", "FND-") if token in text]
+    assert not leaked_tokens, leaked_tokens
     assert_no_overflow(page)
     capture(page, f"report-{width}")
     expect(page.locator("#print-report")).to_have_text("چاپ / ذخیره PDF")
@@ -313,9 +314,62 @@ def test_review_pending_rendering_fixture_preserves_restriction(page):
         "presentation": {"claims": [{"label": "must not render"}]}}))
     start(page, [PLAN])
     expect(page.locator("#view-report")).to_be_visible(timeout=20000)
-    expect(page.locator("#report-badge")).to_have_text("در انتظار بررسی دستی")
+    expect(page.locator("#report-badge")).to_have_text("گزارش ارزیابی شواهد آماده نیست")
+    expect(page.locator("#report-content")).to_contain_text("این نسخه امکان ارجاع به بازبین را ندارد")
+    expect(page.locator("#report-content")).not_to_contain_text("تا تکمیل بررسی در دسترس نیست")
     expect(page.locator("#report-content")).not_to_contain_text("must not render")
     expect(page.locator("#report-content .claim")).to_have_count(0)
+
+
+def test_structured_report_source_hierarchy_and_print_audience(page):
+    """The structured report must foreground gaps and readable sources."""
+    source_ref = "ART-SYNTHETIC:page:1"
+    intake_ref = "CASE-SYNTHETIC:v2:main_question"
+    report = {
+        "report_kind": "STANDARD", "safety_state": "CAUTION",
+        "snapshot_id": "SNP-SYNTHETIC", "sections": [
+            {"section": "your_question", "text": "Synthetic question context"},
+            {"section": "missing_evidence", "text": "Synthetic missing examination"},
+            {"section": "questions_to_ask", "text": "Ask about examination findings"}],
+        "presentation": {"claims": [{"label": "Synthetic distinct claim"}], "materials": [
+            {"filename": "long synthetic plan <notes>.pdf", "image_analysis_disabled": False}]},
+        "review": {
+            "patient_summary": [{"text": "Synthetic patient summary", "source_refs": [source_ref], "insufficient_support": False}],
+            "professional_report": [{"text": "Synthetic professional detail", "source_refs": [source_ref], "insufficient_support": False}],
+            "diagnostic_hypotheses": [{"label": "Synthetic hypothesis", "confidence_label": "LOW",
+                "supporting_evidence_refs": [], "contradicting_evidence_refs": [], "insufficient_support": True,
+                "missing_information": [{"text": "Synthetic missing examination", "source_refs": [], "insufficient_support": True}],
+                "recommended_checks": [{"text": "Ask about examination findings", "source_refs": [], "insufficient_support": True}]}],
+            "safety_red_flags": [],
+            "limitations": [{"text": "Synthetic limitation", "source_refs": [], "insufficient_support": True}],
+            "source_index": [
+                {"source_ref": intake_ref, "kind": "PATIENT_REPORTED", "label": "سؤال اصلی",
+                    "artifact_id": None, "page": None, "sha256": "a" * 64},
+                {"source_ref": source_ref, "kind": "DOCUMENT_EXTRACTED", "label": "document-1",
+                    "artifact_id": "ART-SYNTHETIC", "document_role": "treatment_plan", "page": 1, "sha256": "b" * 64}],
+            "run": {"mode": "MOCK", "provider": "mock", "model": "mock-review-v1", "runtime_ms": 1,
+                "created_at": "2026-01-01T00:00:00", "run_id": "MRUN-SYNTHETIC"}},
+    }
+    page.route("**/api/cases/*/report", lambda route: route.fulfill(json=report))
+    start(page, [PLAN])
+    expect(page.locator("#view-report")).to_be_visible(timeout=20000)
+    expect(page.locator("#report-content")).to_contain_text("سؤال اصلی")
+    expect(page.locator(".report-gaps")).to_be_visible()
+    expect(page.locator(".report-gaps")).to_contain_text("Synthetic missing examination")
+    expect(page.locator(".report-gaps")).to_contain_text("پشتوانهٔ کافی")
+    expect(page.locator("#report-content")).to_contain_text("long synthetic plan <notes>.pdf")
+    expect(page.locator("#report-content")).to_contain_text("طرح درمان")
+    expect(page.locator("#report-content")).to_contain_text("صفحهٔ 1")
+    expect(page.locator('[data-technical="true"]')).not_to_have_attribute("open", "")
+    expect(page.locator('[data-technical="true"]')).to_contain_text("ART-SYNTHETIC:page:1")
+    expect(page.locator("#report-content")).to_contain_text("تفسیر بالینی تصویر انجام نشده")
+    page.locator("#professional-view").click()
+    expect(page.locator("[data-audience=professional]")).to_be_visible()
+    page.evaluate("() => { window.printCalled = false; window.print = () => { window.printCalled = true; }; }")
+    page.locator("#print-report").click()
+    page.wait_for_function("window.printCalled === true")
+    expect(page.locator("#professional-view")).to_have_attribute("aria-pressed", "true")
+    expect(page.locator("[data-audience=professional]")).to_be_visible()
 
 
 def test_real_coarse_processing_and_result_stages(page):

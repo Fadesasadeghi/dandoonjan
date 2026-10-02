@@ -169,6 +169,47 @@ input{min-height:48px}select{font:inherit;width:100%;min-height:48px;background:
 @media(max-width:1000px){.source-layer{font-size:12px;padding:9px}.layer-one{inset-inline-end:0}.layer-two{inset-inline-start:0}.layer-three{inset-inline-end:0}.report-wrap{padding-inline-end:0;max-width:900px}.result-tooth{display:none}.workspace.analyzing #analysis-scene h2{font-size:32px}}
 @media(max-width:600px){.workspace-art .source-layer{display:none}.workspace.analyzing #analysis-scene{flex-direction:column;gap:12px;min-height:0;padding:20px 0}.workspace.analyzing .analysis-tooth{width:75%}.workspace.analyzing #analysis-scene h2{font-size:30px}.workspace.analyzing{min-height:650px}}
 @media print{.result-tooth{display:none}.report-wrap{padding:0;max-width:none}:focus-visible{outline:none!important}}
+
+/* Report-only aqua presentation; the approved landing composition is untouched. */
+#view-report{color:#183b3d}
+#view-report .report-head h1{color:#183b3d}
+#view-report .eyebrow{color:#087c83}
+#view-report .badge{background:#d8f2ef;color:#14565a;border-color:#72c9c4}
+#view-report .badge.urgent{background:#fff0e8;color:#713c29;border-color:#d99773}
+#view-report .demo-label,#view-report .report-mode-notice{background:#e8f7f6;color:#19484a;border:1px solid #9bd7d2;border-radius:14px}
+#view-report #audience-controls{padding:8px;background:#e4f4f2;border:1px solid #b6dfdc;border-radius:18px;width:fit-content;max-width:100%}
+#view-report #audience-controls .btn{min-height:48px}
+#view-report #audience-controls .primary{background:#087c83;color:#fff;border-color:#087c83}
+#view-report #audience-controls .quiet{background:transparent;color:#175b60;border-color:#58aeb0}
+#view-report #report-content{background:#f7fcfb;color:#193c3e;border:1px solid #b7dcd9;border-radius:24px;padding:clamp(20px,3vw,42px);box-shadow:0 18px 55px #55a8a522}
+#view-report #report-content h2{color:#126f75;font-size:clamp(20px,2vw,26px);margin:0 0 14px}
+#view-report #report-content h3{color:#236a6d}
+#view-report #report-content p,#view-report #report-content li{overflow-wrap:anywhere}
+#view-report #report-content section{padding:22px 0;border-bottom:1px solid #c9e3e1}
+#view-report #report-content section:last-child{border-bottom:0}
+#view-report .case-context,#view-report .report-gaps{padding-inline:18px!important;background:#eaf7f5;border:1px solid #c2e4e1;border-radius:16px;margin:0 0 18px}
+#view-report .report-gaps{background:#f1f9f7;border-inline-start:4px solid #39aeb0}
+#view-report .report-gaps li{padding:4px 0}
+#view-report .report-gaps>p{font-size:14px;color:#345e60}
+#view-report .discussion-points>div{padding:10px 14px;border-inline-start:2px solid #61bab8;margin:10px 0}
+#view-report .evidence-context li,#view-report .source-list li{padding:9px 0;overflow-wrap:anywhere}
+#view-report .source-list{padding-inline-start:22px}
+#view-report .source-type{display:inline-block;margin-inline-start:8px;color:#386c6e;font-size:13px}
+#view-report .source-link{color:#096f75;text-decoration-thickness:1px;text-underline-offset:3px}
+#view-report .assertion-sources{margin-top:6px;font-size:14px}
+#view-report .support-gap{display:inline-block;color:#774829;background:#fff0df;padding:3px 8px;border-radius:8px;margin-inline-start:5px}
+#view-report .empty-state{color:#45696a}
+#view-report .result-disclosure{border-top:1px solid #b9d9d7}
+#view-report .result-disclosure summary{color:#145d62;min-height:48px}
+#view-report .result-disclosure>div{padding-inline:4px}
+#view-report .technical-disclosure{font-size:14px;color:#45696a}
+#view-report .technical-disclosure bdi{overflow-wrap:anywhere}
+#view-report .hypothesis{border-color:#b9d9d7}
+#view-report .run-metadata{color:#45696a}
+#view-report .report-footer{color:#315d60}
+@media(max-width:600px){#view-report .report-wrap{padding-inline:16px}#view-report #audience-controls{width:100%;display:grid;grid-template-columns:1fr 1fr}#view-report #audience-controls .btn{padding-inline:10px}#view-report #report-content{padding:20px 16px;border-radius:18px}#view-report #report-content section{padding:18px 0}}
+@media(min-width:1001px){#view-report #report-content{max-width:920px}}
+@media print{#view-report{color:#111}#view-report #report-content{max-width:none;background:#fff;color:#111;border-color:#aaa}#view-report #report-content h2,#view-report #report-content h3{color:#111}#view-report .case-context,#view-report .report-gaps{background:#fff;border-color:#999}#view-report .source-link{color:#111}}
 /* Keep decorative connectors within the art column at every breakpoint. */
 .workspace-art .source-layer{max-width:75%}
 .workspace-art .layer-one,.workspace-art .layer-three{inset-inline-end:45px}
