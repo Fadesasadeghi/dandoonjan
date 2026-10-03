@@ -146,28 +146,21 @@ input{min-height:48px}select{font:inherit;width:100%;min-height:48px;background:
 .result-disclosure>div{padding:20px 0}.hypothesis{padding:20px 0;border-bottom:1px solid var(--line)}
 .source-link{font-size:12px;color:#f5c5a4}.run-metadata{font-size:13px;padding-top:24px;color:var(--muted)}
 .run-metadata h2{font-size:18px}.audience-hidden{display:none}.report-footer{color:#c1c9c2}
-#analysis-scene{position:relative;display:flex;align-items:center;gap:25px;padding:25px;border-top:1px solid var(--line)}
-.analysis-tooth{position:relative;width:40%;flex-shrink:0}.analysis-tooth img{width:100%;height:auto}.scan-line{position:absolute;inset-inline:8%;top:25%;height:2px;background:#f6bc8e;box-shadow:0 0 22px #eeb482;animation:scan 3s ease-in-out infinite}
-#analysis-scene h2{font-size:26px}#analysis-scene p{font-size:14px}
-@keyframes scan{50%{top:70%}}
 @media(max-width:1000px){.shell{width:calc(100% - 48px)}.workspace{padding-inline-end:33%}.workspace-art{width:31%;top:150px}.paper{padding:24px}}
-@media(max-width:600px){.shell{width:calc(100% - 32px)}.workspace{padding-inline-end:0;padding-top:25px}.workspace-art{position:relative;top:auto;width:60%;margin:0 auto 20px}.workspace-art img{max-height:230px}.workspace-art span{display:none}.workspace h1{font-size:30px}.paper{padding:22px 18px;border-radius:18px}#report-content{padding:22px 18px;border-radius:20px}.report-head h1{font-size:32px}.result-disclosure summary{font-size:20px}#analysis-scene{padding:18px 0;gap:14px}#analysis-scene h2{font-size:22px}.report-wrap{padding-top:28px}.run-metadata bdi{overflow-wrap:anywhere}.site-header{padding:20px 0}}
-@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}.scan-line{display:none}}
+@media(max-width:600px){.shell{width:calc(100% - 32px)}.workspace{padding-inline-end:0;padding-top:25px}.workspace-art{position:relative;top:auto;width:60%;margin:0 auto 20px}.workspace-art img{max-height:230px}.workspace-art span{display:none}.workspace h1{font-size:30px}.paper{padding:22px 18px;border-radius:18px}#report-content{padding:22px 18px;border-radius:20px}.report-head h1{font-size:32px}.result-disclosure summary{font-size:20px}.report-wrap{padding-top:28px}.run-metadata bdi{overflow-wrap:anywhere}.site-header{padding:20px 0}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation:none!important;transition:none!important}}
 @media print{body{background:#fff!important;color:#111!important}.audience-hidden{display:block!important}#audience-controls,.workspace-art{display:none!important}#report-content{background:#fff;color:#111;border:0;border-radius:0;box-shadow:none;padding:0}.result-disclosure,.hypothesis{border-color:#999}.result-disclosure summary,.run-metadata,.report-footer,.source-link,.small{color:#111}.result-disclosure>div{display:block!important}.notice{background:#fff;color:#111}.run-metadata{break-inside:avoid}.source-link{font-size:9pt}.result-disclosure summary{font-size:16pt}.result-disclosure{padding:12px 0}.result-disclosure>div{padding:8px 0}}
 
 .source-layer{position:absolute!important;display:block;padding:15px 22px;border:1px solid #b9a38b70;border-radius:12px;background:#17201bd9;color:#f7f8f5!important;box-shadow:inset 0 1px #fff3}
 .source-layer::after{content:"";position:absolute;top:50%;width:45px;height:1px;background:#d99b70;inset-inline-start:100%}
 .layer-one{top:20%;inset-inline-end:-6%}.layer-two{top:49%;inset-inline-start:-8%}.layer-three{top:72%;inset-inline-end:-4%}
 .layer-two::after{inset-inline-start:auto;inset-inline-end:100%}
-.workspace.analyzing{padding-inline-end:0;min-height:750px}
 .workspace.analyzing>.paper,.workspace.analyzing>.workspace-art,.workspace.analyzing>#sample-notice{display:none}
-.workspace.analyzing #analysis-scene{min-height:600px;padding:30px 8%;border:0;flex-direction:row-reverse;gap:10%}
-.workspace.analyzing .analysis-tooth{width:46%}.workspace.analyzing #analysis-scene h2{font-size:44px}
 .result-tooth{position:absolute;inset-inline-end:0;top:180px;width:35%;text-align:center;color:var(--accent)}
 .result-tooth img{width:100%;height:auto}.result-tooth span{display:block;font-size:14px}
 .report-wrap{position:relative;max-width:1320px;padding-inline-end:39%}
-@media(max-width:1000px){.source-layer{font-size:12px;padding:9px}.layer-one{inset-inline-end:0}.layer-two{inset-inline-start:0}.layer-three{inset-inline-end:0}.report-wrap{padding-inline-end:0;max-width:900px}.result-tooth{display:none}.workspace.analyzing #analysis-scene h2{font-size:32px}}
-@media(max-width:600px){.workspace-art .source-layer{display:none}.workspace.analyzing #analysis-scene{flex-direction:column;gap:12px;min-height:0;padding:20px 0}.workspace.analyzing .analysis-tooth{width:75%}.workspace.analyzing #analysis-scene h2{font-size:30px}.workspace.analyzing{min-height:650px}}
+@media(max-width:1000px){.source-layer{font-size:12px;padding:9px}.layer-one{inset-inline-end:0}.layer-two{inset-inline-start:0}.layer-three{inset-inline-end:0}.report-wrap{padding-inline-end:0;max-width:900px}.result-tooth{display:none}}
+@media(max-width:600px){.workspace-art .source-layer{display:none}}
 @media print{.result-tooth{display:none}.report-wrap{padding:0;max-width:none}:focus-visible{outline:none!important}}
 
 /* Report-only aqua presentation; the approved landing composition is untouched. */
@@ -215,3 +208,70 @@ input{min-height:48px}select{font:inherit;width:100%;min-height:48px;background:
 .workspace-art .layer-one,.workspace-art .layer-three{inset-inline-end:45px}
 .workspace-art .layer-two{inset-inline-start:0}
 .workspace-art .source-layer::after{width:32px}
+
+/* Processing only: continue the approved aqua scene, with no simulated progress. */
+body:has(#view-workspace.active.analyzing) {
+  background: radial-gradient(ellipse at 4% 3%, #D5F1F455, transparent 75%),
+    linear-gradient(110deg, #9ED7E0, #91CEDB 45%, #73B8CF);
+}
+#view-workspace.analyzing {
+  width: min(1220px, calc(100% - 80px));
+  padding: 32px 0 64px;
+  min-height: 0;
+}
+/* Retain the existing live status for assistive technology without duplicating scene copy. */
+#view-workspace.analyzing > #activity {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip-path: inset(50%); white-space: nowrap;
+}
+#analysis-scene {
+  position: relative; display: grid; direction: ltr;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  align-items: center; gap: clamp(32px, 5vw, 80px);
+  min-height: 600px; color: #F7FAFB;
+}
+.analysis-tooth {
+  position: relative; isolation: isolate; width: 100%; max-width: 475px;
+  aspect-ratio: 1; display: grid; place-items: center; margin: 0 auto;
+}
+.analysis-tooth img {
+  position: relative; display: block; width: 80%; height: auto; z-index: 1;
+}
+.analysis-tooth::after {
+  content: ""; position: absolute; z-index: -1; left: 20%; right: 20%; bottom: 5%;
+  height: 16px; border-radius: 50%; filter: blur(5px);
+  background: radial-gradient(ellipse, #17627a55, #17627a12 65%, transparent 75%);
+}
+.analysis-orbits { position: absolute; inset: 0; z-index: -1; }
+.analysis-orbits span {
+  position: absolute; width: 72%; aspect-ratio: 1; border: 1px solid #ffffff55;
+  border-radius: 50%; top: 1%; left: 1%;
+}
+.analysis-orbits span:nth-child(2) { width: 75%; top: 18%; left: 24%; border-color: #ffffff30; }
+.analysis-orbits span:nth-child(3) { width: 59%; top: 40%; left: 7%; border-color: #ffffff38; }
+.analysis-copy { min-width: 0; width: 100%; max-width: 540px; text-align: right; }
+#analysis-scene .eyebrow { color: #EDF5F7; font-size: 16px; margin: 0 0 16px; }
+#analysis-scene h2 {
+  font-size: clamp(36px, 3.5vw, 50px); font-weight: 650;
+  line-height: 1.45; letter-spacing: normal; margin: 0 0 24px;
+}
+#analysis-scene .analysis-description { font-size: 22px; line-height: 1.9; margin: 0 0 30px; }
+#analysis-scene .analysis-stages { color: #F7FAFB; font-size: 16px; line-height: 2.1; word-spacing: 3px; margin: 0 0 16px; }
+#analysis-scene .analysis-wait { color: #F7FAFB; font-size: 16px; line-height: 1.9; margin: 0; }
+@media (max-width: 900px) {
+  #view-workspace.analyzing { width: calc(100% - 48px); padding: 24px 0 48px; }
+  #analysis-scene { grid-template-columns: minmax(0, 1fr); min-height: 0; gap: 28px; }
+  .analysis-tooth { max-width: 370px; }
+  .analysis-copy { max-width: 560px; margin-inline: auto; }
+  #analysis-scene h2 { font-size: 36px; }
+}
+@media (max-width: 480px) {
+  #view-workspace.analyzing { width: calc(100% - 40px); padding-top: 12px; }
+  .analysis-tooth { max-width: 270px; }
+  #analysis-scene { gap: 22px; }
+  #analysis-scene h2 { font-size: 30px; margin-bottom: 16px; }
+  #analysis-scene .eyebrow { font-size: 14px; margin-bottom: 10px; }
+  #analysis-scene .analysis-description { font-size: 19px; margin-bottom: 20px; }
+  #analysis-scene .analysis-stages { font-size: 15px; word-spacing: 2px; }
+  #analysis-scene .analysis-wait { font-size: 15px; }
+}

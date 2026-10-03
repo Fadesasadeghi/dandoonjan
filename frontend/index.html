@@ -116,7 +116,19 @@
         <div class="actions"><button id="process-case" class="btn primary">بررسی مدارک و تهیهٔ نتیجه</button><button id="edit-case" class="btn text">ویرایش سؤال و پیشنهاد</button></div>
       </section>
       <p id="activity" role="status" aria-live="polite"></p>
-      <section id="analysis-scene" class="hidden" aria-label="خواندن پرونده"><div class="analysis-tooth"><img src="/ui/tooth.svg" width="500" height="640" alt=""><div class="scan-line"></div></div><div><p class="eyebrow">خواندن مدارک</p><h2>هر نتیجه، متصل به منبعش</h2><p>در انتظار پاسخ سرور؛ نتیجه فقط پس از اعتبارسنجی نمایش داده می‌شود.</p></div></section>
+      <section id="analysis-scene" class="hidden" aria-labelledby="analysis-title">
+        <div class="analysis-tooth" aria-hidden="true">
+          <div class="analysis-orbits"><span></span><span></span><span></span></div>
+          <img src="/ui/hero-tooth-aqua.png" width="1175" height="1338" alt="">
+        </div>
+        <div class="analysis-copy" dir="rtl">
+          <p class="eyebrow">بررسی پرونده</p>
+          <h2 id="analysis-title">در حال بررسی پرونده شما…</h2>
+          <p class="analysis-description">مدارک و اطلاعات پرونده در حال بررسی هستند تا نتیجه‌ای روشن و متصل به شواهد آماده شود.</p>
+          <p class="analysis-stages">خواندن مدارک • ساختاردهی شواهد • بررسی اطلاعات • آماده‌سازی نتیجه</p>
+          <p class="analysis-wait">در انتظار پاسخ امن سرور؛ نتیجه فقط پس از اعتبارسنجی نمایش داده می‌شود.</p>
+        </div>
+      </section>
       <div id="workspace-error" class="notice error hidden" role="alert"></div>
       <section id="outcome" class="paper hidden" aria-live="polite"><h2 id="outcome-title" tabindex="-1"></h2><p id="outcome-text"></p><button id="retry-process" class="btn quiet hidden">تلاش دوباره برای همین پرونده</button></section>
     </section>
