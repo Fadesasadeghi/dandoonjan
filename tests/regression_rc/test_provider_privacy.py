@@ -63,7 +63,10 @@ def test_unexpected_provider_error_does_not_retain_sensitive_details(db, monkeyp
 @pytest.mark.parametrize("invalid", [None, "schema", "ontology"])
 def test_production_pipeline_uses_claim_builder_firewalls(api_client, monkeypatch, invalid):
     client, sessions, _ = api_client
+    from app.security.sessions import cookie_name
+    raw = client.cookies.get(cookie_name())
     monkeypatch.setattr(get_settings(), "environment", "production")
+    client.cookies.set(cookie_name(), raw, domain='testserver.local', path='/')
     monkeypatch.setattr(get_settings(), "ai_provider", "openrouter")
     provider = object.__new__(OpenRouterProvider)
     provider.model = "vendor/fixed-model"

@@ -35,7 +35,7 @@ def test_unknown_case_preserves_error_contract(api_client):
     client, _, _ = api_client
     response = client.post('/api/cases/missing/artifacts', files={'file': ('a.txt', b'ordinary text', 'text/plain')})
     assert response.status_code == 404
-    assert response.json() == {'detail':'CASE_NOT_FOUND'}
+    assert response.json() == {'detail': {'code': 'CASE_NOT_FOUND', 'message_fa': 'پرونده در دسترس نیست.'}}
 
 
 @pytest.mark.parametrize('name,data,mime,accepted', [

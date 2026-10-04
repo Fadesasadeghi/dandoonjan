@@ -7,7 +7,7 @@ import pytest
 from app.ai.providers import OpenRouterProvider
 from app.ai.review_schema import validate_review
 from app.errors import ProviderUnavailableError
-from test_contract import candidate
+from tests.next_phase.test_contract import candidate
 
 
 @pytest.mark.parametrize('number', ['0.85', '.85', ',85', '85%', '85 percent',
@@ -77,7 +77,7 @@ def test_running_retry_failure_recovery_and_normal_reuse(api_client, monkeypatch
     from app.config import get_settings
     from app.ai.providers import MockProvider
     from app.domain.models import AssessmentSnapshot, ProcessingRun
-    from test_review_flow import create
+    from tests.next_phase.test_review_flow import create
     client, sessions, _ = api_client
     cid = create(client)
     first = client.post(f'/api/cases/{cid}/process').json()

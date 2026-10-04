@@ -129,7 +129,7 @@ def test_current_assessment_excludes_historical_derivations(db, revised_low_conf
                                             Assessment.derivation_run_id != run_id).all()
     assert current and historical
     assert all(a.derivation_status == DerivationStatus.SUPERSEDED for a in historical)
-    response = case_assessment(case.public_id, db)
+    response = case_assessment(case.public_id, case=case, db=db)
     assert len(response["assessments"]) == len(current), "current endpoint accumulated historical assessments"
 
 

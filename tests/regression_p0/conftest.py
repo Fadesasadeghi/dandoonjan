@@ -41,7 +41,7 @@ def ingest_plan():
 
 
 @pytest.fixture()
-def api_client(regression_settings, monkeypatch):
+def raw_api_client(regression_settings, monkeypatch):
     """Real get_db commit/rollback lifecycle, with a temporary database only."""
     from fastapi.testclient import TestClient
     import app.db as database
@@ -56,3 +56,17 @@ def api_client(regression_settings, monkeypatch):
             yield client, sessions, Path(regression_settings.artifact_storage_dir)
     finally:
         engine.dispose()
+
+
+@pytest.fixture()
+def api_client(raw_api_client, regression_settings, monkeypatch):
+    """Existing behavior suites run as a real authenticated synthetic ACCOUNT."""
+    from tests.auth.helpers import register, login
+    client, sessions, storage = raw_api_client
+    monkeypatch.setattr(regression_settings, 'auth_foundation_enabled', True)
+    monkeypatch.setattr(regression_settings, 'auth_allowed_origins', ['http://testserver'])
+    assert register(client, 'regression@example.com').status_code == 201
+    response = login(client, 'regression@example.com')
+    assert response.status_code == 200
+    client.headers.update({'Origin': 'http://testserver', 'X-CSRF-Token': response.json()['csrf_token']})
+    yield client, sessions, storage

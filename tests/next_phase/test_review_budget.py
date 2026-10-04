@@ -7,7 +7,7 @@ import pytest
 from app.ai.providers import OpenRouterProvider
 from app.ai.review_schema import ReviewOutput, validate_review
 from app.errors import ProviderUnavailableError
-from test_contract import candidate
+from tests.next_phase.test_contract import candidate
 
 
 def without_titles(value):

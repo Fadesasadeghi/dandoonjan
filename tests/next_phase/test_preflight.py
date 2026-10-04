@@ -6,7 +6,7 @@ from app.ai.providers import OpenRouterProvider
 from app.ai.prompts import get_prompt
 from app.errors import ProviderUnavailableError
 from app.ai.review_schema import validate_review
-from test_contract import candidate
+from tests.next_phase.test_contract import candidate
 
 
 def provider(handler, model='vendor/fixed-model'):
@@ -103,7 +103,7 @@ def test_reference_contract(mutation):
     ('multimodal', 'VERSION'), ('preflight', 'REVIEW_PROMPT_VERSION'), ('preflight', 'CONTRACT_VERSION')])
 def test_processing_contract_invalidates_reuse(api_client, monkeypatch, module, attribute):
     import importlib
-    from test_review_flow import create
+    from tests.next_phase.test_review_flow import create
     client, sessions, _ = api_client
     cid = create(client)
     first = client.post(f'/api/cases/{cid}/process').json()

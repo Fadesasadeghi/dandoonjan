@@ -34,12 +34,13 @@ def test_sample_is_one_history_action_without_mutation_replay(page):
     entry = page.evaluate('history.state')
     case_id = entry['caseId']
     expected = [
-        ('POST', '/api/cases'),
-        ('PUT', f'/api/cases/{case_id}/dossier'),
-        ('PATCH', f'/api/cases/{case_id}'),
-        ('PUT', f'/api/cases/{case_id}/dossier'),
-        *[('POST', f'/api/cases/{case_id}/artifacts')] * 4,
-        ('POST', f'/api/cases/{case_id}/process'),
+        ('POST', '/api/demo/session'),
+        ('POST', '/api/demo/cases'),
+        ('PUT', f'/api/demo/cases/{case_id}/dossier'),
+        ('PATCH', f'/api/demo/cases/{case_id}'),
+        ('PUT', f'/api/demo/cases/{case_id}/dossier'),
+        *[('POST', f'/api/demo/cases/{case_id}/artifacts')] * 4,
+        ('POST', f'/api/demo/cases/{case_id}/process'),
     ]
     assert [(method, urlsplit(url).path) for method, url in requests] == expected
     before = list(requests)
@@ -182,7 +183,8 @@ def test_report_history_revalidates_exact_result(page, wrong_identity):
             r.fulfill(json=payload)
         page.route('**/api/cases/*/report', different)
     else:
-        changed = page.request.patch(f"{page.url.rstrip('/')}/api/cases/{entry['caseId']}", form={'question': 'changed backend input'})
+        changed = page.request.patch(f"{page.url.rstrip('/')}/api/cases/{entry['caseId']}", form={'question': 'changed backend input'},
+                                     headers={'X-CSRF-Token': page.evaluate('window.__testAccountCSRF')})
         assert changed.status == 200
     before = list(requests)
     page.go_forward()

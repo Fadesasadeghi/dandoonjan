@@ -175,13 +175,14 @@ def test_real_demo_export_preserves_report_and_reuse(page):
     page.locator('#start-sample').click()
     expect(page.locator('#view-report')).to_be_visible(timeout=30000)
     cid = prior.case_id(page)
-    before = page.request.get(f'{page.url.rstrip("/")}/api/cases/{cid}/report').json()
+    before = page.request.get(f'{page.url.rstrip("/")}/api/demo/cases/{cid}/report').json()
     page.evaluate("window.print = () => window.dispatchEvent(new Event('beforeprint'))")
     prepare(page, 'professional')
     page.evaluate("window.dispatchEvent(new Event('afterprint'))")
-    after = page.request.get(f'{page.url.rstrip("/")}/api/cases/{cid}/report').json()
+    after = page.request.get(f'{page.url.rstrip("/")}/api/demo/cases/{cid}/report').json()
     assert after == before
-    reused = page.request.post(f'{page.url.rstrip("/")}/api/cases/{cid}/process').json()
+    reused = page.request.post(f'{page.url.rstrip("/")}/api/demo/cases/{cid}/process',
+                               headers={'X-CSRF-Token': page.evaluate('demoCSRF')}).json()
     assert reused['snapshot'] == before['snapshot_id']
 
 

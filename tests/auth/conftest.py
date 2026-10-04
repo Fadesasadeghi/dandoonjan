@@ -8,7 +8,7 @@ spec = importlib.util.spec_from_file_location('auth_api_fixtures', Path(__file__
 fixtures = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(fixtures)
 regression_settings = fixtures.regression_settings
-api_client = fixtures.api_client
+api_client = fixtures.raw_api_client
 
 @pytest.fixture(autouse=True)
 def auth_settings(regression_settings, monkeypatch):

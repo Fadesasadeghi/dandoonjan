@@ -4,27 +4,13 @@ import os
 os.environ.setdefault("DJ_DATABASE_URL", "sqlite://")
 os.environ.setdefault("DJ_ARTIFACT_STORAGE_DIR", "./test_api_store")
 
-import shutil
-
 import pytest
-from fastapi.testclient import TestClient
-
-from app.main import app
+from tests.regression_p0.conftest import regression_settings, raw_api_client, api_client
 
 
 @pytest.fixture()
-def client():
-    with TestClient(app) as c:
-        yield c
-    from app.db import engine
-    engine.dispose()
-    shutil.rmtree("./test_api_store", ignore_errors=True)
-    for f in ("./test_global.db",):
-        if os.path.exists(f):
-            try:
-                os.remove(f)
-            except PermissionError:
-                pass
+def client(api_client):
+    yield api_client[0]
 
 
 def _pdf(text="Treatment Plan\nTooth 46: RCT"):

@@ -1,7 +1,7 @@
 "use strict";
 const $ = id => document.getElementById(id);
 const state = {caseId: null, files: [], busy: false, sample: false, report: null, createUncertain: false};
-const DEMO_MARKER = 'DANDOONJAN_SYNTHETIC_SAMPLE_V1';
+let demoCSRF = null;
 const SAMPLE_FILES = ['طرح-درمان-نمونه.txt', 'synthetic-pattern-not-radiograph.png', 'synthetic-plan.pdf', 'synthetic-prior-report.txt'];
 const DOSSIER = {symptoms:"علائم", duration:"مدت علائم", medical_history:"سابقه پزشکی", medications:"داروها", allergies:"حساسیت‌ها", treatment_plan:"طرح درمان", previous_reports:"گزارش قبلی", previous_treatments:"درمان‌های قبلی", dental_images:"تصویر دندان", main_question:"سؤال اصلی"};
 const dossierFields = Object.keys(DOSSIER).filter(id => $(id));
@@ -20,13 +20,30 @@ class ApiError extends Error {
   constructor(message, status = 0) { super(message); this.status = status; }
 }
 async function api(path, options = {}) {
+  // Browser sample state selects transport only; the server authorizes its cookie.
+  if (state.sample && /^\/api\/cases(?:\/|$)/.test(path)) {
+    path = path.replace('/api/cases', '/api/demo/cases');
+    if (!demoCSRF) {
+      const session = await api('/api/demo/session');
+      demoCSRF = session.csrf_token;
+    }
+    if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(options.method)) {
+      options = {...options, headers: {...options.headers, 'X-CSRF-Token': demoCSRF}};
+    }
+  }
   let response;
   try { response = await fetch(path, options); }
   catch (_) { throw new ApiError("ارتباط قطع شد؛ نتیجهٔ این درخواست مشخص نیست. پروندهٔ موجود را نگه داشته‌ایم."); }
   let payload;
   try { payload = await response.json(); }
   catch (_) { throw new ApiError("پاسخ سرویس قابل خواندن نیست؛ دوباره وضعیت همین پرونده را بررسی کنید.", response.status); }
-  if (!response.ok) throw new ApiError(payload.detail?.message_fa || payload.message_fa || (response.status === 404 ? "گزارش فعلی در دسترس نیست؛ همین پرونده را دوباره بررسی کنید." : "درخواست کامل نشد. لطفاً دوباره تلاش کنید."), response.status);
+  if (!response.ok) {
+    if (state.sample && response.status === 401) {
+      demoCSRF = null;
+      clearReport();
+    }
+    throw new ApiError(payload.detail?.message_fa || payload.message_fa || (response.status === 404 ? "گزارش فعلی در دسترس نیست؛ همین پرونده را دوباره بررسی کنید." : "درخواست کامل نشد. لطفاً دوباره تلاش کنید."), response.status);
+  }
   return payload;
 }
 function saveCase() {
@@ -210,7 +227,6 @@ async function createOrUpdate(transition = true, replace = false) {
   const data = new FormData();
   data.append("question", $("question").value.trim());
   data.append("dentist_recommendation", $("dentist").value.trim());
-  if (state.sample) data.append('context', DEMO_MARKER);
   clearReport();
   setBusy(true, state.caseId ? "در حال ذخیرهٔ تغییرات همین پرونده…" : "در حال ساخت پرونده…");
   if (state.caseId) await api(`/api/cases/${state.caseId}`, {method: "PATCH", body: data});
@@ -339,7 +355,10 @@ async function startSample() {
     files.push({file:previous, name:previous.name, role:'previous_report', uploadState:'pending', sampleMessage:'یادداشت قبلی کاملاً ساختگی؛ نتیجهٔ معاینه ثبت نشده است.'});
     state.files = files.map(localRow);
     // The Sample click owns one entry; automatic steps update that entry.
-    renderFiles(); await createOrUpdate(true, true);
+    renderFiles();
+    const session = await api('/api/demo/session', {method: 'POST'});
+    demoCSRF = session.csrf_token;
+    await createOrUpdate(true, true);
     prepared = true;
   } catch (e) { error(e.message); }
   finally { setBusy(false); }

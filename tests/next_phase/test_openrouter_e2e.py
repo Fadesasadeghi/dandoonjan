@@ -14,6 +14,8 @@ def test_offline_openrouter_restart_and_failure(api_client, monkeypatch):
     # Dispose connections and create a fresh application client/session lifecycle.
     sessions.kw['bind'].dispose()
     with TestClient(app) as restarted:
+        restarted.cookies.update(client.cookies)
+        restarted.headers.update(client.headers)
         assert restarted.get(f'/api/cases/{cid}/report').json() == report
         count = len(router.requests)
         assert restarted.post(f'/api/cases/{cid}/process').json()['snapshot'] == report['snapshot_id']
@@ -51,7 +53,7 @@ def test_review_failure_audit(api_client, monkeypatch, failure, code):
 def test_configuration_failure_cannot_return_prior_report(api_client, monkeypatch):
     from app.config import get_settings
     from app.domain.models import ReviewRun
-    from test_review_flow import create
+    from tests.next_phase.test_review_flow import create
     client, sessions, _ = api_client
     cid = create(client)
     assert client.post(f'/api/cases/{cid}/process').json()['report']
@@ -67,7 +69,7 @@ def test_configuration_failure_cannot_return_prior_report(api_client, monkeypatc
 
 def test_recovery_after_configuration_failure_creates_current_result(api_client, monkeypatch):
     from app.config import get_settings
-    from test_review_flow import create
+    from tests.next_phase.test_review_flow import create
     client, _, _ = api_client
     cid = create(client)
     first = client.post(f'/api/cases/{cid}/process').json()

@@ -8,3 +8,4 @@ _fixtures = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(_fixtures)
 regression_settings = _fixtures.regression_settings
 api_client = _fixtures.api_client
+raw_api_client = _fixtures.raw_api_client

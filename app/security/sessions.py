@@ -81,12 +81,18 @@ def find_session(db: Session, request: Request, *, touch: bool = True):
     user = db.get(User, row.user_id)
     if user is None or user.kind != 'ACCOUNT' or user.status != 'ACTIVE':
         return None
-    if touch and as_utc(row.last_seen_at)+TOUCH_INTERVAL <= now:
-        # Atomic monotonic touch: overlapping requests cannot move time backward.
+    if touch:
+        touch_session(db, row, now)
+
+    return row, user
+
+
+def touch_session(db, row, now=None):
+    now = now or utcnow()
+    if as_utc(row.last_seen_at)+TOUCH_INTERVAL <= now:
         db.execute(update(AuthSession).where(AuthSession.id == row.id,
             AuthSession.last_seen_at < now-TOUCH_INTERVAL,
             AuthSession.revoked_at.is_(None)).values(last_seen_at=now).execution_options(synchronize_session=False))
-    return row, user
 
 
 def require_session(db: Session, request: Request):

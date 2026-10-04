@@ -1,0 +1,83 @@
+ M alembic/schema_adoption.py
+ M app/api/routes.py
+ M app/core/cases/sample.py
+ M app/domain/models.py
+ M app/main.py
+ M app/security/sessions.py
+ M docs/next-phase/evidence/landing-1440.png
+ M docs/next-phase/evidence/landing-390.png
+ M docs/next-phase/evidence/landing-768.png
+ M frontend/app.js
+ M tests/auth/conftest.py
+ M tests/auth/test_login.py
+ M tests/next_phase/conftest.py
+ M tests/next_phase/test_demo.py
+ M tests/next_phase/test_openrouter_e2e.py
+ M tests/next_phase/test_preflight.py
+ M tests/next_phase/test_preflight_remediation.py
+ M tests/next_phase/test_review_budget.py
+ M tests/next_phase/test_review_flow.py
+ M tests/regression_p0/conftest.py
+ M tests/regression_p0/test_derivation.py
+ M tests/regression_p1/conftest.py
+ M tests/regression_rc/conftest.py
+ M tests/regression_rc/test_commit_before_response.py
+ M tests/regression_rc/test_provider_privacy.py
+ M tests/test_api.py
+ M tests/upload_management/conftest.py
+ M tests/upload_management/test_upload.py
+ M verification/test_demo_browser.py
+ M verification/test_navigation_browser.py
+ M verification/test_p1_browser.py
+ M verification/test_professional_pdf_browser.py
+ M verification/test_rc_postgres.py
+?? .tmp-pdf-authority/
+?? .tmp-pdf-backend/
+?? .tmp-pdf-baseline/
+?? .tmp-pdf-browser-evidence/
+?? .tmp-pdf-browser/
+?? .tmp-pdf-final-2/
+?? .tmp-pdf-final-3/
+?? .tmp-pdf-final-4/
+?? .tmp-pdf-final-browser-evidence/
+?? .tmp-pdf-final-browser/
+?? .tmp-pdf-final/
+?? .tmp-pdf-green-2/
+?? .tmp-pdf-green/
+?? .tmp-pdf-red/
+?? DANDOONJAN_SADEGHI_NEXT_PHASE.zip
+?? alembic/gate1_schema.json
+?? alembic/versions/e72b4c9a6102_demo_visitors.py
+?? app/api/demo.py
+?? app/security/case_access.py
+?? app/security/demo_sessions.py
+?? docs/auth/gate-2/
+?? docs/ui-redesign/gate-1/evidence/aqua-landing/
+?? docs/ui-redesign/gate-1/evidence/reference-match/
+?? frontend-demo/
+?? frontend/fonts/
+?? frontend/landing-tooth-small.webp
+?? frontend/landing-tooth.webp
+?? tests/auth_gate2/
+?? tests/next_phase/__init__.py
+?? tools/
+?? verification/_contact_shadow.py
+?? verification/_cta_aqua_pass.py
+?? verification/_estedad_migration.py
+?? verification/_floor_four_rings.py
+?? verification/_icon_assembly_pass.py
+?? verification/_lower_left_right_rings.py
+?? verification/_lower_ring_pair.py
+?? verification/_lower_rings_smaller_down.py
+?? verification/_new_case_aqua.py
+?? verification/_new_case_compact.py
+?? verification/_new_case_control_polish.py
+?? verification/_owner_light_circles.py
+?? verification/_owner_visual_capture.py
+?? verification/_owner_visual_regressions.py
+?? verification/_perceptual_correction.py
+?? verification/_refinement_font_audit.py
+?? verification/_strict_raster_capture.py
+?? verification/_test_current_refinement.py
+?? verification/_visual_polish.py
+?? verification/run_auth_gate2.py

@@ -27,6 +27,8 @@ def server(tmp_path_factory):
     env = {**os.environ, "DJ_DATABASE_URL": f"sqlite:///{(folder / 'demo.db').as_posix()}",
         "DJ_ARTIFACT_STORAGE_DIR": str(folder / "store"), "DJ_AI_PROVIDER": "mock",
         "DJ_ENVIRONMENT": "development", "DJ_LIVE_PROVIDER_ENABLED": "false",
+        "DJ_AUTH_FOUNDATION_ENABLED": "true", "DJ_AUTH_ALLOWED_ORIGINS": f'["http://127.0.0.1:{port}"]',
+        "DJ_LOCAL_SYNTHETIC_ACCEPTANCE_ENABLED": "false",
         "DJ_OPENROUTER_API_KEY": "", "DJ_OPENAI_API_KEY": "",
         "DJ_REQUIRE_CLINICIAN_REVIEWED_KNOWLEDGE_PACK": "false"}
     with (folder / "server.log").open("w") as log:
@@ -58,7 +60,31 @@ def browser():
 @pytest.fixture()
 def page(browser, server):
     context = browser.new_context(viewport={"width": 1440, "height": 1000})
+    # Test-only ACCOUNT transport. Product ACCOUNT frontend auth remains Gate 3.
+    import uuid
+    email = f'browser-{uuid.uuid4().hex}@example.com'
+    credentials = {'email': email, 'password': 'Synthetic browser passphrase 12345'}
+    def preauth():
+        token = context.request.get(server+'/api/auth/csrf').json()['csrf_token']
+        return {'Origin': server, 'X-CSRF-Token': token}
+    assert context.request.post(server+'/api/auth/register', data=credentials, headers=preauth()).status == 201
+    logged = context.request.post(server+'/api/auth/login', data=credentials, headers=preauth())
+    assert logged.status == 200
+    token = logged.json()['csrf_token']
+    context.set_extra_http_headers({'Origin': server})
     page = context.new_page()
+    page.add_init_script(script=r"""(() => {
+        const fetchOriginal = window.fetch.bind(window);
+        const csrf = TOKEN;
+        window.__testAccountCSRF = csrf;
+        window.fetch = (path, options = {}) => {
+            if (typeof path === 'string' && /^\/api\/cases(?:\/|$)/.test(path)
+                && ['POST','PUT','PATCH','DELETE'].includes(options.method)) {
+                options = {...options, headers: {...options.headers, 'X-CSRF-Token': csrf}};
+            }
+            return fetchOriginal(path, options);
+        };
+    })();""".replace('TOKEN', __import__('json').dumps(token)))
     page.goto(server)
     yield page
     context.close()
@@ -238,7 +264,8 @@ def test_print_refuses_stale_report(page):
     start(page, [PLAN])
     expect(page.locator("#view-report")).to_be_visible(timeout=20000)
     original = case_id(page)
-    changed = page.request.patch(f"{page.url.rstrip('/')}/api/cases/{original}", form={"question": "changed input"})
+    changed = page.request.patch(f"{page.url.rstrip('/')}/api/cases/{original}", form={"question": "changed input"},
+                                 headers={'X-CSRF-Token': page.evaluate('window.__testAccountCSRF')})
     assert changed.status == 200 and changed.json()["changed"]
     page.evaluate("() => { window.printCalled = false; window.print = () => { window.printCalled = true; }; }")
     page.locator("#print-report").click()

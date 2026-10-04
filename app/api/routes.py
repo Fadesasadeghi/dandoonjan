@@ -5,32 +5,33 @@ from typing import Literal
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 from fastapi.responses import PlainTextResponse, Response
 from sqlalchemy.orm import Session
-from sqlalchemy import text
 
 from app.core.artifacts.ingestion import ingest_artifact
 from app.core.cases import state_machine
 from app import db as database
 from app.db import get_db
 from app.domain.enums import CaseStatus, DerivationStatus, ProcessingRunStatus, RunAuthority
-from app.domain.models import (Artifact, Assessment, AssessmentSnapshot, Case, ProcessingRun, Report, User,
+from app.domain.models import (Artifact, Assessment, AssessmentSnapshot, Case, ProcessingRun, Report,
                                public_id)
 from app.errors import DandoonjanError, InvalidTransitionError
 from app.governance.record import audit
 from app.pipeline.orchestrator import run_case_pipeline
+from app.security import case_access
 
-router = APIRouter()
+router = APIRouter(route_class=case_access.CaseAdmissionRoute)
 from app.core.cases import dossier
 
 
 @router.get('/cases/{case_public_id}/dossier')
-def get_dossier(case_public_id: str, db: Session = Depends(get_db, scope='function')):
-    return dossier.presentation(_case_or_404(db, case_public_id))
+def get_dossier(case_public_id: str, case: Case = Depends(case_access.read_case),
+                db: Session = Depends(get_db, scope='function')):
+    return dossier.presentation(case)
 
 
 @router.put('/cases/{case_public_id}/dossier')
 def put_dossier(case_public_id: str, patch: dossier.DossierPatch,
+                case: Case = Depends(case_access.mutate_case),
                 db: Session = Depends(get_db, scope='function')):
-    case = _case_or_404(db, case_public_id)
     result = dossier.update(db, case, patch)
     audit(db, 'dossier_saved', case_id=case.id, case_version=case.version)
     return result
@@ -56,23 +57,6 @@ def demo_plan():
     return Response(plan_pdf(), media_type='application/pdf')
 
 
-def _ensure_user(db: Session) -> User:
-    # V0: single dev user; real auth is post-V0.
-    user = db.query(User).first()
-    if user is None:
-        user = User(public_id=public_id("USR"), display_name="patient")
-        db.add(user)
-        db.flush()
-    return user
-
-
-def _case_or_404(db: Session, case_public_id: str) -> Case:
-    case = db.query(Case).filter(Case.public_id == case_public_id).one_or_none()
-    if case is None:
-        raise HTTPException(status_code=404, detail="CASE_NOT_FOUND")
-    return case
-
-
 def _handle_domain_error(exc: DandoonjanError):
     status = 400 if isinstance(exc, InvalidTransitionError) else 422
     raise HTTPException(status_code=status, detail={"code": exc.code,
@@ -81,10 +65,17 @@ def _handle_domain_error(exc: DandoonjanError):
 
 @router.post("/cases", status_code=201)
 def create_case(question: str = Form(...), dentist_recommendation: str = Form(""),
-                context: str = Form(""), db: Session = Depends(get_db, scope="function")):
-    user = _ensure_user(db)
+                context: str = Form(""),
+                principal: case_access.Principal = Depends(case_access.account_mutation),
+                db: Session = Depends(get_db, scope="function")):
+    case_access.touch(db, principal)
+    return create_owned_case(db, principal.user_id, question, dentist_recommendation, context)
+
+
+def create_owned_case(db, user_id, question, dentist_recommendation="", context=""):
+    """Shared creation logic; HTTP callers supply an admitted principal."""
     from app.core.ontology import ontology as ont
-    case = Case(public_id=public_id("CASE"), user_id=user.id, status=CaseStatus.CREATED,
+    case = Case(public_id=public_id("CASE"), user_id=user_id, status=CaseStatus.CREATED,
                 question_text=question, context_text=context,
                 dentist_recommendation_text=dentist_recommendation,
                 ontology_version=ont.ONTOLOGY_VERSION)
@@ -96,8 +87,8 @@ def create_case(question: str = Form(...), dentist_recommendation: str = Form(""
 
 
 @router.get("/cases/{case_public_id}")
-def get_case(case_public_id: str, db: Session = Depends(get_db, scope="function")):
-    case = _case_or_404(db, case_public_id)
+def get_case(case_public_id: str, case: Case = Depends(case_access.read_case),
+             db: Session = Depends(get_db, scope="function")):
     artifacts = db.query(Artifact).filter(Artifact.case_id == case.id).all()
     return {
         "case_id": case.public_id, "status": case.status.value, "version": case.version,
@@ -112,14 +103,9 @@ def get_case(case_public_id: str, db: Session = Depends(get_db, scope="function"
 @router.post("/cases/{case_public_id}/artifacts", status_code=201)
 def upload_artifact(case_public_id: str, file: UploadFile = File(...),
                     document_role: Literal['unspecified', 'treatment_plan', 'prescription', 'dental_image', 'previous_report'] = Form('unspecified'),
+                    case: Case = Depends(case_access.upload_case),
                     db: Session = Depends(get_db, scope="function")):
-    # Serialize capacity measurement and insertion through commit. SQLite's
-    # legacy driver does not start a write transaction for SELECT statements.
-    if db.get_bind().dialect.name == 'sqlite':
-        db.execute(text('BEGIN IMMEDIATE'))
-    case = db.query(Case).filter(Case.public_id == case_public_id).with_for_update().first()
-    if case is None:
-        raise HTTPException(status_code=404, detail='CASE_NOT_FOUND')
+    # Admission dependency retains the capacity lock through insertion/commit.
     try:
         from app.config import get_settings
         data = read_upload_bounded(file.file, get_settings().max_upload_bytes)
@@ -159,9 +145,9 @@ def read_upload_bounded(stream, limit: int) -> bytes:
 @router.patch("/cases/{case_public_id}")
 def update_case(case_public_id: str, question: str = Form(None),
                 dentist_recommendation: str = Form(None), context: str = Form(None),
+                case: Case = Depends(case_access.mutate_case),
                 db: Session = Depends(get_db, scope="function")):
     """Material case-text change bumps Case version (P0-04)."""
-    case = _case_or_404(db, case_public_id)
     changed = False
     if question is not None and question != case.question_text:
         case.question_text = question
@@ -181,8 +167,8 @@ def update_case(case_public_id: str, question: str = Form(None),
 
 
 @router.post("/cases/{case_public_id}/process")
-def process_case(case_public_id: str, db: Session = Depends(get_db, scope="function")):
-    case = _case_or_404(db, case_public_id)
+def process_case(case_public_id: str, case: Case = Depends(case_access.mutate_case),
+                 db: Session = Depends(get_db, scope="function")):
     try:
         return run_case_pipeline(db, case)
     except DandoonjanError as exc:
@@ -191,8 +177,8 @@ def process_case(case_public_id: str, db: Session = Depends(get_db, scope="funct
 
 
 @router.get("/cases/{case_public_id}/status")
-def case_status(case_public_id: str, db: Session = Depends(get_db, scope="function")):
-    case = _case_or_404(db, case_public_id)
+def case_status(case_public_id: str, case: Case = Depends(case_access.read_case),
+                db: Session = Depends(get_db, scope="function")):
     artifacts = db.query(Artifact).filter(Artifact.case_id == case.id).all()
     return {"case_id": case.public_id, "status": case.status.value,
             "artifacts": [{"artifact_id": a.public_id, "category": a.category.value,
@@ -200,8 +186,8 @@ def case_status(case_public_id: str, db: Session = Depends(get_db, scope="functi
 
 
 @router.get("/cases/{case_public_id}/assessment")
-def case_assessment(case_public_id: str, db: Session = Depends(get_db, scope="function")):
-    case = _case_or_404(db, case_public_id)
+def case_assessment(case_public_id: str, case: Case = Depends(case_access.read_case),
+                    db: Session = Depends(get_db, scope="function")):
     assessments = (db.query(Assessment)
                    .join(ProcessingRun, Assessment.derivation_run_id == ProcessingRun.id)
                    .filter(Assessment.case_id == case.id,
@@ -220,8 +206,8 @@ def case_assessment(case_public_id: str, db: Session = Depends(get_db, scope="fu
 
 
 @router.get("/cases/{case_public_id}/report")
-def case_report(case_public_id: str, db: Session = Depends(get_db, scope="function")):
-    case = _case_or_404(db, case_public_id)
+def case_report(case_public_id: str, case: Case = Depends(case_access.read_case),
+                db: Session = Depends(get_db, scope="function")):
     # An earlier snapshot remains history after a failed/new processing contract.
     from app.pipeline.orchestrator import effective_input_hash
     current_hash = effective_input_hash(db, case)

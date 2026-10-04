@@ -47,10 +47,11 @@ def test_foundation_is_disabled_by_default(api_client, regression_settings, monk
     client, _, _ = api_client
     for route in ('csrf','me'):
         assert client.get('/api/auth/'+route).status_code == 404
-    # Gate 1 makes no ownership claim: the unchanged case surface is public.
+    # Gate 2 fails closed even when account issuance is disabled.
     created = client.post('/api/cases', data={'question':'Synthetic Gate 1 boundary'})
-    assert created.status_code == 201
-    assert client.get('/api/cases/'+created.json()['case_id']).status_code == 200
+    assert created.status_code == 401
+    assert created.json()['detail']['code'] == 'AUTH_REQUIRED'
+    assert client.get('/api/cases/CASE-unknown').status_code == 401
 
 
 def test_database_failure_is_not_reported_as_bad_credentials(api_client, monkeypatch):

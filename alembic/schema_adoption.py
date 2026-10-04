@@ -60,6 +60,12 @@ def adoption_revision(inspector, metadata, head):
             checks_valid = checks_valid and expected_checks.items() <= actual_checks.items()
         if checks_valid:
             return head
+    gate1 = json.loads(Path(__file__).with_name('gate1_schema.json').read_text(encoding='utf-8'))
+    if matches(gate1['shape']):
+        checks = {name: {c['name']: ''.join(c['sqltext'].split())
+                        for c in inspector.get_check_constraints(name)} for name in gate1['shape']}
+        if all(expected.items() <= checks[name].items() for name, expected in gate1['checks'].items()):
+            return 'd81e27a9c401'
     preauth = json.loads(Path(__file__).with_name('preauth_schema.json').read_text(encoding='utf-8'))
     if matches(preauth):
         return '83b20cd5e702'

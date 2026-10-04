@@ -12,6 +12,7 @@ from fastapi.exception_handlers import request_validation_exception_handler
 
 from app.api.routes import router
 from app.api.auth import router as auth_router
+from app.api.demo import router as demo_router
 from app.config import get_settings
 from app.db import Base, engine
 from app.errors import DandoonjanError
@@ -48,12 +49,13 @@ def on_startup() -> None:
 
 app.include_router(router, prefix="/api")
 app.include_router(auth_router, prefix="/api")
+app.include_router(demo_router, prefix="/api")
 
 
 @app.middleware('http')
 async def auth_no_store(request: Request, call_next):
     response = await call_next(request)
-    if request.url.path.startswith('/api/auth/'):
+    if request.url.path.startswith(('/api/auth/', '/api/cases', '/api/demo/session', '/api/demo/cases')):
         response.headers['Cache-Control'] = 'no-store'
     return response
 

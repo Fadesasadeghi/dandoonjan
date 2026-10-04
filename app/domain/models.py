@@ -68,6 +68,19 @@ class AuthSession(Base):
     revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
 
+class DemoVisitor(Base):
+    """Persistent Demo principal association; never delete on credential expiry."""
+    __tablename__ = 'demo_visitors'
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey('users.id', ondelete='RESTRICT'), unique=True)
+    token_hash: Mapped[str] = mapped_column(String(64), unique=True)
+    csrf_token_hash: Mapped[str] = mapped_column(String(64))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    last_seen_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
+    revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+
 class PreAuthContext(Base):
     """Short-lived CSRF context; never an authenticated identity."""
     __tablename__ = 'preauth_contexts'
@@ -102,6 +115,9 @@ class Case(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow,
                                                 onupdate=utcnow)
+
+    demo_visitor: Mapped[DemoVisitor | None] = relationship(
+        primaryjoin='Case.user_id == foreign(DemoVisitor.user_id)', viewonly=True, uselist=False)
 
     artifacts: Mapped[list["Artifact"]] = relationship(back_populates="case")
     claims: Mapped[list["Claim"]] = relationship(back_populates="case")

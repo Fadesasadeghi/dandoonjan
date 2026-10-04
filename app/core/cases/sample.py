@@ -12,7 +12,7 @@ SAMPLE_TEXT = ('SYNTHETIC Treatment Plan\nTooth 46: RCT recommended\n'
 
 
 def is_demo(case):
-    return case.context_text == DEMO_MARKER
+    return case.demo_visitor is not None
 
 
 def execution_identity(case):

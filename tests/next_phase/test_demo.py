@@ -12,24 +12,40 @@ DOSSIER = dict(symptoms='حساسیت به سرما در دندان ۴۶ — س�
     previous_reports='ساختگی؛ معاینه ثبت نشده', previous_treatments='ندارد')
 
 
+def case_path(client, cid):
+    namespace = '/api/demo/cases' if cid in getattr(client, 'demo_cases', set()) else '/api/cases'
+    return f'{namespace}/{cid}'
+
+
 def create_demo(client, context=MARKER, symptoms=None, plan=None):
-    cid = client.post('/api/cases', data={'question': 'آیا پیشنهاد عصب‌کشی دندان ۴۶ پشتوانه دارد؟',
+    namespace = '/api/cases'
+    headers = {}
+    if context == MARKER:
+        namespace = '/api/demo/cases'
+        bootstrap = client.post('/api/demo/session', headers={'Origin':'http://testserver'})
+        assert bootstrap.status_code == 200
+        headers = {'Origin':'http://testserver', 'X-CSRF-Token':bootstrap.json()['csrf_token']}
+        client.headers.update(headers)
+    cid = client.post(namespace, data={'question': 'آیا پیشنهاد عصب‌کشی دندان ۴۶ پشتوانه دارد؟',
         'dentist_recommendation': 'عصب‌کشی و روکش دندان ۴۶ پیشنهاد شده', 'context': context}).json()['case_id']
-    client.put(f'/api/cases/{cid}/dossier', json={**DOSSIER, **({'symptoms': symptoms} if symptoms else {})})
+    if context == MARKER:
+        client.demo_cases = getattr(client, 'demo_cases', set()) | {cid}
+    client.put(case_path(client, cid)+'/dossier', json={**DOSSIER, **({'symptoms': symptoms} if symptoms else {})})
     from app.core.cases.sample import image_pattern, plan_pdf
     files = [('طرح-درمان-نمونه.txt', (plan or client.get('/api/demo/sample').text).encode(), 'text/plain', 'treatment_plan'),
         ('synthetic-pattern-not-radiograph.png', image_pattern(), 'image/png', 'dental_image'),
         ('synthetic-plan.pdf', plan_pdf(), 'application/pdf', 'treatment_plan'),
         ('synthetic-prior-report.txt', b'SYNTHETIC prior clinical note\nTooth 46: cold sensitivity for three days. No examination recorded.', 'text/plain', 'previous_report')]
     for name, content, mime, role in files:
-        assert client.post(f'/api/cases/{cid}/artifacts', files={'file': (name, content, mime)}, data={'document_role': role}).status_code == 201
+        assert client.post(case_path(client, cid)+'/artifacts', files={'file': (name, content, mime)}, data={'document_role': role}).status_code == 201
     return cid
 
 
 @pytest.mark.parametrize('context,expected', [(MARKER, True), ('', False), (MARKER+' ', False), ('prefix '+MARKER, False)])
-def test_exact_marker(context, expected):
+def test_marker_is_not_classification(context, expected):
     from app.core.cases.sample import is_demo
-    assert is_demo(SimpleNamespace(context_text=context)) is expected
+    assert is_demo(SimpleNamespace(context_text=context, demo_visitor=None)) is False
+    assert is_demo(SimpleNamespace(context_text=context, demo_visitor=object())) is True
 
 
 def test_demo_offline_identity_and_reuse(api_client, regression_settings, monkeypatch):
@@ -45,8 +61,8 @@ def test_demo_offline_identity_and_reuse(api_client, regression_settings, monkey
     monkeypatch.setattr(gateway.OpenRouterProvider, '_exchange', lambda *a, **kw: pytest.fail('Live dispatch'))
     monkeypatch.setattr(gateway, 'OpenRouterProvider', lambda **kw: pytest.fail('Live provider constructed'))
     before = regression_settings.model_dump()
-    assert client.post(f'/api/cases/{cid}/process').json()['report']
-    report = client.get(f'/api/cases/{cid}/report').json()
+    assert client.post(case_path(client, cid)+'/process').json()['report']
+    report = client.get(case_path(client, cid)+'/report').json()
     assert report['review']['run']['provider'] == 'mock'
     assert report['review']['run']['mode'] == 'MOCK'
     assert report['review']['diagnostic_hypotheses'] == []
@@ -61,7 +77,7 @@ def test_demo_offline_identity_and_reuse(api_client, regression_settings, monkey
         assert effective_input_hash(db, case) == previous
     monkeypatch.setattr(regression_settings, 'ai_model_name', before['ai_model_name'])
     assert regression_settings.model_dump() == before
-    assert client.post(f'/api/cases/{cid}/process').json()['snapshot'] == report['snapshot_id']
+    assert client.post(case_path(client, cid)+'/process').json()['snapshot'] == report['snapshot_id']
 
 
 def test_unmarked_provider_and_production_policy(api_client, regression_settings, monkeypatch):
@@ -75,12 +91,15 @@ def test_unmarked_provider_and_production_policy(api_client, regression_settings
     monkeypatch.setattr(gateway, 'OpenRouterProvider', reject)
     monkeypatch.setattr(regression_settings, 'ai_provider', 'openrouter')
     cid = create_demo(client, context=MARKER+' ')
-    assert client.post(f'/api/cases/{cid}/process').json()['status'] == 'FAILED'
+    assert client.post(case_path(client, cid)+'/process').json()['status'] == 'FAILED'
     assert len(seen) == 1
     seen.clear()
     cid = create_demo(client)
+    from app.security.demo_sessions import cookie_name
+    raw = client.cookies.get(cookie_name())
     monkeypatch.setattr(regression_settings, 'environment', 'production')
-    assert client.post(f'/api/cases/{cid}/process').json()['status'] == 'FAILED'
+    client.cookies.set(cookie_name(), raw, domain='testserver.local', path='/')
+    assert client.post(case_path(client, cid)+'/process').json()['status'] == 'FAILED'
     assert not seen
 
 
@@ -91,7 +110,7 @@ def test_fixture_text_and_png_nonclinical(api_client):
     with pymupdf.open(stream=client.get('/api/demo/sample-plan').content, filetype='pdf') as pdf:
         assert 'SYNTHETIC' in pdf[0].get_text()
     cid = create_demo(client)
-    client.post(f'/api/cases/{cid}/process')
+    client.post(case_path(client, cid)+'/process')
     with sessions() as db:
         image = db.query(Artifact).filter_by(original_filename='synthetic-pattern-not-radiograph.png').one()
         assert image.document_role == 'dental_image'
@@ -105,10 +124,10 @@ def test_summary_sources_scope_changes_and_unchanged_rules(api_client):
     from app.domain.models import AssessmentSnapshot, Finding, TreatmentItem, Extraction, Case, Artifact
     client, sessions, _ = api_client
     other = create_demo(client, symptoms='OTHER_CASE_CANARY')
-    client.post(f'/api/cases/{other}/process')
+    client.post(case_path(client, other)+'/process')
     cid = create_demo(client)
-    client.post(f'/api/cases/{cid}/process')
-    first = client.get(f'/api/cases/{cid}/report').json()['review']
+    client.post(case_path(client, cid)+'/process')
+    first = client.get(case_path(client, cid)+'/report').json()['review']
     assert 'OTHER_CASE_CANARY' not in json.dumps(first)
     for audience in ('patient_summary', 'professional_report'):
         text = ' '.join(a['text'] for a in first[audience])
@@ -132,10 +151,10 @@ def test_summary_sources_scope_changes_and_unchanged_rules(api_client):
                 Artifact.case_id == case.id, TreatmentItem.derivation_run_id == old_run):
             item.tooth_id = 'TOOTH_99'
         db.commit()
-    client.put(f'/api/cases/{cid}/dossier', json={'symptoms': 'NEW_SYMPTOM_CANARY'})
-    client.post(f'/api/cases/{cid}/artifacts', files={'file': ('additional.txt', b'SYNTHETIC Treatment Plan\nTooth 47: filling recommended', 'text/plain')}, data={'document_role':'treatment_plan'})
-    client.post(f'/api/cases/{cid}/process')
-    second = client.get(f'/api/cases/{cid}/report').json()['review']
+    client.put(case_path(client, cid)+'/dossier', json={'symptoms': 'NEW_SYMPTOM_CANARY'})
+    client.post(case_path(client, cid)+'/artifacts', files={'file': ('additional.txt', b'SYNTHETIC Treatment Plan\nTooth 47: filling recommended', 'text/plain')}, data={'document_role':'treatment_plan'})
+    client.post(case_path(client, cid)+'/process')
+    second = client.get(case_path(client, cid)+'/report').json()['review']
     assert 'NEW_SYMPTOM_CANARY' in json.dumps(second, ensure_ascii=False)
     assert '47' in ' '.join(a['text'] for a in second['professional_report'])
     assert '99' not in ' '.join(a['text'] for a in second['professional_report'])
@@ -152,8 +171,11 @@ def test_demo_reuses_normal_assessment_and_safety_rules(api_client):
     from app.domain.models import AssessmentSnapshot
     client, sessions, _ = api_client
     for context in (MARKER, ''):
+        # Restore ACCOUNT CSRF after Demo operations on this mixed-cookie client.
+        if context != MARKER:
+            client.headers['X-CSRF-Token'] = client.get('/api/auth/csrf').json()['csrf_token']
         cid = create_demo(client, context=context)
-        assert client.post(f'/api/cases/{cid}/process').json()['report']
+        assert client.post(case_path(client, cid)+'/process').json()['report']
     with sessions() as db:
         demo, normal = db.query(AssessmentSnapshot).order_by(AssessmentSnapshot.id).all()
         def assessment_facts(snapshot):
@@ -167,11 +189,11 @@ def test_demo_reuses_normal_assessment_and_safety_rules(api_client):
 def test_demo_retains_restricted_safety(api_client, symptoms, state):
     client, _, _ = api_client
     cid = create_demo(client, symptoms=symptoms)
-    result = client.post(f'/api/cases/{cid}/process').json()
+    result = client.post(case_path(client, cid)+'/process').json()
     assert result['safety_state'] == state
     if state == 'BLOCKED':
         assert result['report'] is None
     else:
-        report = client.get(f'/api/cases/{cid}/report').json()
+        report = client.get(case_path(client, cid)+'/report').json()
         assert report['report_kind'] == 'URGENT'
         assert not report.get('review')
