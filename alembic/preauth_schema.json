@@ -1,0 +1,2220 @@
+{
+  "users": {
+    "columns": {
+      "id": [
+        "Integer",
+        false,
+        null
+      ],
+      "public_id": [
+        "String",
+        false,
+        64
+      ],
+      "display_name": [
+        "String",
+        false,
+        255
+      ],
+      "created_at": [
+        "DateTime",
+        false,
+        null
+      ]
+    },
+    "primary_key": [
+      "id"
+    ],
+    "fks": [],
+    "unique": [
+      [
+        "public_id"
+      ]
+    ],
+    "indexes": []
+  },
+  "cases": {
+    "columns": {
+      "id": [
+        "Integer",
+        false,
+        null
+      ],
+      "public_id": [
+        "String",
+        false,
+        64
+      ],
+      "user_id": [
+        "Integer",
+        false,
+        null
+      ],
+      "status": [
+        "String",
+        false,
+        22
+      ],
+      "version": [
+        "Integer",
+        false,
+        null
+      ],
+      "question_text": [
+        "String",
+        false,
+        null
+      ],
+      "context_text": [
+        "String",
+        false,
+        null
+      ],
+      "dentist_recommendation_text": [
+        "String",
+        false,
+        null
+      ],
+      "ontology_version": [
+        "String",
+        false,
+        64
+      ],
+      "created_at": [
+        "DateTime",
+        false,
+        null
+      ],
+      "updated_at": [
+        "DateTime",
+        false,
+        null
+      ]
+    },
+    "primary_key": [
+      "id"
+    ],
+    "fks": [
+      [
+        "user_id",
+        "users",
+        "id",
+        "NO ACTION"
+      ]
+    ],
+    "unique": [
+      [
+        "public_id"
+      ]
+    ],
+    "indexes": [
+      [
+        "public_id"
+      ],
+      [
+        "user_id"
+      ]
+    ]
+  },
+  "artifacts": {
+    "columns": {
+      "id": [
+        "Integer",
+        false,
+        null
+      ],
+      "public_id": [
+        "String",
+        false,
+        64
+      ],
+      "case_id": [
+        "Integer",
+        false,
+        null
+      ],
+      "original_filename": [
+        "String",
+        false,
+        512
+      ],
+      "document_role": [
+        "String",
+        false,
+        32
+      ],
+      "safe_filename": [
+        "String",
+        false,
+        512
+      ],
+      "mime_type": [
+        "String",
+        false,
+        255
+      ],
+      "detected_mime_type": [
+        "String",
+        false,
+        255
+      ],
+      "file_size": [
+        "Integer",
+        false,
+        null
+      ],
+      "sha256": [
+        "String",
+        false,
+        64
+      ],
+      "storage_key": [
+        "String",
+        false,
+        512
+      ],
+      "category": [
+        "String",
+        false,
+        18
+      ],
+      "subtype": [
+        "String",
+        false,
+        18
+      ],
+      "text_content": [
+        "String",
+        true,
+        null
+      ],
+      "immutable": [
+        "Boolean",
+        false,
+        null
+      ],
+      "created_at": [
+        "DateTime",
+        false,
+        null
+      ]
+    },
+    "primary_key": [
+      "id"
+    ],
+    "fks": [
+      [
+        "case_id",
+        "cases",
+        "id",
+        "NO ACTION"
+      ]
+    ],
+    "unique": [
+      [
+        "public_id"
+      ],
+      [
+        "storage_key"
+      ]
+    ],
+    "indexes": [
+      [
+        "case_id"
+      ],
+      [
+        "public_id"
+      ],
+      [
+        "sha256"
+      ]
+    ]
+  },
+  "artifact_classifications": {
+    "columns": {
+      "id": [
+        "Integer",
+        false,
+        null
+      ],
+      "artifact_id": [
+        "Integer",
+        false,
+        null
+      ],
+      "category": [
+        "String",
+        false,
+        18
+      ],
+      "subtype": [
+        "String",
+        false,
+        18
+      ],
+      "confidence": [
+        "Float",
+        false,
+        null
+      ],
+      "truth_type": [
+        "String",
+        false,
+        18
+      ],
+      "model_run_id": [
+        "Integer",
+        true,
+        null
+      ],
+      "prompt_version": [
+        "String",
+        false,
+        64
+      ],
+      "schema_version": [
+        "String",
+        false,
+        64
+      ],
+      "derivation_run_id": [
+        "Integer",
+        true,
+        null
+      ],
+      "derivation_status": [
+        "String",
+        false,
+        24
+      ],
+      "created_at": [
+        "DateTime",
+        false,
+        null
+      ]
+    },
+    "primary_key": [
+      "id"
+    ],
+    "fks": [
+      [
+        "artifact_id",
+        "artifacts",
+        "id",
+        "NO ACTION"
+      ],
+      [
+        "derivation_run_id",
+        "processing_runs",
+        "id",
+        "NO ACTION"
+      ],
+      [
+        "model_run_id",
+        "model_runs",
+        "id",
+        "NO ACTION"
+      ]
+    ],
+    "unique": [],
+    "indexes": [
+      [
+        "artifact_id"
+      ],
+      [
+        "derivation_run_id"
+      ]
+    ]
+  },
+  "artifact_quality_assessments": {
+    "columns": {
+      "id": [
+        "Integer",
+        false,
+        null
+      ],
+      "artifact_id": [
+        "Integer",
+        false,
+        null
+      ],
+      "dimension": [
+        "String",
+        false,
+        64
+      ],
+      "state": [
+        "String",
+        false,
+        16
+      ],
+      "reason": [
+        "String",
+        false,
+        null
+      ],
+      "rules_version": [
+        "String",
+        false,
+        64
+      ],
+      "derivation_run_id": [
+        "Integer",
+        true,
+        null
+      ],
+      "derivation_status": [
+        "String",
+        false,
+        24
+      ],
+      "created_at": [
+        "DateTime",
+        false,
+        null
+      ]
+    },
+    "primary_key": [
+      "id"
+    ],
+    "fks": [
+      [
+        "artifact_id",
+        "artifacts",
+        "id",
+        "NO ACTION"
+      ],
+      [
+        "derivation_run_id",
+        "processing_runs",
+        "id",
+        "NO ACTION"
+      ]
+    ],
+    "unique": [],
+    "indexes": [
+      [
+        "artifact_id"
+      ],
+      [
+        "derivation_run_id"
+      ]
+    ]
+  },
+  "model_runs": {
+    "columns": {
+      "id": [
+        "Integer",
+        false,
+        null
+      ],
+      "provider": [
+        "String",
+        false,
+        64
+      ],
+      "model": [
+        "String",
+        false,
+        128
+      ],
+      "prompt_id": [
+        "String",
+        false,
+        128
+      ],
+      "prompt_version": [
+        "String",
+        false,
+        64
+      ],
+      "schema_version": [
+        "String",
+        false,
+        64
+      ],
+      "temperature": [
+        "Float",
+        false,
+        null
+      ],
+      "input_hash": [
+        "String",
+        false,
+        64
+      ],
+      "output_hash": [
+        "String",
+        false,
+        64
+      ],
+      "status": [
+        "String",
+        false,
+        32
+      ],
+      "error": [
+        "String",
+        true,
+        null
+      ],
+      "validated_output": [
+        "JSON",
+        true,
+        null
+      ],
+      "created_at": [
+        "DateTime",
+        false,
+        null
+      ]
+    },
+    "primary_key": [
+      "id"
+    ],
+    "fks": [],
+    "unique": [],
+    "indexes": []
+  },
+  "provenance_records": {
+    "columns": {
+      "id": [
+        "Integer",
+        false,
+        null
+      ],
+      "public_id": [
+        "String",
+        false,
+        64
+      ],
+      "artifact_id": [
+        "Integer",
+        true,
+        null
+      ],
+      "page": [
+        "Integer",
+        true,
+        null
+      ],
+      "source_span": [
+        "String",
+        true,
+        null
+      ],
+      "bounding_box": [
+        "String",
+        true,
+        null
+      ],
+      "extraction_id": [
+        "Integer",
+        true,
+        null
+      ],
+      "model_run_id": [
+        "Integer",
+        true,
+        null
+      ],
+      "confidence": [
+        "Float",
+        true,
+        null
+      ],
+      "truth_type": [
+        "String",
+        false,
+        18
+      ],
+      "description": [
+        "String",
+        false,
+        null
+      ],
+      "created_at": [
+        "DateTime",
+        false,
+        null
+      ]
+    },
+    "primary_key": [
+      "id"
+    ],
+    "fks": [
+      [
+        "artifact_id",
+        "artifacts",
+        "id",
+        "NO ACTION"
+      ],
+      [
+        "extraction_id",
+        "extractions",
+        "id",
+        "NO ACTION"
+      ],
+      [
+        "model_run_id",
+        "model_runs",
+        "id",
+        "NO ACTION"
+      ]
+    ],
+    "unique": [
+      [
+        "public_id"
+      ]
+    ],
+    "indexes": []
+  },
+  "extractions": {
+    "columns": {
+      "id": [
+        "Integer",
+        false,
+        null
+      ],
+      "public_id": [
+        "String",
+        false,
+        64
+      ],
+      "artifact_id": [
+        "Integer",
+        false,
+        null
+      ],
+      "schema_name": [
+        "String",
+        false,
+        128
+      ],
+      "schema_version": [
+        "String",
+        false,
+        64
+      ],
+      "prompt_version": [
+        "String",
+        false,
+        64
+      ],
+      "model_run_id": [
+        "Integer",
+        true,
+        null
+      ],
+      "derivation_run_id": [
+        "Integer",
+        true,
+        null
+      ],
+      "derivation_status": [
+        "String",
+        false,
+        24
+      ],
+      "created_at": [
+        "DateTime",
+        false,
+        null
+      ]
+    },
+    "primary_key": [
+      "id"
+    ],
+    "fks": [
+      [
+        "artifact_id",
+        "artifacts",
+        "id",
+        "NO ACTION"
+      ],
+      [
+        "derivation_run_id",
+        "processing_runs",
+        "id",
+        "NO ACTION"
+      ],
+      [
+        "model_run_id",
+        "model_runs",
+        "id",
+        "NO ACTION"
+      ]
+    ],
+    "unique": [
+      [
+        "public_id"
+      ]
+    ],
+    "indexes": [
+      [
+        "artifact_id"
+      ],
+      [
+        "derivation_run_id"
+      ]
+    ]
+  },
+  "treatment_items": {
+    "columns": {
+      "id": [
+        "Integer",
+        false,
+        null
+      ],
+      "public_id": [
+        "String",
+        false,
+        64
+      ],
+      "extraction_id": [
+        "Integer",
+        false,
+        null
+      ],
+      "tooth_id": [
+        "String",
+        true,
+        64
+      ],
+      "treatment_id": [
+        "String",
+        false,
+        64
+      ],
+      "predicate": [
+        "String",
+        false,
+        11
+      ],
+      "confidence": [
+        "Float",
+        false,
+        null
+      ],
+      "provenance_id": [
+        "Integer",
+        true,
+        null
+      ],
+      "page": [
+        "Integer",
+        true,
+        null
+      ],
+      "source_span": [
+        "String",
+        true,
+        null
+      ],
+      "bounding_box": [
+        "String",
+        true,
+        null
+      ],
+      "derivation_run_id": [
+        "Integer",
+        true,
+        null
+      ],
+      "derivation_status": [
+        "String",
+        false,
+        24
+      ],
+      "created_at": [
+        "DateTime",
+        false,
+        null
+      ]
+    },
+    "primary_key": [
+      "id"
+    ],
+    "fks": [
+      [
+        "derivation_run_id",
+        "processing_runs",
+        "id",
+        "NO ACTION"
+      ],
+      [
+        "extraction_id",
+        "extractions",
+        "id",
+        "NO ACTION"
+      ],
+      [
+        "provenance_id",
+        "provenance_records",
+        "id",
+        "NO ACTION"
+      ]
+    ],
+    "unique": [
+      [
+        "public_id"
+      ]
+    ],
+    "indexes": [
+      [
+        "derivation_run_id"
+      ],
+      [
+        "extraction_id"
+      ]
+    ]
+  },
+  "extracted_fields": {
+    "columns": {
+      "id": [
+        "Integer",
+        false,
+        null
+      ],
+      "extraction_id": [
+        "Integer",
+        false,
+        null
+      ],
+      "field_name": [
+        "String",
+        false,
+        128
+      ],
+      "raw_value": [
+        "String",
+        false,
+        null
+      ],
+      "normalized_value": [
+        "String",
+        true,
+        255
+      ],
+      "confidence": [
+        "Float",
+        false,
+        null
+      ],
+      "provenance_id": [
+        "Integer",
+        true,
+        null
+      ],
+      "created_at": [
+        "DateTime",
+        false,
+        null
+      ]
+    },
+    "primary_key": [
+      "id"
+    ],
+    "fks": [
+      [
+        "extraction_id",
+        "extractions",
+        "id",
+        "NO ACTION"
+      ],
+      [
+        "provenance_id",
+        "provenance_records",
+        "id",
+        "NO ACTION"
+      ]
+    ],
+    "unique": [],
+    "indexes": [
+      [
+        "extraction_id"
+      ]
+    ]
+  },
+  "findings": {
+    "columns": {
+      "id": [
+        "Integer",
+        false,
+        null
+      ],
+      "public_id": [
+        "String",
+        false,
+        64
+      ],
+      "case_id": [
+        "Integer",
+        false,
+        null
+      ],
+      "artifact_id": [
+        "Integer",
+        true,
+        null
+      ],
+      "finding_type": [
+        "String",
+        false,
+        128
+      ],
+      "statement": [
+        "String",
+        false,
+        null
+      ],
+      "normalized_subject": [
+        "String",
+        true,
+        64
+      ],
+      "normalized_object": [
+        "String",
+        true,
+        64
+      ],
+      "predicate": [
+        "String",
+        false,
+        32
+      ],
+      "extracted_field_id": [
+        "Integer",
+        true,
+        null
+      ],
+      "treatment_item_id": [
+        "Integer",
+        true,
+        null
+      ],
+      "confidence": [
+        "Float",
+        false,
+        null
+      ],
+      "truth_type": [
+        "String",
+        false,
+        18
+      ],
+      "provenance_id": [
+        "Integer",
+        true,
+        null
+      ],
+      "derivation_run_id": [
+        "Integer",
+        true,
+        null
+      ],
+      "derivation_status": [
+        "String",
+        false,
+        24
+      ],
+      "created_at": [
+        "DateTime",
+        false,
+        null
+      ]
+    },
+    "primary_key": [
+      "id"
+    ],
+    "fks": [
+      [
+        "artifact_id",
+        "artifacts",
+        "id",
+        "NO ACTION"
+      ],
+      [
+        "case_id",
+        "cases",
+        "id",
+        "NO ACTION"
+      ],
+      [
+        "derivation_run_id",
+        "processing_runs",
+        "id",
+        "NO ACTION"
+      ],
+      [
+        "extracted_field_id",
+        "extracted_fields",
+        "id",
+        "NO ACTION"
+      ],
+      [
+        "provenance_id",
+        "provenance_records",
+        "id",
+        "NO ACTION"
+      ],
+      [
+        "treatment_item_id",
+        "treatment_items",
+        "id",
+        "NO ACTION"
+      ]
+    ],
+    "unique": [
+      [
+        "public_id"
+      ]
+    ],
+    "indexes": [
+      [
+        "case_id"
+      ],
+      [
+        "derivation_run_id"
+      ]
+    ]
+  },
+  "claims": {
+    "columns": {
+      "id": [
+        "Integer",
+        false,
+        null
+      ],
+      "public_id": [
+        "String",
+        false,
+        64
+      ],
+      "case_id": [
+        "Integer",
+        false,
+        null
+      ],
+      "claim_type": [
+        "String",
+        false,
+        16
+      ],
+      "subject": [
+        "String",
+        false,
+        64
+      ],
+      "predicate": [
+        "String",
+        false,
+        128
+      ],
+      "object_value": [
+        "String",
+        false,
+        255
+      ],
+      "treatment_id": [
+        "String",
+        true,
+        64
+      ],
+      "modality": [
+        "String",
+        true,
+        11
+      ],
+      "source_type": [
+        "String",
+        false,
+        18
+      ],
+      "source_reference": [
+        "String",
+        false,
+        null
+      ],
+      "status": [
+        "String",
+        false,
+        32
+      ],
+      "confidence": [
+        "Float",
+        false,
+        null
+      ],
+      "provenance_id": [
+        "Integer",
+        true,
+        null
+      ],
+      "derivation_run_id": [
+        "Integer",
+        true,
+        null
+      ],
+      "derivation_status": [
+        "String",
+        false,
+        24
+      ],
+      "created_at": [
+        "DateTime",
+        false,
+        null
+      ]
+    },
+    "primary_key": [
+      "id"
+    ],
+    "fks": [
+      [
+        "case_id",
+        "cases",
+        "id",
+        "NO ACTION"
+      ],
+      [
+        "derivation_run_id",
+        "processing_runs",
+        "id",
+        "NO ACTION"
+      ],
+      [
+        "provenance_id",
+        "provenance_records",
+        "id",
+        "NO ACTION"
+      ]
+    ],
+    "unique": [
+      [
+        "public_id"
+      ]
+    ],
+    "indexes": [
+      [
+        "case_id"
+      ],
+      [
+        "derivation_run_id"
+      ],
+      [
+        "public_id"
+      ]
+    ]
+  },
+  "evidence_links": {
+    "columns": {
+      "id": [
+        "Integer",
+        false,
+        null
+      ],
+      "public_id": [
+        "String",
+        false,
+        64
+      ],
+      "claim_id": [
+        "Integer",
+        false,
+        null
+      ],
+      "finding_id": [
+        "Integer",
+        true,
+        null
+      ],
+      "evidence_reference": [
+        "String",
+        false,
+        255
+      ],
+      "relationship": [
+        "String",
+        false,
+        18
+      ],
+      "strength": [
+        "Float",
+        false,
+        null
+      ],
+      "source_type": [
+        "String",
+        false,
+        18
+      ],
+      "confidence": [
+        "Float",
+        false,
+        null
+      ],
+      "provenance_id": [
+        "Integer",
+        true,
+        null
+      ],
+      "derivation_run_id": [
+        "Integer",
+        true,
+        null
+      ],
+      "derivation_status": [
+        "String",
+        false,
+        24
+      ],
+      "created_at": [
+        "DateTime",
+        false,
+        null
+      ]
+    },
+    "primary_key": [
+      "id"
+    ],
+    "fks": [
+      [
+        "claim_id",
+        "claims",
+        "id",
+        "NO ACTION"
+      ],
+      [
+        "derivation_run_id",
+        "processing_runs",
+        "id",
+        "NO ACTION"
+      ],
+      [
+        "finding_id",
+        "findings",
+        "id",
+        "NO ACTION"
+      ],
+      [
+        "provenance_id",
+        "provenance_records",
+        "id",
+        "NO ACTION"
+      ]
+    ],
+    "unique": [
+      [
+        "public_id"
+      ]
+    ],
+    "indexes": [
+      [
+        "claim_id"
+      ],
+      [
+        "derivation_run_id"
+      ]
+    ]
+  },
+  "evidence_gaps": {
+    "columns": {
+      "id": [
+        "Integer",
+        false,
+        null
+      ],
+      "public_id": [
+        "String",
+        false,
+        64
+      ],
+      "case_id": [
+        "Integer",
+        false,
+        null
+      ],
+      "claim_id": [
+        "Integer",
+        false,
+        null
+      ],
+      "gap_type": [
+        "String",
+        false,
+        128
+      ],
+      "importance": [
+        "String",
+        false,
+        8
+      ],
+      "status": [
+        "String",
+        false,
+        14
+      ],
+      "reason": [
+        "String",
+        false,
+        null
+      ],
+      "knowledge_pack_version": [
+        "String",
+        false,
+        64
+      ],
+      "derivation_run_id": [
+        "Integer",
+        true,
+        null
+      ],
+      "derivation_status": [
+        "String",
+        false,
+        24
+      ],
+      "created_at": [
+        "DateTime",
+        false,
+        null
+      ]
+    },
+    "primary_key": [
+      "id"
+    ],
+    "fks": [
+      [
+        "case_id",
+        "cases",
+        "id",
+        "NO ACTION"
+      ],
+      [
+        "claim_id",
+        "claims",
+        "id",
+        "NO ACTION"
+      ],
+      [
+        "derivation_run_id",
+        "processing_runs",
+        "id",
+        "NO ACTION"
+      ]
+    ],
+    "unique": [
+      [
+        "public_id"
+      ]
+    ],
+    "indexes": [
+      [
+        "case_id"
+      ],
+      [
+        "claim_id"
+      ],
+      [
+        "derivation_run_id"
+      ]
+    ]
+  },
+  "knowledge_packs": {
+    "columns": {
+      "id": [
+        "Integer",
+        false,
+        null
+      ],
+      "knowledge_pack_id": [
+        "String",
+        false,
+        128
+      ],
+      "version": [
+        "String",
+        false,
+        64
+      ],
+      "status": [
+        "String",
+        false,
+        18
+      ],
+      "review_status": [
+        "String",
+        false,
+        64
+      ],
+      "content": [
+        "JSON",
+        false,
+        null
+      ],
+      "active": [
+        "Boolean",
+        false,
+        null
+      ],
+      "created_at": [
+        "DateTime",
+        false,
+        null
+      ]
+    },
+    "primary_key": [
+      "id"
+    ],
+    "fks": [],
+    "unique": [
+      [
+        "knowledge_pack_id",
+        "version"
+      ]
+    ],
+    "indexes": []
+  },
+  "assessments": {
+    "columns": {
+      "id": [
+        "Integer",
+        false,
+        null
+      ],
+      "public_id": [
+        "String",
+        false,
+        64
+      ],
+      "case_id": [
+        "Integer",
+        false,
+        null
+      ],
+      "claim_id": [
+        "Integer",
+        false,
+        null
+      ],
+      "status": [
+        "String",
+        false,
+        21
+      ],
+      "supporting_evidence": [
+        "JSON",
+        false,
+        null
+      ],
+      "contradicting_evidence": [
+        "JSON",
+        false,
+        null
+      ],
+      "missing_evidence": [
+        "JSON",
+        false,
+        null
+      ],
+      "confidence": [
+        "String",
+        false,
+        12
+      ],
+      "knowledge_pack_version": [
+        "String",
+        false,
+        64
+      ],
+      "assessment_rules_version": [
+        "String",
+        false,
+        64
+      ],
+      "derivation_run_id": [
+        "Integer",
+        true,
+        null
+      ],
+      "derivation_status": [
+        "String",
+        false,
+        24
+      ],
+      "created_at": [
+        "DateTime",
+        false,
+        null
+      ]
+    },
+    "primary_key": [
+      "id"
+    ],
+    "fks": [
+      [
+        "case_id",
+        "cases",
+        "id",
+        "NO ACTION"
+      ],
+      [
+        "claim_id",
+        "claims",
+        "id",
+        "NO ACTION"
+      ],
+      [
+        "derivation_run_id",
+        "processing_runs",
+        "id",
+        "NO ACTION"
+      ]
+    ],
+    "unique": [
+      [
+        "public_id"
+      ]
+    ],
+    "indexes": [
+      [
+        "case_id"
+      ],
+      [
+        "claim_id"
+      ],
+      [
+        "derivation_run_id"
+      ]
+    ]
+  },
+  "safety_results": {
+    "columns": {
+      "id": [
+        "Integer",
+        false,
+        null
+      ],
+      "case_id": [
+        "Integer",
+        false,
+        null
+      ],
+      "state": [
+        "String",
+        false,
+        17
+      ],
+      "reasons": [
+        "JSON",
+        false,
+        null
+      ],
+      "rules_version": [
+        "String",
+        false,
+        64
+      ],
+      "derivation_run_id": [
+        "Integer",
+        true,
+        null
+      ],
+      "derivation_status": [
+        "String",
+        false,
+        24
+      ],
+      "created_at": [
+        "DateTime",
+        false,
+        null
+      ]
+    },
+    "primary_key": [
+      "id"
+    ],
+    "fks": [
+      [
+        "case_id",
+        "cases",
+        "id",
+        "NO ACTION"
+      ],
+      [
+        "derivation_run_id",
+        "processing_runs",
+        "id",
+        "NO ACTION"
+      ]
+    ],
+    "unique": [],
+    "indexes": [
+      [
+        "case_id"
+      ],
+      [
+        "derivation_run_id"
+      ]
+    ]
+  },
+  "assessment_snapshots": {
+    "columns": {
+      "id": [
+        "Integer",
+        false,
+        null
+      ],
+      "public_id": [
+        "String",
+        false,
+        64
+      ],
+      "case_id": [
+        "Integer",
+        false,
+        null
+      ],
+      "case_version": [
+        "Integer",
+        false,
+        null
+      ],
+      "payload": [
+        "JSON",
+        false,
+        null
+      ],
+      "safety_state": [
+        "String",
+        false,
+        17
+      ],
+      "derivation_run_id": [
+        "Integer",
+        true,
+        null
+      ],
+      "immutable": [
+        "Boolean",
+        false,
+        null
+      ],
+      "versions": [
+        "JSON",
+        false,
+        null
+      ],
+      "content_hash": [
+        "String",
+        false,
+        64
+      ],
+      "created_at": [
+        "DateTime",
+        false,
+        null
+      ]
+    },
+    "primary_key": [
+      "id"
+    ],
+    "fks": [
+      [
+        "case_id",
+        "cases",
+        "id",
+        "NO ACTION"
+      ],
+      [
+        "derivation_run_id",
+        "processing_runs",
+        "id",
+        "NO ACTION"
+      ]
+    ],
+    "unique": [
+      [
+        "public_id"
+      ]
+    ],
+    "indexes": [
+      [
+        "case_id"
+      ],
+      [
+        "derivation_run_id"
+      ],
+      [
+        "public_id"
+      ]
+    ]
+  },
+  "reports": {
+    "columns": {
+      "id": [
+        "Integer",
+        false,
+        null
+      ],
+      "public_id": [
+        "String",
+        false,
+        64
+      ],
+      "case_id": [
+        "Integer",
+        false,
+        null
+      ],
+      "snapshot_id": [
+        "Integer",
+        false,
+        null
+      ],
+      "derivation_run_id": [
+        "Integer",
+        true,
+        null
+      ],
+      "schema_version": [
+        "String",
+        false,
+        64
+      ],
+      "content": [
+        "JSON",
+        false,
+        null
+      ],
+      "created_at": [
+        "DateTime",
+        false,
+        null
+      ]
+    },
+    "primary_key": [
+      "id"
+    ],
+    "fks": [
+      [
+        "case_id",
+        "cases",
+        "id",
+        "NO ACTION"
+      ],
+      [
+        "derivation_run_id",
+        "processing_runs",
+        "id",
+        "NO ACTION"
+      ],
+      [
+        "snapshot_id",
+        "assessment_snapshots",
+        "id",
+        "NO ACTION"
+      ]
+    ],
+    "unique": [
+      [
+        "public_id"
+      ]
+    ],
+    "indexes": [
+      [
+        "case_id"
+      ],
+      [
+        "derivation_run_id"
+      ],
+      [
+        "public_id"
+      ],
+      [
+        "snapshot_id"
+      ]
+    ]
+  },
+  "processing_runs": {
+    "columns": {
+      "id": [
+        "Integer",
+        false,
+        null
+      ],
+      "public_id": [
+        "String",
+        false,
+        64
+      ],
+      "case_id": [
+        "Integer",
+        false,
+        null
+      ],
+      "module": [
+        "String",
+        false,
+        128
+      ],
+      "status": [
+        "String",
+        false,
+        9
+      ],
+      "attempt": [
+        "Integer",
+        false,
+        null
+      ],
+      "input_version": [
+        "String",
+        false,
+        128
+      ],
+      "input_hash": [
+        "String",
+        false,
+        64
+      ],
+      "output_version": [
+        "String",
+        false,
+        128
+      ],
+      "error": [
+        "String",
+        true,
+        null
+      ],
+      "authority": [
+        "String",
+        false,
+        17
+      ],
+      "derivation_run_id": [
+        "Integer",
+        true,
+        null
+      ],
+      "model_run_id": [
+        "Integer",
+        true,
+        null
+      ],
+      "started_at": [
+        "DateTime",
+        true,
+        null
+      ],
+      "finished_at": [
+        "DateTime",
+        true,
+        null
+      ],
+      "created_at": [
+        "DateTime",
+        false,
+        null
+      ]
+    },
+    "primary_key": [
+      "id"
+    ],
+    "fks": [
+      [
+        "case_id",
+        "cases",
+        "id",
+        "NO ACTION"
+      ],
+      [
+        "derivation_run_id",
+        "processing_runs",
+        "id",
+        "NO ACTION"
+      ],
+      [
+        "model_run_id",
+        "model_runs",
+        "id",
+        "NO ACTION"
+      ]
+    ],
+    "unique": [
+      [
+        "attempt",
+        "case_id",
+        "input_hash",
+        "module"
+      ],
+      [
+        "public_id"
+      ]
+    ],
+    "indexes": [
+      [
+        "case_id"
+      ],
+      [
+        "derivation_run_id"
+      ]
+    ]
+  },
+  "audit_events": {
+    "columns": {
+      "id": [
+        "Integer",
+        false,
+        null
+      ],
+      "event_type": [
+        "String",
+        false,
+        128
+      ],
+      "case_id": [
+        "Integer",
+        true,
+        null
+      ],
+      "actor": [
+        "String",
+        false,
+        128
+      ],
+      "detail": [
+        "JSON",
+        false,
+        null
+      ],
+      "created_at": [
+        "DateTime",
+        false,
+        null
+      ]
+    },
+    "primary_key": [
+      "id"
+    ],
+    "fks": [],
+    "unique": [],
+    "indexes": [
+      [
+        "case_id"
+      ],
+      [
+        "event_type"
+      ]
+    ]
+  },
+  "review_runs": {
+    "columns": {
+      "id": [
+        "Integer",
+        false,
+        null
+      ],
+      "public_id": [
+        "String",
+        false,
+        64
+      ],
+      "case_id": [
+        "Integer",
+        false,
+        null
+      ],
+      "derivation_run_id": [
+        "Integer",
+        false,
+        null
+      ],
+      "provider": [
+        "String",
+        false,
+        64
+      ],
+      "model": [
+        "String",
+        false,
+        128
+      ],
+      "schema_version": [
+        "String",
+        false,
+        64
+      ],
+      "status": [
+        "String",
+        false,
+        32
+      ],
+      "runtime_ms": [
+        "Integer",
+        false,
+        null
+      ],
+      "error_code": [
+        "String",
+        true,
+        64
+      ],
+      "output": [
+        "JSON",
+        true,
+        null
+      ],
+      "source_index": [
+        "JSON",
+        false,
+        null
+      ],
+      "created_at": [
+        "DateTime",
+        false,
+        null
+      ]
+    },
+    "primary_key": [
+      "id"
+    ],
+    "fks": [
+      [
+        "case_id",
+        "cases",
+        "id",
+        "NO ACTION"
+      ],
+      [
+        "derivation_run_id",
+        "processing_runs",
+        "id",
+        "NO ACTION"
+      ]
+    ],
+    "unique": [
+      [
+        "public_id"
+      ]
+    ],
+    "indexes": [
+      [
+        "case_id"
+      ],
+      [
+        "derivation_run_id"
+      ]
+    ]
+  },
+  "diagnostic_hypotheses": {
+    "columns": {
+      "id": [
+        "Integer",
+        false,
+        null
+      ],
+      "review_run_id": [
+        "Integer",
+        false,
+        null
+      ],
+      "rank": [
+        "Integer",
+        false,
+        null
+      ],
+      "label": [
+        "String",
+        false,
+        null
+      ],
+      "confidence_label": [
+        "String",
+        false,
+        8
+      ],
+      "insufficient_support": [
+        "Boolean",
+        false,
+        null
+      ]
+    },
+    "primary_key": [
+      "id"
+    ],
+    "fks": [
+      [
+        "review_run_id",
+        "review_runs",
+        "id",
+        "NO ACTION"
+      ]
+    ],
+    "unique": [],
+    "indexes": [
+      [
+        "review_run_id"
+      ]
+    ]
+  },
+  "hypothesis_evidence": {
+    "columns": {
+      "id": [
+        "Integer",
+        false,
+        null
+      ],
+      "hypothesis_id": [
+        "Integer",
+        false,
+        null
+      ],
+      "source_ref": [
+        "String",
+        false,
+        255
+      ],
+      "artifact_id": [
+        "Integer",
+        true,
+        null
+      ],
+      "dossier_revision_id": [
+        "Integer",
+        true,
+        null
+      ],
+      "relationship_type": [
+        "String",
+        false,
+        16
+      ]
+    },
+    "primary_key": [
+      "id"
+    ],
+    "fks": [
+      [
+        "artifact_id",
+        "artifacts",
+        "id",
+        "NO ACTION"
+      ],
+      [
+        "dossier_revision_id",
+        "dossier_revisions",
+        "id",
+        "NO ACTION"
+      ],
+      [
+        "hypothesis_id",
+        "diagnostic_hypotheses",
+        "id",
+        "NO ACTION"
+      ]
+    ],
+    "unique": [],
+    "indexes": [
+      [
+        "hypothesis_id"
+      ]
+    ]
+  },
+  "dossier_revisions": {
+    "columns": {
+      "id": [
+        "Integer",
+        false,
+        null
+      ],
+      "public_id": [
+        "String",
+        false,
+        64
+      ],
+      "case_id": [
+        "Integer",
+        false,
+        null
+      ],
+      "case_version": [
+        "Integer",
+        false,
+        null
+      ],
+      "symptoms": [
+        "String",
+        false,
+        null
+      ],
+      "duration": [
+        "String",
+        false,
+        null
+      ],
+      "medical_history": [
+        "String",
+        false,
+        null
+      ],
+      "medications": [
+        "String",
+        false,
+        null
+      ],
+      "allergies": [
+        "String",
+        false,
+        null
+      ],
+      "treatment_plan": [
+        "String",
+        false,
+        null
+      ],
+      "previous_reports": [
+        "String",
+        false,
+        null
+      ],
+      "previous_treatments": [
+        "String",
+        false,
+        null
+      ],
+      "created_at": [
+        "DateTime",
+        false,
+        null
+      ]
+    },
+    "primary_key": [
+      "id"
+    ],
+    "fks": [
+      [
+        "case_id",
+        "cases",
+        "id",
+        "NO ACTION"
+      ]
+    ],
+    "unique": [
+      [
+        "case_id",
+        "case_version"
+      ],
+      [
+        "public_id"
+      ]
+    ],
+    "indexes": [
+      [
+        "case_id"
+      ]
+    ]
+  }
+}

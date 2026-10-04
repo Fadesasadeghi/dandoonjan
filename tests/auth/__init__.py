@@ -1,0 +1,1 @@
+"""Isolated authentication foundation tests."""

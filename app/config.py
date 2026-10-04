@@ -27,8 +27,11 @@ class Settings(BaseSettings):
     environment: str = "development"
     # Same-origin frontend needs no CORS grant. Explicit JSON array in DJ_CORS_ORIGINS.
     cors_origins: list[str] = []
+    # Backend verification only until Gate 2 protects every normal case route.
+    auth_foundation_enabled: bool = False
+    auth_allowed_origins: list[str] = []
 
-    @field_validator("cors_origins")
+    @field_validator("cors_origins", "auth_allowed_origins")
     @classmethod
     def exact_origins(cls, origins: list[str]) -> list[str]:
         for origin in origins:

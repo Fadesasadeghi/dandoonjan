@@ -8,7 +8,7 @@ from __future__ import annotations
 import uuid
 from datetime import datetime, timezone
 
-from sqlalchemy import (JSON, Boolean, DateTime, Enum as SAEnum, Float, ForeignKey,
+from sqlalchemy import (JSON, Boolean, CheckConstraint, DateTime, Enum as SAEnum, Float, ForeignKey,
                         Index, Integer, String, Text, UniqueConstraint)
 from sqlalchemy.ext.mutable import MutableDict
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -35,6 +35,57 @@ class User(Base):
     public_id: Mapped[str] = mapped_column(String(64), unique=True)
     display_name: Mapped[str] = mapped_column(String(255), default="patient")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    email: Mapped[str | None] = mapped_column(String(320), nullable=True)
+    normalized_email: Mapped[str | None] = mapped_column(String(320), nullable=True)
+    password_hash: Mapped[str | None] = mapped_column(String(512), nullable=True)
+    kind: Mapped[str] = mapped_column(String(16), default='LEGACY', server_default='LEGACY')
+    status: Mapped[str] = mapped_column(String(16), default='DISABLED', server_default='DISABLED')
+    updated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow, nullable=True)
+    email_verified_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+    __table_args__ = (
+        UniqueConstraint('normalized_email', name='uq_users_normalized_email'),
+        CheckConstraint("kind IN ('ACCOUNT','LEGACY')", name='ck_users_kind'),
+        CheckConstraint("status IN ('ACTIVE','DISABLED')", name='ck_users_status'),
+        CheckConstraint("(kind = 'ACCOUNT' AND email IS NOT NULL AND normalized_email IS NOT NULL "
+                        "AND password_hash IS NOT NULL AND email <> '' AND normalized_email <> '' "
+                        "AND password_hash LIKE '$argon2id$%') OR "
+                        "(kind = 'LEGACY' AND status = 'DISABLED' AND email IS NULL "
+                        "AND normalized_email IS NULL AND password_hash IS NULL AND email_verified_at IS NULL)",
+                        name='ck_users_credentials'),
+    )
+
+
+class AuthSession(Base):
+    __tablename__ = 'auth_sessions'
+    id: Mapped[int] = mapped_column(primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey('users.id', ondelete='RESTRICT'), index=True)
+    token_hash: Mapped[str] = mapped_column(String(64), unique=True)
+    csrf_token_hash: Mapped[str] = mapped_column(String(64))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    last_seen_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
+    revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+
+class PreAuthContext(Base):
+    """Short-lived CSRF context; never an authenticated identity."""
+    __tablename__ = 'preauth_contexts'
+    id: Mapped[int] = mapped_column(primary_key=True)
+    token_hash: Mapped[str] = mapped_column(String(64), unique=True)
+    csrf_token_hash: Mapped[str] = mapped_column(String(64))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
+    consumed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+
+class AuthRateLimit(Base):
+    """Shared fixed-window attempt budget. No email or IP stored here."""
+    __tablename__ = 'auth_rate_limits'
+    key_hash: Mapped[str] = mapped_column(String(64), primary_key=True)
+    window_started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), index=True)
+    attempts: Mapped[int] = mapped_column(Integer)
+    __table_args__ = (CheckConstraint('attempts > 0', name='ck_auth_rate_attempts'),)
 
 
 class Case(Base):

@@ -7,8 +7,11 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
+from fastapi.exceptions import RequestValidationError
+from fastapi.exception_handlers import request_validation_exception_handler
 
 from app.api.routes import router
+from app.api.auth import router as auth_router
 from app.config import get_settings
 from app.db import Base, engine
 from app.errors import DandoonjanError
@@ -44,6 +47,25 @@ def on_startup() -> None:
 
 
 app.include_router(router, prefix="/api")
+app.include_router(auth_router, prefix="/api")
+
+
+@app.middleware('http')
+async def auth_no_store(request: Request, call_next):
+    response = await call_next(request)
+    if request.url.path.startswith('/api/auth/'):
+        response.headers['Cache-Control'] = 'no-store'
+    return response
+
+
+@app.exception_handler(RequestValidationError)
+async def safe_auth_validation(request: Request, exc: RequestValidationError):
+    if request.url.path.startswith('/api/auth/'):
+        # Pydantic's default errors include input. Never serialize credentials.
+        return JSONResponse(status_code=422, content={'detail': {
+            'code':'INVALID_CREDENTIAL_INPUT', 'message_fa':'اطلاعات واردشده معتبر نیست.'}},
+            headers={'Cache-Control':'no-store'})
+    return await request_validation_exception_handler(request, exc)
 
 
 @app.get("/api/health")
