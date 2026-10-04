@@ -350,7 +350,10 @@ def test_structured_report_source_hierarchy_and_print_audience(page):
             "run": {"mode": "MOCK", "provider": "mock", "model": "mock-review-v1", "runtime_ms": 1,
                 "created_at": "2026-01-01T00:00:00", "run_id": "MRUN-SYNTHETIC"}},
     }
-    page.route("**/api/cases/*/report", lambda route: route.fulfill(json=report))
+    # Supply the same report identity fields as the authoritative API response.
+    report['report_id'] = 'RPT-SYNTHETIC'
+    page.route("**/api/cases/*/report", lambda route: route.fulfill(json={
+        **report, 'case_id': route.request.url.split('/cases/')[1].split('/')[0]}))
     start(page, [PLAN])
     expect(page.locator("#view-report")).to_be_visible(timeout=20000)
     expect(page.locator("#report-content")).to_contain_text("سؤال اصلی")

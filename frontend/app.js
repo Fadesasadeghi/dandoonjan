@@ -29,16 +29,119 @@ async function api(path, options = {}) {
 }
 function saveCase() {
   try { sessionStorage.setItem("dandoonjan_active_case", JSON.stringify({id: state.caseId, sample: state.sample})); } catch (_) { /* Storage is optional; in-page retry still works. */ }
-  $("resume-case").classList.toggle("hidden", !state.caseId);
+  $("resume-case").classList.toggle("hidden", navigation.draft || !state.caseId);
 }
 function showView(name) {
   ["home", "workspace", "report"].forEach(v => $("view-" + v).classList.toggle("active", v === name));
   document.body.classList.toggle("print-ready", name === "report" && !!state.report);
   window.scrollTo({top: 0, behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth"});
 }
+// History contains presentation identity only; drafts and File objects stay in memory.
+function navigationId() { return globalThis.crypto?.randomUUID?.() || `${Date.now()}-${Math.random()}`; }
+const navigation = {session: navigationId(), current: null, revision: 0, draft: false, lastWork: 'intake', operations: new Map()};
+// Install this optional enhancement only when there is work to return to.
+const draftReturnControl = $('return-draft');
+const draftReturnParent = draftReturnControl?.parentElement;
+draftReturnControl?.remove();
+function route(view, extra = {}) {
+  return {app: 'dandoonjan', session: navigation.session, view, caseId: state.caseId, ...extra};
+}
+function reportIdentity(report) {
+  return {caseId: report.case_id, reportId: report.report_id, snapshotId: report.snapshot_id, runId: report.review?.run?.run_id || null};
+}
+function sameReport(entry, report) {
+  const identity = reportIdentity(report);
+  return !!entry.reportId && !!entry.snapshotId && Object.keys(identity).every(key => entry[key] === identity[key]);
+}
+function present(entry) {
+  navigation.current = entry;
+  navigation.revision++;
+  if (['intake', 'evidence'].includes(entry.view)) navigation.lastWork = entry.view;
+  if (navigation.draft && draftReturnControl && !draftReturnControl.isConnected) draftReturnParent.append(draftReturnControl);
+  draftReturnControl?.classList.toggle('hidden', !navigation.draft);
+  $('resume-case').classList.toggle('hidden', navigation.draft || !sessionCaseAvailable());
+  $('view-workspace').classList.toggle('analyzing', entry.view === 'processing');
+  $('analysis-scene').classList.toggle('hidden', entry.view !== 'processing');
+  $('report-unavailable')?.classList.add('hidden');
+  if (entry.view === 'home') showView('home');
+  else if (entry.view === 'report') showView('report');
+  else {
+    showView('workspace');
+    $('intake-panel').classList.remove('hidden');
+    $('evidence-panel').classList.toggle('hidden', entry.view === 'intake');
+    $('case-question').textContent = $('question').value;
+    $('sample-notice').classList.toggle('hidden', !state.sample);
+  }
+}
+function sessionCaseAvailable() {
+  try { return !!JSON.parse(sessionStorage.getItem('dandoonjan_active_case') || 'null')?.id; }
+  catch (_) { return false; }
+}
+function navigate(view, extra = {}, replace = false) {
+  const entry = route(view, extra);
+  const same = JSON.stringify(entry) === JSON.stringify(navigation.current);
+  if (!same || replace) history[replace ? 'replaceState' : 'pushState'](entry, '');
+  present(entry);
+}
+function unavailableReport() {
+  clearReport();
+  $('report-badge').textContent = 'نتیجهٔ قبلی در دسترس نیست';
+  $('audience-controls').classList.add('hidden');
+  $('print-report').disabled = true;
+  $('report-unavailable')?.classList.remove('hidden');
+}
+async function restoreNavigation(entry) {
+  if (!entry || entry.app !== 'dandoonjan' || entry.session !== navigation.session ||
+      !['home', 'intake', 'evidence', 'processing', 'report'].includes(entry.view) ||
+      (entry.caseId && entry.caseId !== state.caseId)) {
+    navigate('home', {}, true); return;
+  }
+  if (entry.view === 'processing') {
+    const operation = navigation.operations.get(entry.operationId);
+    if (!operation) { navigate(state.caseId ? 'evidence' : 'intake', {}, true); return; }
+    if (operation.done) {
+      if (operation.report) {
+        entry = route('report', reportIdentity(operation.report));
+        history.replaceState(entry, '');
+      } else { navigate('evidence', {}, true); return; }
+    }
+  }
+  present(entry);
+  if (entry.view !== 'report') return;
+  // Never expose cached content while the authoritative GET is pending.
+  clearReport(); $('print-report').disabled = true;
+  const revision = navigation.revision;
+  try {
+    const report = await api(`/api/cases/${entry.caseId}/report`);
+    if (revision !== navigation.revision) return;
+    if (!sameReport(entry, report)) { unavailableReport(); return; }
+    renderReport(report, false);
+    setBusy(state.busy, $('activity').textContent);
+  } catch (_) { if (revision === navigation.revision) unavailableReport(); }
+}
+window.addEventListener('popstate', event => {
+  // Native fragment entries do not represent a workflow transition.
+  const entry = event.state || navigation.current;
+  if (!event.state) history.replaceState(entry, '');
+  void restoreNavigation(entry);
+});
+function homeNavigation() { navigate('home'); }
+document.querySelector('.brand').addEventListener('click', event => {
+  event.preventDefault(); homeNavigation();
+});
+if (draftReturnControl) draftReturnControl.onclick = () => {
+  const operation = [...navigation.operations.values()].find(op => !op.done);
+  if (operation) navigate('processing', {operationId: operation.id});
+  else navigate(navigation.lastWork);
+};
+if ($('return-evidence')) $('return-evidence').onclick = () => navigate(state.caseId ? 'evidence' : 'intake');
 function setBusy(busy, message = "") {
   state.busy = busy;
   document.querySelectorAll("button, textarea, input").forEach(el => { el.disabled = busy; });
+  document.querySelectorAll('select').forEach(el => { el.disabled = busy; });
+  ['back-home', 'home-from-report'].forEach(id => $(id).disabled = false);
+  ['return-draft', 'return-evidence'].forEach(id => { if ($(id)) $(id).disabled = false; });
+  if (navigation.current?.view === 'report' && !state.report) $('print-report').disabled = true;
   if (state.createUncertain) $("submit-case").disabled = true;
   $("activity").textContent = message;
   $("view-workspace").setAttribute("aria-busy", String(busy));
@@ -70,23 +173,22 @@ function addFiles(files) {
   $("files").value = "";
   renderFiles();
 }
-function evidenceView() {
-  showView("workspace");
-  $("intake-panel").classList.remove("hidden");
-  $("evidence-panel").classList.remove("hidden");
-  $("case-question").textContent = $("question").value;
-  $("sample-notice").classList.toggle("hidden", !state.sample);
-}
+function evidenceView(replace = false) { navigate('evidence', {}, replace); }
 function startNewCase() {
   if (state.busy) return;
+  navigation.session = navigationId(); navigation.draft = true; navigation.operations.clear();
   Object.assign(state, {caseId: null, files: [], sample: false, report: null, createUncertain: false});
+  // Keep Home in the new session; earlier work entries cannot bind to this draft.
+  try { sessionStorage.removeItem('dandoonjan_active_case'); } catch (_) {}
+  navigate('home', {}, true);
   clearReport(); clearError();
   $("case-form").reset(); $("evidence-panel").classList.add("hidden");
   $("intake-panel").classList.remove("hidden"); $("sample-notice").classList.add("hidden");
   $("outcome").classList.add("hidden"); $("submit-case").textContent = "ساخت پرونده و افزودن مدارک";
-  renderFiles(); setBusy(false); showView("workspace"); $("question").focus();
+  renderFiles(); setBusy(false); navigate("intake"); $("question").focus();
 }
-async function createOrUpdate() {
+async function createOrUpdate(transition = true, replace = false) {
+  const revision = navigation.revision;
   const data = new FormData();
   data.append("question", $("question").value.trim());
   data.append("dentist_recommendation", $("dentist").value.trim());
@@ -107,7 +209,7 @@ async function createOrUpdate() {
   const dossier = Object.fromEntries(dossierFields.map(id => [id, $(id).value]));
   showCompleteness(await api(`/api/cases/${state.caseId}/dossier`, {method:"PUT", headers:{"Content-Type":"application/json"}, body:JSON.stringify(dossier)}));
   $("submit-case").textContent = "ذخیرهٔ تغییرات همین پرونده";
-  evidenceView();
+  if (transition && revision === navigation.revision) evidenceView(replace);
 }
 async function submitForm(event) {
   event.preventDefault();
@@ -165,28 +267,34 @@ function outcome(result) {
   $("outcome-title").textContent = title; $("outcome-text").textContent = text;
   $("outcome").classList.remove("hidden");
   $("retry-process").classList.toggle("hidden", blocked || manual || urgent);
-  $("outcome-title").focus();
+  if (navigation.current?.view === "evidence") $("outcome-title").focus();
 }
-async function processCase() {
+async function processCase({replaceHistory = false} = {}) {
   if (state.busy || !state.caseId) return;
-  clearError(); clearReport(); $("outcome").classList.add("hidden"); evidenceView();
+  clearError(); clearReport(); $('outcome').classList.add('hidden'); evidenceView(replaceHistory);
+  const operation = {id: navigationId(), caseId: state.caseId, done: false, report: null};
+  navigation.operations.set(operation.id, operation);
+  navigate('processing', {operationId: operation.id}, replaceHistory);
   try {
-    await createOrUpdate();
-    setBusy(true, "در حال آپلود فایل‌ها…");
+    await createOrUpdate(false);
+    setBusy(true, 'در حال آپلود فایل‌ها…');
     await uploadPending();
-    setBusy(true, "در حال پردازش در سرور؛ لطفاً منتظر بمانید…");
-    $("analysis-scene").classList.remove("hidden");
-    $("view-workspace").classList.add("analyzing");
-    $("analysis-scene").scrollIntoView({behavior:matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth"});
-    const result = await api(`/api/cases/${state.caseId}/process`, {method: "POST"});
+    setBusy(true, 'در حال پردازش در سرور؛ لطفاً منتظر بمانید…');
+    const result = await api(`/api/cases/${operation.caseId}/process`, {method: 'POST'});
     applyAttention(result);
     if (result.report) {
-      setBusy(true, "در حال آماده‌سازی نتیجه…");
-      renderReport(await api(`/api/cases/${state.caseId}/report`));
+      setBusy(true, 'در حال آماده‌سازی نتیجه…');
+      operation.report = await api(`/api/cases/${operation.caseId}/report`);
     } else outcome(result);
-  } catch (e) {
-    error(e.message); outcome({status: "FAILED"});
-  } finally { $("view-workspace").classList.remove("analyzing"); $("analysis-scene").classList.add("hidden"); setBusy(false); renderFiles(); }
+  } catch (e) { error(e.message); outcome({status: 'FAILED'}); }
+  finally {
+    operation.done = true;
+    if (navigation.current?.view === 'processing' && navigation.current.operationId === operation.id) {
+      if (operation.report) renderReport(operation.report, true, true);
+      else navigate('evidence', {}, true);
+    }
+    setBusy(false); renderFiles();
+  }
 }
 async function startSample() {
   if (state.busy) return;
@@ -209,10 +317,11 @@ async function startSample() {
     }
     const previous = new File(['Synthetic prior clinical note\nTooth 46: cold sensitivity reported. No examination recorded.'], 'synthetic-prior-report.txt', {type:'text/plain'});
     state.files.push({file:previous, name:previous.name, role:'previous_report', status:'pending', message:'گزارش قبلی کاملاً ساختگی'});
-    renderFiles(); await createOrUpdate();
+    // The Sample click owns one entry; automatic steps update that entry.
+    renderFiles(); await createOrUpdate(true, true);
   } catch (e) { error(e.message); }
   finally { setBusy(false); }
-  if (state.caseId) await processCase();
+  if (state.caseId) await processCase({replaceHistory: true});
 }
 function section(title, body) { return `<section class="report-section"><h2>${escapeHtml(title)}</h2>${body}</section>`; }
 function audience(name, focus = false) {
@@ -282,8 +391,10 @@ function renderReview(report) {
 let printDisclosures = [];
 window.addEventListener('beforeprint', () => { printDisclosures = [...document.querySelectorAll('#report-content details')].map(el => [el, el.open]); printDisclosures.forEach(([el]) => el.open = true); });
 window.addEventListener('afterprint', () => printDisclosures.forEach(([el, open]) => el.open = open));
-function renderReport(report) {
+function renderReport(report, transition = true, replace = false) {
   state.report = report;
+  if (transition) navigate('report', reportIdentity(report), replace);
+  $('report-unavailable')?.classList.add('hidden');
   const urgent = report.report_kind === "URGENT";
   const review = report.report_kind === "REVIEW_PENDING";
   $("report-badge").textContent = urgent ? "نیازمند ارزیابی فوری" : review ? "گزارش ارزیابی شواهد آماده نیست" : report.safety_state === "CAUTION" ? "با توجه به محدودیت‌ها بخوانید" : "گزارش شواهد آماده است";
@@ -319,13 +430,17 @@ function renderReport(report) {
 async function printReport() {
   if (state.busy || !state.caseId) return;
   setBusy(true);
+  const entry = navigation.current, revision = navigation.revision;
   try {
     // Revalidate authority/version immediately before offering export.
     const selectedAudience = document.querySelector('[data-audience]:not(.audience-hidden)')?.dataset.audience || 'patient';
-    renderReport(await api(`/api/cases/${state.caseId}/report`));
+    const report = await api(`/api/cases/${state.caseId}/report`);
+    if (revision !== navigation.revision) return;
+    if (!sameReport(entry, report)) { unavailableReport(); return; }
+    renderReport(report, false);
     if (state.report?.review) audience(selectedAudience);
     window.print();
-  } catch (e) { clearReport(); evidenceView(); error(e.message); }
+  } catch (e) { if (revision === navigation.revision) { clearReport(); evidenceView(); error(e.message); } }
   finally { setBusy(false); }
 }
 async function resumeCase() {
@@ -333,18 +448,22 @@ async function resumeCase() {
   try {
     const stored = JSON.parse(sessionStorage.getItem("dandoonjan_active_case") || "null");
     if (!stored?.id) return;
+    navigation.session = navigationId(); navigation.draft = true;
     state.caseId = stored.id; state.sample = !!stored.sample;
-    showView("workspace"); setBusy(true, "در حال دریافت وضعیت همین پرونده…");
+    navigate("evidence"); const revision = navigation.revision; setBusy(true, "در حال دریافت وضعیت همین پرونده…");
     const current = await api(`/api/cases/${state.caseId}`);
     $("question").value = current.question; $("dentist").value = current.dentist_recommendation;
     const dossier = await api(`/api/cases/${state.caseId}/dossier`);
     dossierFields.forEach(id => $(id).value = dossier.fields[id] || "");
     showCompleteness(dossier);
     state.files = current.artifacts.map(a => ({name: a.filename, artifactId: a.artifact_id, status: "uploaded", message: "مدرک ثبت‌شده در همین پرونده"}));
-    renderFiles(); evidenceView(); clearError();
-    try { renderReport(await api(`/api/cases/${state.caseId}/report`)); }
+    renderFiles(); clearError();
+    try {
+      const report = await api(`/api/cases/${state.caseId}/report`);
+      if (revision === navigation.revision) renderReport(report);
+    }
     catch (e) { if (e.status !== 404) throw e; outcome(current); }
-  } catch (e) { showView("workspace"); error(e.message); }
+  } catch (e) { error(e.message); }
   finally { setBusy(false); }
 }
 $("start-case").onclick = startNewCase;
@@ -355,11 +474,11 @@ $("retry-process").onclick = processCase;
 $("print-report").onclick = printReport;
 $("add-evidence").onclick = () => { evidenceView(); $("files").focus(); };
 $("edit-case").onclick = () => {
-  $("intake-panel").classList.remove("hidden"); $("evidence-panel").classList.add("hidden");
+  navigate("intake");
   $("submit-case").textContent = "ذخیرهٔ تغییرات همین پرونده"; $("question").focus();
 };
 $("new-case").onclick = startNewCase;
-$("back-home").onclick = $("home-from-report").onclick = () => { if (!state.busy) showView("home"); };
+$("back-home").onclick = $("home-from-report").onclick = homeNavigation;
 $("resume-case").onclick = resumeCase;
 $("patient-view").onclick = () => audience("patient");
 $("professional-view").onclick = () => audience("professional");
@@ -369,3 +488,5 @@ for (const name of ["dragenter", "dragover"]) dropzone.addEventListener(name, e 
 for (const name of ["dragleave", "drop"]) dropzone.addEventListener(name, e => { e.preventDefault(); dropzone.classList.remove("dragging"); });
 dropzone.addEventListener("drop", e => addFiles(e.dataTransfer.files));
 try { if (JSON.parse(sessionStorage.getItem("dandoonjan_active_case") || "null")?.id) $("resume-case").classList.remove("hidden"); } catch (_) { /* Optional session continuity. */ }
+
+navigate('home', {}, true);

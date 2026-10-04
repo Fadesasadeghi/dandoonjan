@@ -13,7 +13,7 @@
 <body>
   <a class="skip-link" href="#main">رفتن به محتوای اصلی</a>
   <header class="shell site-header">
-    <a class="brand" href="/" aria-label="دندونجان"><span class="brand-name">دندونجان</span><span class="brand-home-wordmark" dir="ltr">DANDOONJAN</span><span class="brand-mark" aria-hidden="true"></span></a>
+    <a class="brand" href="/" aria-label="دندونجان — صفحه اصلی"><span class="brand-name">دندونجان</span><span class="brand-home-wordmark" dir="ltr">DANDOONJAN</span><span class="brand-mark" aria-hidden="true"></span></a>
     <nav class="landing-nav" aria-label="راهنمای صفحهٔ اصلی"><a href="#view-home" aria-current="page">خانه</a><a href="#landing-story-title">درباره ما</a><a href="#landing-features">چطور کار می‌کند؟</a><a href="#landing-faq">سوالات متداول</a></nav>
     <button id="landing-auth" class="landing-auth" type="button" disabled aria-label="ورود / ثبت‌نام — در نسخهٔ آینده فعال خواهد شد" title="ورود / ثبت‌نام در نسخهٔ آینده فعال خواهد شد">ورود / ثبت‌نام</button>
   </header>
@@ -58,6 +58,7 @@
             <div class="landing-info-actions">
               <button id="start-sample" type="button" aria-describedby="sample-context">مشاهده پرونده نمونه</button>
               <button id="resume-case" class="btn text hidden" type="button">ادامهٔ پروندهٔ این مرورگر</button>
+              <button id="return-draft" class="btn text hidden" type="button">بازگشت به کار جاری</button>
             </div>
           </div>
         </section>
@@ -140,6 +141,7 @@
       <div class="actions report-actions"><button id="print-report" class="btn primary">چاپ / ذخیره PDF</button><button id="add-evidence" class="btn quiet">افزودن مدرک به همین پرونده</button></div>
       <div id="audience-controls" class="actions hidden" role="group" aria-label="انتخاب نمای گزارش"><button id="patient-view" class="btn primary" aria-pressed="true">خلاصه برای شما</button><button id="professional-view" class="btn quiet" aria-pressed="false">گزارش تخصصی</button></div>
       <div id="report-content" aria-live="polite" aria-atomic="false"></div>
+      <section id="report-unavailable" class="notice hidden" role="alert"><p>این نتیجه دیگر نتیجهٔ فعلی و معتبر این پرونده نیست یا اکنون قابل دریافت نیست. گزارش دیگری جایگزین آن نشده است.</p><button id="return-evidence" class="btn quiet" type="button">بازگشت به مدارک همین پرونده</button></section>
       <section id="upload-summary" class="upload-summary"><h2>وضعیت فایل‌های انتخاب‌شده</h2><ul id="report-files" class="file-list"></ul></section>
       <p id="report-footer" class="report-footer">این گزارش تشخیص پزشکی نیست و ضرورت درمان را تعیین نمی‌کند. تصمیم درمانی به معاینه و گفت‌وگو با دندان‌پزشک نیاز دارد.</p>
       <div class="actions report-actions"><button id="new-case" class="btn quiet">ساخت پروندهٔ دیگر</button><button id="home-from-report" class="btn text">صفحه اصلی</button></div>

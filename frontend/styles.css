@@ -275,3 +275,12 @@ body:has(#view-workspace.active.analyzing) {
   #analysis-scene .analysis-stages { font-size: 15px; word-spacing: 2px; }
   #analysis-scene .analysis-wait { font-size: 15px; }
 }
+
+/* Navigation-only affordances; existing workflow visuals remain unchanged. */
+#view-home #return-draft {
+  color: #103F50; background: #D5F1F4; border: 1px solid #103F50;
+  min-height: 44px; max-width: 100%; margin: 0; padding: 8px 20px;
+  border-radius: 999px; white-space: normal;
+}
+#report-content:empty { display: none; }
+body:has(#report-unavailable:not(.hidden)) #report-footer { display: none; }
