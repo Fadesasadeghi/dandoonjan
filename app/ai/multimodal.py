@@ -52,10 +52,9 @@ def prepare_pdf(data: bytes) -> list[bytes]:
         raise ValueError('PDF_INVALID') from None
 
 
-def bundle(case):
-    from app.core.cases.dossier import fields, latest
+def bundle(case, *, artifacts=None, read_artifact=None):
+    from app.core.cases.dossier import fields
     from app.security.ingestion import read_bytes
-    revision = latest(case)
     sources, text, images = [], [], []
     values = {'main_question': case.question_text,
               'clinician_recommendation': case.dentist_recommendation_text,
@@ -69,8 +68,8 @@ def bundle(case):
                         'sha256': hashlib.sha256(value.encode()).hexdigest()})
         text.append({'source_ref': ref, 'text': value})
     total = 0
-    for artifact in case.artifacts:
-        data = read_bytes(artifact.storage_key)
+    for artifact in case.artifacts if artifacts is None else artifacts:
+        data = read_artifact(artifact) if read_artifact else read_bytes(artifact.storage_key)
         pages = (prepare_pdf(data) if artifact.detected_mime_type == 'application/pdf'
                  else [prepare_image(data)] if artifact.detected_mime_type.startswith('image/') else [])
         for page, image in enumerate(pages, 1):
@@ -92,6 +91,8 @@ def bundle(case):
             text.append({'source_ref': ref, 'text': artifact.text_content[:20000]})
     if sum(len(t['text']) for t in text) > 100000:
         raise ValueError('OUTBOUND_TEXT_LIMIT')
+    if len(sources) > 100:
+        raise ValueError('OUTBOUND_SOURCE_LIMIT')
     return {'version': VERSION, 'sources': sources, 'text': text, 'images': images}
 
 

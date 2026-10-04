@@ -6,7 +6,7 @@ const SAMPLE_FILES = ['طرح-درمان-نمونه.txt', 'synthetic-pattern-not
 const DOSSIER = {symptoms:"علائم", duration:"مدت علائم", medical_history:"سابقه پزشکی", medications:"داروها", allergies:"حساسیت‌ها", treatment_plan:"طرح درمان", previous_reports:"گزارش قبلی", previous_treatments:"درمان‌های قبلی", dental_images:"تصویر دندان", main_question:"سؤال اصلی"};
 const dossierFields = Object.keys(DOSSIER).filter(id => $(id));
 function showCompleteness(data) { $("completeness").textContent = data.missing_information.length ? "برای پروندهٔ کامل‌تر: " + data.missing_information.map(k => DOSSIER[k] || k).join("، ") : "بخش‌های اطلاعاتی ثبت شده‌اند؛ این به معنی کافی بودن شواهد بالینی نیست."; }
-const STATUS = {pending: "در انتظار ارسال", uploading: "در حال آپلود", uploaded: "آپلود شد", rejected: "رد شد", duplicate: "تکراری", attention: "نیازمند توجه"};
+const STATUS = {pending: "در انتظار ارسال", uploading: "در حال آپلود", uploaded: "آپلود شد", rejected: "رد شد", duplicate: "تکراری", retryable: "خطای ارسال؛ قابل تلاش دوباره"};
 const TREATMENTS = {ROOT_CANAL: "عصب‌کشی", EXTRACTION: "کشیدن دندان", CROWN: "روکش", FILLING: "ترمیم", SCALING: "جرم‌گیری", IMPLANT: "ایمپلنت", BRIDGE: "بریج", DENTURE: "دندان مصنوعی", ORTHODONTICS: "ارتودنسی", UNKNOWN: "نامشخص"};
 const SECTIONS = {your_question: "سؤال شما", dentist_recommendation: "درمان پیشنهادی به روایت شما", found_in_documents: "آنچه می‌دانیم", evidence_status: "وضعیت شواهد", still_unclear: "آنچه هنوز نمی‌دانیم", missing_evidence: "شواهد تکمیلی", topics_to_discuss: "نکات نیازمند بررسی", questions_to_ask: "پیش از تصمیم بپرسید", confidence: "محدودیت اطمینان", safety_note: "محدودیت‌های ایمنی", review_pending: "نیازمند بررسی دستی"};
 const SOURCE_KINDS = {PATIENT_REPORTED:"گفتهٔ شما", CLINICIAN_REPORTED:"گفتهٔ دندان‌پزشک به روایت شما", DOCUMENT_EXTRACTED:"محتوای سند", MODEL_INFERRED:"برداشت مدل؛ نیازمند تأیید"};
@@ -154,25 +154,40 @@ function error(message) {
 }
 function clearError() { $("workspace-error").classList.add("hidden"); }
 function clearReport() { state.report = null; $("report-content").replaceChildren(); document.body.classList.remove("print-ready"); }
+let nextLocalRowId = 0;
+function localRow(values) {
+  return {localId: ++nextLocalRowId, uploadState: 'pending', processingState: 'unknown', message: '', ...values};
+}
 function renderFiles() {
-  const html = state.files.map((row, i) => `<li data-upload-state="${row.status}"><bdi class="filename">${escapeHtml(row.name)}</bdi><span class="file-status">${STATUS[row.status]}</span>${row.sampleMessage ? `<span class="file-message">${escapeHtml(row.sampleMessage)}</span>` : ""}${row.message ? `<span class="file-message">${escapeHtml(row.message)}</span>` : ""}${row.retry ? `<button type="button" class="btn text retry-file" data-index="${i}">تلاش دوباره برای این فایل</button>` : ""}</li>`).join("");
-  $("file-list").innerHTML = html;
-  $("report-files").innerHTML = html;
-  $("upload-summary").classList.toggle("hidden", !state.files.length);
-  document.querySelectorAll(".retry-file").forEach(button => {
-    button.disabled = state.busy;
-    button.onclick = () => {
+  const html = state.files.map(row => {
+    const editable = !!row.file && ['pending', 'rejected'].includes(row.uploadState) && !row.persistenceUncertain;
+    const controls = editable ? `<select class="file-role" aria-label="نوع این مدرک" data-id="${row.localId}" ${state.busy ? 'disabled' : ''}>${Object.entries(DOCUMENT_ROLES).map(([value,label]) => `<option value="${value}" ${row.role === value ? 'selected' : ''}>${label}</option>`).join('')}</select><button type="button" class="btn text remove-file" data-id="${row.localId}" ${state.busy ? 'disabled' : ''}>حذف از صف محلی</button>` : '';
+    return `<li data-upload-state="${row.uploadState}" data-processing-state="${row.processingState}"><bdi class="filename">${escapeHtml(row.name)}</bdi><span class="file-status">${STATUS[row.uploadState]}</span>${row.sampleMessage ? `<span class="file-message">${escapeHtml(row.sampleMessage)}</span>` : ''}${row.message ? `<span class="file-message">${escapeHtml(row.message)}</span>` : ''}${row.processingMessage ? `<span class="file-message">${escapeHtml(row.processingMessage)}</span>` : ''}${controls}${row.retry ? `<button type="button" class="btn text retry-file" data-id="${row.localId}" ${state.busy ? 'disabled' : ''}>تلاش دوباره برای این فایل</button>` : ''}</li>`;
+  }).join('');
+  $('file-list').innerHTML = html;
+  $('report-files').innerHTML = html;
+  $('upload-summary').classList.toggle('hidden', !state.files.length);
+  document.querySelectorAll('.retry-file, .remove-file, .file-role').forEach(control => {
+    const row = state.files.find(r => r.localId === Number(control.dataset.id));
+    if (control.classList.contains('file-role')) control.onchange = () => { if (!state.busy) row.role = control.value; };
+    else control.onclick = () => {
       if (state.busy) return;
-      const row = state.files[Number(button.dataset.index)];
-      row.status = "pending"; row.retry = false; row.message = "";
+      if (control.classList.contains('remove-file')) state.files = state.files.filter(r => r.localId !== row.localId);
+      else { row.uploadState = 'pending'; row.retry = false; row.message = ''; }
       evidenceView(); renderFiles();
     };
   });
 }
 function addFiles(files) {
   if (state.busy) return;
-  for (const file of files) state.files.push({file, name: file.name, role:$("document-role").value, status: "pending", message: ""});
-  $("files").value = "";
+  for (const file of files) {
+    const row = localRow({file, name:file.name, role:$('document-role').value});
+    if (!/\.(pdf|txt|png|jpe?g)$/i.test(file.name)) { row.uploadState = 'rejected'; row.message = 'این نوع فایل پشتیبانی نمی‌شود.'; }
+    else if (!file.size) { row.uploadState = 'rejected'; row.message = 'فایل خالی است.'; }
+    else if (file.size > 25*1024*1024) { row.uploadState = 'rejected'; row.message = 'حجم فایل بیش از حد مجاز ۲۵ مگابایت (MiB) است.'; }
+    state.files.push(row);
+  }
+  $('files').value = '';
   renderFiles();
 }
 function evidenceView(replace = false) { navigate('evidence', {}, replace); }
@@ -223,38 +238,34 @@ async function submitForm(event) {
   finally { setBusy(false); }
 }
 async function uploadPending() {
-  for (const row of state.files.filter(r => r.status === "pending")) {
-    row.status = "uploading"; renderFiles();
+  for (const row of state.files.filter(r => r.uploadState === "pending")) {
+    row.uploadState = "uploading"; renderFiles();
     setBusy(true, "در حال آپلود فایل‌ها…");
     const data = new FormData(); data.append("file", row.file);
     data.append('document_role', row.role || 'unspecified');
     try {
       const result = await api(`/api/cases/${state.caseId}/artifacts`, {method: "POST", body: data});
       row.artifactId = result.artifact_id;
-      row.uploadAccepted = true;
-      row.status = result.duplicate_of ? "duplicate" : "uploaded";
-      row.message = result.duplicate_of ? "این مدرک قبلاً در همین پرونده ثبت شده است." : "";
-      if (!row.sampleMessage && /\.(png|jpe?g|heic)$/i.test(row.name)) row.message += " تصویر ذخیره شد؛ نوع بررسی آن به حالت اجرای گزارش بستگی دارد.";
+      row.persistenceUncertain = false;
+      row.uploadState = result.duplicate_of ? "duplicate" : "uploaded";
+      row.message = result.duplicate_of ? "این مدرک قبلاً در همین پرونده ثبت شده است؛ نام فایل و نوع مدرک ثبت‌شدهٔ قبلی معتبر می‌ماند و با نام یا نوع انتخابی جدید تغییر نمی‌کند." : "";
+      if (!row.sampleMessage && /\.(png|jpe?g)$/i.test(row.name)) row.message += " تصویر ذخیره شد؛ نوع بررسی آن به حالت اجرای گزارش بستگی دارد.";
     } catch (e) {
-      row.status = e.status === 422 ? "rejected" : "attention";
+      row.uploadState = e.status === 422 ? "rejected" : "retryable";
       row.message = e.message;
-      row.retry = row.status === "attention" || (state.sample && !!row.sampleMessage && row.status === 'rejected');
+      if (row.uploadState === "retryable") row.persistenceUncertain = true;
+      row.retry = row.uploadState === "retryable" || (state.sample && !!row.sampleMessage && row.uploadState === 'rejected');
     }
     renderFiles();
   }
 }
 function applyAttention(result) {
-  const ids = new Set([...(result.needs_more_evidence || []), ...(result.rejected_artifacts || [])]);
+  const needs = new Set(result.needs_more_evidence || []);
+  const rejected = new Set(result.rejected_artifacts || []);
   const limited = new Set(result.limitations || []);
   for (const row of state.files) {
-    if (limited.has(row.artifactId) && row.status === "uploaded") {
-      row.status = "attention";
-      row.message = "آپلود شد؛ بررسی این مدرک محدودیت دارد.";
-    }
-    if (ids.has(row.artifactId) && row.status === "uploaded") {
-      row.status = "attention";
-      row.message = "فایل آپلود شده، اما برای بررسی کافی یا قابل استفاده نیست. مدرک متنی روشن‌تری اضافه کنید.";
-    }
+    row.processingState = rejected.has(row.artifactId) ? 'rejected' : needs.has(row.artifactId) ? 'needs_more_evidence' : limited.has(row.artifactId) ? 'limited' : 'unknown';
+    row.processingMessage = {unknown:'', limited:'آپلود شد؛ بررسی این مدرک محدودیت دارد.', needs_more_evidence:'آپلود شد؛ برای بررسی این مدرک شواهد تکمیلی لازم است.', rejected:'آپلود شد؛ این مدرک در مرحلهٔ پردازش قابل استفاده نبود.'}[row.processingState];
   }
   renderFiles();
 }
@@ -283,7 +294,7 @@ async function processCase({replaceHistory = false} = {}) {
     await createOrUpdate(false);
     setBusy(true, 'در حال آپلود فایل‌ها…');
     await uploadPending();
-    if (state.sample && !SAMPLE_FILES.every(name => state.files.some(row => row.name === name && row.artifactId && (row.uploadAccepted || ['uploaded', 'duplicate'].includes(row.status))))) {
+    if (state.sample && !SAMPLE_FILES.every(name => state.files.some(row => row.name === name && row.artifactId && ['uploaded', 'duplicate'].includes(row.uploadState)))) {
       throw new ApiError('آماده‌سازی نمونه کامل نشده است؛ چهار مدرک ساختگی باید ثبت شوند. فایل ناموفق را دوباره ارسال و همین پرونده را بررسی کنید.');
     }
     setBusy(true, 'در حال پردازش در سرور؛ لطفاً منتظر بمانید…');
@@ -316,16 +327,16 @@ async function startSample() {
     const response = await fetch("/api/demo/sample");
     if (!response.ok) throw new ApiError("مدرک نمونه در دسترس نیست؛ می‌توانید مدارک ساختگی خودتان را اضافه کنید.", response.status);
     const file = new File([await response.text()], "طرح-درمان-نمونه.txt", {type: "text/plain"});
-    const files = [{file, name: file.name, role:'treatment_plan', status: "pending", sampleMessage: "طرح درمان کاملاً ساختگی؛ ثبت پیشنهاد، نه اثبات ضرورت درمان."}];
+    const files = [{file, name: file.name, role:'treatment_plan', uploadState: "pending", sampleMessage: "طرح درمان کاملاً ساختگی؛ ثبت پیشنهاد، نه اثبات ضرورت درمان."}];
     for (const [path,name,type,role,sampleMessage] of [['sample-image','synthetic-pattern-not-radiograph.png','image/png','dental_image','الگوی آزمون انتقال فایل؛ رادیوگرافی نیست و تفسیر بالینی نشده است.'], ['sample-plan','synthetic-plan.pdf','application/pdf','treatment_plan','PDF طرح درمان کاملاً ساختگی؛ متن آن برای آزمون نرم‌افزار استفاده می‌شود.']]) {
       const asset = await fetch('/api/demo/' + path);
       if (!asset.ok) throw new ApiError('مدرک نمونه در دسترس نیست.');
       const extra = new File([await asset.blob()], name, {type});
-      files.push({file:extra, name, role, status:'pending', sampleMessage});
+      files.push({file:extra, name, role, uploadState:'pending', sampleMessage});
     }
     const previous = new File(['SYNTHETIC prior clinical note\nTooth 46: cold sensitivity for three days. No examination or pulp test recorded.\nFor software testing only; not clinical evidence.'], 'synthetic-prior-report.txt', {type:'text/plain'});
-    files.push({file:previous, name:previous.name, role:'previous_report', status:'pending', sampleMessage:'یادداشت قبلی کاملاً ساختگی؛ نتیجهٔ معاینه ثبت نشده است.'});
-    state.files = files;
+    files.push({file:previous, name:previous.name, role:'previous_report', uploadState:'pending', sampleMessage:'یادداشت قبلی کاملاً ساختگی؛ نتیجهٔ معاینه ثبت نشده است.'});
+    state.files = files.map(localRow);
     // The Sample click owns one entry; automatic steps update that entry.
     renderFiles(); await createOrUpdate(true, true);
     prepared = true;
@@ -466,7 +477,7 @@ async function resumeCase() {
     const dossier = await api(`/api/cases/${state.caseId}/dossier`);
     dossierFields.forEach(id => $(id).value = dossier.fields[id] || "");
     showCompleteness(dossier);
-    state.files = current.artifacts.map(a => ({name: a.filename, artifactId: a.artifact_id, status: "uploaded", message: "مدرک ثبت‌شده در همین پرونده"}));
+    state.files = current.artifacts.map(a => localRow({file:null, name:a.filename, artifactId:a.artifact_id, uploadState:"uploaded", message:"مدرک ثبت‌شده در همین پرونده"}));
     renderFiles(); clearError();
     try {
       const report = await api(`/api/cases/${state.caseId}/report`);

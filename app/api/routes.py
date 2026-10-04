@@ -5,6 +5,7 @@ from typing import Literal
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 from fastapi.responses import PlainTextResponse, Response
 from sqlalchemy.orm import Session
+from sqlalchemy import text
 
 from app.core.artifacts.ingestion import ingest_artifact
 from app.core.cases import state_machine
@@ -112,15 +113,24 @@ def get_case(case_public_id: str, db: Session = Depends(get_db, scope="function"
 def upload_artifact(case_public_id: str, file: UploadFile = File(...),
                     document_role: Literal['unspecified', 'treatment_plan', 'prescription', 'dental_image', 'previous_report'] = Form('unspecified'),
                     db: Session = Depends(get_db, scope="function")):
-    case = _case_or_404(db, case_public_id)
+    # Serialize capacity measurement and insertion through commit. SQLite's
+    # legacy driver does not start a write transaction for SELECT statements.
+    if db.get_bind().dialect.name == 'sqlite':
+        db.execute(text('BEGIN IMMEDIATE'))
+    case = db.query(Case).filter(Case.public_id == case_public_id).with_for_update().first()
+    if case is None:
+        raise HTTPException(status_code=404, detail='CASE_NOT_FOUND')
     try:
-        data = file.file.read()
+        from app.config import get_settings
+        data = read_upload_bounded(file.file, get_settings().max_upload_bytes)
         result = ingest_artifact(db, case, file.filename or "file",
                                  file.content_type or "", data, document_role=document_role)
     except DandoonjanError as exc:
+        case_id = case.id
+        db.rollback()  # Release the capacity lock before independent audit.
         audit_db = database.SessionLocal()
         try:
-            audit(audit_db, "artifact_rejected", case_id=case.id, reason=exc.code)
+            audit(audit_db, "artifact_rejected", case_id=case_id, reason=exc.code)
             audit_db.commit()
         finally:
             audit_db.close()
@@ -132,6 +142,18 @@ def upload_artifact(case_public_id: str, file: UploadFile = File(...),
     return {"artifact_id": result.artifact.public_id,
             "duplicate_of": result.duplicate_of,
             "status": result.artifact.category.value}
+
+
+def read_upload_bounded(stream, limit: int) -> bytes:
+    """Bound application reads of an already-spooled multipart file."""
+    chunks, remaining = [], limit + 1
+    while remaining:
+        chunk = stream.read(min(65536, remaining))
+        if not chunk:
+            break
+        chunks.append(chunk)
+        remaining -= len(chunk)
+    return b''.join(chunks)
 
 
 @router.patch("/cases/{case_public_id}")

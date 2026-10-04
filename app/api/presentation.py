@@ -41,6 +41,22 @@ def report_presentation(db: Session, report: Report, snapshot: AssessmentSnapsho
     artifact_ids = [a["artifact_id"] for a in payload.get("artifacts", [])]
     artifacts = db.query(Artifact).filter(
         Artifact.case_id == snapshot.case_id, Artifact.public_id.in_(artifact_ids)).all()
+    by_public_id = {a.public_id: a for a in artifacts}
+    ordered_ids = []
+    for source in (payload.get('review') or {}).get('source_index', []):
+        identifier = source.get('artifact_id')
+        if identifier is None:
+            continue
+        if identifier not in by_public_id:
+            raise SafetyBlockedError('unresolvable frozen review source')
+        if identifier not in ordered_ids:
+            ordered_ids.append(identifier)
+    for identifier in artifact_ids:
+        if identifier not in by_public_id:
+            raise SafetyBlockedError('unresolvable frozen artifact')
+        if identifier not in ordered_ids:
+            ordered_ids.append(identifier)
+    artifacts = [by_public_id[identifier] for identifier in ordered_ids]
     by_id = {a.id: a for a in artifacts}
     finding_ids = [f["finding_id"] for f in payload.get("findings", [])]
     findings = db.query(Finding).filter(

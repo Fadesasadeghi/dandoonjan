@@ -42,7 +42,7 @@ def test_upload_failure_blocks_process_and_retries_same_case(page):
     cid = page.evaluate('state.caseId')
     assert cid
     assert not any(url.endswith('/process') for _, url in requests)
-    assert page.evaluate("state.files.filter(row => row.status === 'uploaded').length") == 3
+    assert page.evaluate("state.files.filter(row => row.uploadState === 'uploaded').length") == 3
     page.locator('#file-list .retry-file').click()
     page.locator('#process-case').click()
     expect(page.locator('#view-report')).to_be_visible(timeout=30000)

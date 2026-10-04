@@ -11,10 +11,20 @@ class UnsupportedArtifactError(DandoonjanError):
     code = "UNSUPPORTED_ARTIFACT"
     user_message_fa = "این نوع فایل پشتیبانی نمی‌شود."
 
+    def __init__(self, message='', *, user_message_fa=None):
+        super().__init__(message)
+        if user_message_fa:
+            self.user_message_fa = user_message_fa
+
 
 class UnreadableArtifactError(DandoonjanError):
     code = "UNREADABLE_ARTIFACT"
     user_message_fa = "فایل قابل خواندن نیست یا خراب است."
+
+    def __init__(self, message='', *, user_message_fa=None):
+        super().__init__(message)
+        if user_message_fa:
+            self.user_message_fa = user_message_fa
 
 
 class InvalidTransitionError(DandoonjanError):

@@ -112,7 +112,7 @@ def test_pending_files_and_edit_history_are_presentation_only(page):
     page.locator('#return-draft').click()
     expect(page.locator('#question')).to_have_value('unsaved revision')
     expect(page.locator('#evidence-panel')).not_to_be_visible()
-    assert page.evaluate("state.files[0].file === window.selectedFile && state.files[0].role === 'prescription' && state.files[0].status === 'pending'")
+    assert page.evaluate("state.files[0].file === window.selectedFile && state.files[0].role === 'prescription' && state.files[0].uploadState === 'pending'")
     assert page.evaluate('state.files[0].file instanceof File')
     assert requests == before
 

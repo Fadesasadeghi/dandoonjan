@@ -197,7 +197,7 @@ def test_duplicate_and_image_attention(page):
     expect(page.locator("#view-report")).to_be_visible(timeout=20000)
     expect(page.locator('#report-files [data-upload-state="duplicate"]')).to_have_count(1)
     expect(page.locator("#report-content")).to_contain_text("تحلیل بالینی تصویر غیرفعال است")
-    expect(page.locator('#report-files [data-upload-state="attention"]')).to_have_count(1)
+    expect(page.locator('#report-files [data-processing-state="limited"]')).to_have_count(1)
     assert_no_overflow(page)
 
 
@@ -285,7 +285,7 @@ def test_upload_waiting_rows_and_retry(page):
     expect(page.locator("#process-case")).to_be_disabled()
     held[0].abort()
     expect(page.locator("#outcome-title")).to_have_text("شواهد بیشتری لازم است")
-    expect(page.locator('#file-list [data-upload-state="attention"]')).to_have_count(1)
+    expect(page.locator('#file-list [data-upload-state="retryable"]')).to_have_count(1)
     original = case_id(page)
     page.locator("#file-list .retry-file").click()
     page.locator("#process-case").click()
