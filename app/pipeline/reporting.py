@@ -11,7 +11,6 @@ from __future__ import annotations
 from sqlalchemy.orm import Session
 
 from app.ai.schemas import ReportOutput
-from app.config import get_settings
 from app.domain.enums import (AssessmentStatus, ClaimType, ConfidenceLevel,
                               DerivationStatus, Modality, SafetyState)
 from app.domain.models import (Assessment, AssessmentSnapshot, Case, Claim, EvidenceGap,
@@ -212,6 +211,8 @@ def create_snapshot(db: Session, case: Case, safety: SafetyResult,
 
     derivation = db.query(ProcessingRun).filter(
         ProcessingRun.id == derivation_run_id).one_or_none()
+    from app.core.cases.sample import execution_identity
+    provider, model = execution_identity(case)
     versions = {
         "case_schema": "case-schema-v1",
         "ontology": ONTOLOGY_VERSION,
@@ -222,8 +223,8 @@ def create_snapshot(db: Session, case: Case, safety: SafetyResult,
         "report_schema": REPORT_SCHEMA_VERSION,
         "safety_rules": "safety-rules-v2",
         "quality_rules": "quality-rules-v2",
-        "ai_provider": get_settings().ai_provider,
-        "ai_model": get_settings().ai_model_name,
+        "ai_provider": provider,
+        "ai_model": model,
         "case_version": case.version,
         "derivation_run": derivation.public_id if derivation else None,
         "derivation_attempt": derivation.attempt if derivation else None,

@@ -1,6 +1,8 @@
 "use strict";
 const $ = id => document.getElementById(id);
 const state = {caseId: null, files: [], busy: false, sample: false, report: null, createUncertain: false};
+const DEMO_MARKER = 'DANDOONJAN_SYNTHETIC_SAMPLE_V1';
+const SAMPLE_FILES = ['طرح-درمان-نمونه.txt', 'synthetic-pattern-not-radiograph.png', 'synthetic-plan.pdf', 'synthetic-prior-report.txt'];
 const DOSSIER = {symptoms:"علائم", duration:"مدت علائم", medical_history:"سابقه پزشکی", medications:"داروها", allergies:"حساسیت‌ها", treatment_plan:"طرح درمان", previous_reports:"گزارش قبلی", previous_treatments:"درمان‌های قبلی", dental_images:"تصویر دندان", main_question:"سؤال اصلی"};
 const dossierFields = Object.keys(DOSSIER).filter(id => $(id));
 function showCompleteness(data) { $("completeness").textContent = data.missing_information.length ? "برای پروندهٔ کامل‌تر: " + data.missing_information.map(k => DOSSIER[k] || k).join("، ") : "بخش‌های اطلاعاتی ثبت شده‌اند؛ این به معنی کافی بودن شواهد بالینی نیست."; }
@@ -153,7 +155,7 @@ function error(message) {
 function clearError() { $("workspace-error").classList.add("hidden"); }
 function clearReport() { state.report = null; $("report-content").replaceChildren(); document.body.classList.remove("print-ready"); }
 function renderFiles() {
-  const html = state.files.map((row, i) => `<li data-upload-state="${row.status}"><bdi class="filename">${escapeHtml(row.name)}</bdi><span class="file-status">${STATUS[row.status]}</span>${row.message ? `<span class="file-message">${escapeHtml(row.message)}</span>` : ""}${row.retry ? `<button type="button" class="btn text retry-file" data-index="${i}">تلاش دوباره برای این فایل</button>` : ""}</li>`).join("");
+  const html = state.files.map((row, i) => `<li data-upload-state="${row.status}"><bdi class="filename">${escapeHtml(row.name)}</bdi><span class="file-status">${STATUS[row.status]}</span>${row.sampleMessage ? `<span class="file-message">${escapeHtml(row.sampleMessage)}</span>` : ""}${row.message ? `<span class="file-message">${escapeHtml(row.message)}</span>` : ""}${row.retry ? `<button type="button" class="btn text retry-file" data-index="${i}">تلاش دوباره برای این فایل</button>` : ""}</li>`).join("");
   $("file-list").innerHTML = html;
   $("report-files").innerHTML = html;
   $("upload-summary").classList.toggle("hidden", !state.files.length);
@@ -192,6 +194,7 @@ async function createOrUpdate(transition = true, replace = false) {
   const data = new FormData();
   data.append("question", $("question").value.trim());
   data.append("dentist_recommendation", $("dentist").value.trim());
+  if (state.sample) data.append('context', DEMO_MARKER);
   clearReport();
   setBusy(true, state.caseId ? "در حال ذخیرهٔ تغییرات همین پرونده…" : "در حال ساخت پرونده…");
   if (state.caseId) await api(`/api/cases/${state.caseId}`, {method: "PATCH", body: data});
@@ -228,13 +231,14 @@ async function uploadPending() {
     try {
       const result = await api(`/api/cases/${state.caseId}/artifacts`, {method: "POST", body: data});
       row.artifactId = result.artifact_id;
+      row.uploadAccepted = true;
       row.status = result.duplicate_of ? "duplicate" : "uploaded";
       row.message = result.duplicate_of ? "این مدرک قبلاً در همین پرونده ثبت شده است." : "";
-      if (/\.(png|jpe?g|heic)$/i.test(row.name)) row.message += " تصویر ذخیره شد؛ نوع بررسی آن به حالت اجرای گزارش بستگی دارد.";
+      if (!row.sampleMessage && /\.(png|jpe?g|heic)$/i.test(row.name)) row.message += " تصویر ذخیره شد؛ نوع بررسی آن به حالت اجرای گزارش بستگی دارد.";
     } catch (e) {
       row.status = e.status === 422 ? "rejected" : "attention";
       row.message = e.message;
-      row.retry = row.status === "attention";
+      row.retry = row.status === "attention" || (state.sample && !!row.sampleMessage && row.status === 'rejected');
     }
     renderFiles();
   }
@@ -279,6 +283,9 @@ async function processCase({replaceHistory = false} = {}) {
     await createOrUpdate(false);
     setBusy(true, 'در حال آپلود فایل‌ها…');
     await uploadPending();
+    if (state.sample && !SAMPLE_FILES.every(name => state.files.some(row => row.name === name && row.artifactId && (row.uploadAccepted || ['uploaded', 'duplicate'].includes(row.status))))) {
+      throw new ApiError('آماده‌سازی نمونه کامل نشده است؛ چهار مدرک ساختگی باید ثبت شوند. فایل ناموفق را دوباره ارسال و همین پرونده را بررسی کنید.');
+    }
     setBusy(true, 'در حال پردازش در سرور؛ لطفاً منتظر بمانید…');
     const result = await api(`/api/cases/${operation.caseId}/process`, {method: 'POST'});
     applyAttention(result);
@@ -302,26 +309,29 @@ async function startSample() {
   $("sample-notice").classList.remove("hidden");
   $("question").value = "آیا پیشنهاد عصب‌کشی برای دندان ۴۶ پشتیبانی کافی دارد؟";
   $("dentist").value = "دندان‌پزشک عصب‌کشی و روکش را پیشنهاد کرده است.";
-  Object.entries({symptoms:"حساسیت به سرما در دندان ۴۶ — نمونهٔ ساختگی", duration:"سه روز", medical_history:"سابقهٔ مهمی گزارش نشده؛ ساختگی", medications:"ندارد", allergies:"ندارد", treatment_plan:"Treatment Plan\nTooth 46: RCT recommended", previous_reports:"گزارش قبلی ساختگی؛ معاینه تکمیلی ثبت نشده", previous_treatments:"ندارد"}).forEach(([key,value]) => $(key).value = value);
+  Object.entries({symptoms:"حساسیت به سرما در دندان ۴۶ — نمونهٔ ساختگی", duration:"سه روز", medical_history:"سابقهٔ مهمی گزارش نشده؛ ساختگی", medications:"ندارد", allergies:"ندارد", treatment_plan:"SYNTHETIC Treatment Plan\nTooth 46: RCT recommended\nFor software testing only; not clinical evidence.", previous_reports:"گزارش قبلی ساختگی؛ معاینه تکمیلی ثبت نشده", previous_treatments:"ندارد"}).forEach(([key,value]) => $(key).value = value);
+  let prepared = false;
   try {
     setBusy(true, "در حال دریافت مدرک ساختگی نمونه…");
     const response = await fetch("/api/demo/sample");
     if (!response.ok) throw new ApiError("مدرک نمونه در دسترس نیست؛ می‌توانید مدارک ساختگی خودتان را اضافه کنید.", response.status);
     const file = new File([await response.text()], "طرح-درمان-نمونه.txt", {type: "text/plain"});
-    state.files.push({file, name: file.name, status: "pending", message: "مدرک نمونهٔ ساختگی"});
-    for (const [path,name,type,role] of [['sample-image','synthetic-pattern-not-radiograph.png','image/png','dental_image'], ['sample-plan','synthetic-plan.pdf','application/pdf','treatment_plan']]) {
+    const files = [{file, name: file.name, role:'treatment_plan', status: "pending", sampleMessage: "طرح درمان کاملاً ساختگی؛ ثبت پیشنهاد، نه اثبات ضرورت درمان."}];
+    for (const [path,name,type,role,sampleMessage] of [['sample-image','synthetic-pattern-not-radiograph.png','image/png','dental_image','الگوی آزمون انتقال فایل؛ رادیوگرافی نیست و تفسیر بالینی نشده است.'], ['sample-plan','synthetic-plan.pdf','application/pdf','treatment_plan','PDF طرح درمان کاملاً ساختگی؛ متن آن برای آزمون نرم‌افزار استفاده می‌شود.']]) {
       const asset = await fetch('/api/demo/' + path);
       if (!asset.ok) throw new ApiError('مدرک نمونه در دسترس نیست.');
       const extra = new File([await asset.blob()], name, {type});
-      state.files.push({file:extra, name, role, status:'pending', message:'ساختگی؛ الگوی تصویر، رادیوگرافی واقعی نیست.'});
+      files.push({file:extra, name, role, status:'pending', sampleMessage});
     }
-    const previous = new File(['Synthetic prior clinical note\nTooth 46: cold sensitivity reported. No examination recorded.'], 'synthetic-prior-report.txt', {type:'text/plain'});
-    state.files.push({file:previous, name:previous.name, role:'previous_report', status:'pending', message:'گزارش قبلی کاملاً ساختگی'});
+    const previous = new File(['SYNTHETIC prior clinical note\nTooth 46: cold sensitivity for three days. No examination or pulp test recorded.\nFor software testing only; not clinical evidence.'], 'synthetic-prior-report.txt', {type:'text/plain'});
+    files.push({file:previous, name:previous.name, role:'previous_report', status:'pending', sampleMessage:'یادداشت قبلی کاملاً ساختگی؛ نتیجهٔ معاینه ثبت نشده است.'});
+    state.files = files;
     // The Sample click owns one entry; automatic steps update that entry.
     renderFiles(); await createOrUpdate(true, true);
+    prepared = true;
   } catch (e) { error(e.message); }
   finally { setBusy(false); }
-  if (state.caseId) await processCase({replaceHistory: true});
+  if (prepared) await processCase({replaceHistory: true});
 }
 function section(title, body) { return `<section class="report-section"><h2>${escapeHtml(title)}</h2>${body}</section>`; }
 function audience(name, focus = false) {

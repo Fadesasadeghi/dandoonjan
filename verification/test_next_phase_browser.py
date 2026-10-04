@@ -66,7 +66,7 @@ def test_four_stages_reports_pdf_and_fallback(page, width):
         with pymupdf.open(stream=pdf, filetype='pdf') as doc:
             assert 1 <= len(doc) <= 12
             text = ''.join(p.get_text() for p in doc)
-            assert 'mock-review-v1' in text and 'MRUN-' in text and 'SNP-' in text
+            assert recorded['review']['run']['model'] in text and 'MRUN-' in text and 'SNP-' in text
             for sheet in doc:
                 assert sheet.get_text().strip()
                 for block in sheet.get_text('blocks'):

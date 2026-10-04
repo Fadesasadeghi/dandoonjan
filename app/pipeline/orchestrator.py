@@ -22,7 +22,6 @@ import json
 from sqlalchemy.orm import Session
 
 from app.ai.gateway import ModelGateway
-from app.config import get_settings
 from app.core.knowledge.pack import get_active_pack
 from app.core.artifacts.ingestion import extract_text_if_supported
 from app.core.cases import state_machine
@@ -40,6 +39,7 @@ from app.pipeline import assessment as assessment_mod
 from app.pipeline import reporting as reporting_mod
 from app.pipeline import stages
 from app.pipeline.assessment import screen_case_text
+from app.core.cases.sample import is_demo, execution_identity, DEMO_VERSION
 from app.pipeline.runs import next_attempt, processing_run
 
 PIPELINE_SCHEMA_VERSION = "pipeline-v3"
@@ -89,7 +89,7 @@ def _advance(case: Case, target: CaseStatus) -> None:
 
 def effective_input_hash(db: Session, case: Case) -> str:
     """Stable case inputs and versioned processing configuration for reuse."""
-    settings = get_settings()
+    provider, model = execution_identity(case)
     pack = get_active_pack(db)
     from app.core.cases.dossier import fields
     from app.ai import review_schema, multimodal, preflight, prompts
@@ -102,8 +102,8 @@ def effective_input_hash(db: Session, case: Case) -> str:
         "dossier": fields(case),
         "schema": PIPELINE_SCHEMA_VERSION,
         "modules": MODULE_VERSIONS,
-        "provider": settings.ai_provider,
-        "model": settings.ai_model_name,
+        "provider": provider,
+        "model": model,
         "knowledge_pack": [pack.knowledge_pack_id, pack.version],
         "question": case.question_text,
         "context": case.context_text,
@@ -114,6 +114,8 @@ def effective_input_hash(db: Session, case: Case) -> str:
             [a.public_id, a.sha256, a.text_content or ""]
             for a in case.artifacts),
     }
+    if is_demo(case):
+        material['demo_version'] = DEMO_VERSION
     return hashlib.sha256(json.dumps(material, sort_keys=True, ensure_ascii=False,
                                      default=str).encode()).hexdigest()
 
@@ -226,7 +228,10 @@ def run_case_pipeline(db: Session, case: Case) -> dict:
     next_phase = latest(case) is not None
     configuration_error = None
     try:
-        gw = ModelGateway(db, strict_real=True) if next_phase else ModelGateway(db)
+        if is_demo(case):
+            gw = ModelGateway(db, strict_real=next_phase, demo=True)
+        else:
+            gw = ModelGateway(db, strict_real=True) if next_phase else ModelGateway(db)
     except Exception as exc:
         from app.errors import ProviderUnavailableError
         if not isinstance(exc, ProviderUnavailableError):

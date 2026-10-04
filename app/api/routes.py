@@ -34,10 +34,7 @@ def put_dossier(case_public_id: str, patch: dossier.DossierPatch,
     audit(db, 'dossier_saved', case_id=case.id, case_version=case.version)
     return result
 
-DEMO_SAMPLE_TEXT = """Treatment Plan
-Tooth 46: RCT
-Crown recommended after RCT
-"""
+from app.core.cases.sample import SAMPLE_TEXT as DEMO_SAMPLE_TEXT
 
 
 @router.get("/demo/sample", response_class=PlainTextResponse)

@@ -25,11 +25,21 @@ REAL_PROVIDER_NAMES = {"openrouter"}
 
 
 class ModelGateway:
-    def __init__(self, db: Session, strict_real: bool = False):
+    def __init__(self, db: Session, strict_real: bool = False, *, demo: bool = False):
         self.db = db
         self.strict_real = strict_real
+        self.demo = demo
         settings = get_settings()
         self.fallback = MockProvider()
+        self.model_name = settings.ai_model_name
+        if demo:
+            # Explicit local Demo selection, never a fallback or settings mutation.
+            if settings.environment not in ('development', 'test', 'local-synthetic'):
+                raise ProviderUnavailableError(category='configuration')
+            from app.core.cases.sample import DEMO_MODEL
+            self.provider = self.fallback
+            self.model_name = DEMO_MODEL
+            return
         if settings.environment == "production" and settings.ai_provider not in REAL_PROVIDER_NAMES:
             raise ProviderUnavailableError(category='configuration')
         if settings.ai_provider == "openrouter":
@@ -58,7 +68,7 @@ class ModelGateway:
 
         provider = self.provider
         run = ModelRun(
-            provider=provider.name, model=settings.ai_model_name,
+            provider=provider.name, model=self.model_name if self.demo else settings.ai_model_name,
             prompt_id=prompt.prompt_id, prompt_version=prompt.version,
             schema_version=SCHEMA_VERSIONS[_schema_key(schema)],
             temperature=temperature, input_hash=input_hash, status="RUNNING",
