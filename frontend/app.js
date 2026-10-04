@@ -2,6 +2,53 @@
 const $ = id => document.getElementById(id);
 const state = {caseId: null, files: [], busy: false, sample: false, report: null, createUncertain: false};
 let demoCSRF = null;
+let demoRefresh = null;
+const boundary = {generation:0, controllers:new Set()};
+function invalidateWorkflow() {
+  boundary.generation++;
+  boundary.controllers.forEach(controller => controller.abort());
+  boundary.controllers.clear(); demoRefresh = null;
+}
+function currentBoundary(generation) { return generation === boundary.generation; }
+function assertBoundary(generation) { if (!currentBoundary(generation)) throw new Account.StaleRequest(); }
+function continuityRecord() {
+  try {
+    const record = JSON.parse(sessionStorage.getItem('dandoonjan_active_case'));
+    if (record?.version !== 2 || typeof record.id !== 'string') return null;
+    if (record.namespace === 'DEMO') return record;
+    if (record.namespace === 'ACCOUNT' && Account.status === 'authenticated' && record.accountId === Account.user?.public_id) return record;
+  } catch (_) { /* Browser continuity is optional and never authorization. */ }
+  return null;
+}
+function confirmWorkspaceTransition() {
+  const pendingFiles = state.files.some(row => row.file && ['pending','rejected','retryable','uploading'].includes(row.uploadState));
+  const values = JSON.stringify(['question','dentist',...dossierFields].map(id => $(id).value));
+  const unsaved = pendingFiles || (navigation.draft && values !== navigation.savedValues);
+  return !unsaved || window.confirm('کار ذخیره‌نشدهٔ این صفحه کنار گذاشته می‌شود. ادامه می‌دهید؟');
+}
+function clearBoundary({preserveResume = false, accountOnly = false, demo = false} = {}) {
+  // An ACCOUNT session change must not adopt or destroy an independent Demo.
+  if (accountOnly && state.sample) return;
+  const record = (() => { try { return JSON.parse(sessionStorage.getItem('dandoonjan_active_case')); } catch (_) { return null; } })();
+  invalidateWorkflow();
+  navigation.session = navigationId(); navigation.draft = false; navigation.operations.clear(); navigation.lastWork = 'intake';
+  Object.assign(state, {caseId:null, files:[], busy:false, sample:demo, report:null, createUncertain:false});
+  clearReport(); clearError(); $('workspace-error').textContent = '';
+  $('case-form').reset(); $('files').value = ''; $('document-role').value = 'unspecified';
+  $('dropzone').classList.remove('dragging');
+  for (const id of ['case-question','completeness','activity','outcome-title','outcome-text','report-badge']) $(id).textContent = '';
+  $('audience-controls').classList.add('hidden'); $('report-unavailable').classList.add('hidden');
+  audience('patient');
+  $('outcome').classList.add('hidden'); $('analysis-scene').classList.add('hidden');
+  $('view-workspace').classList.remove('analyzing');
+  $('sample-notice').classList.add('hidden'); $('evidence-panel').classList.add('hidden');
+  $('submit-case').textContent = 'ساخت پرونده و افزودن مدارک';
+  if (!preserveResume && !(accountOnly && record?.version === 2 && record.namespace === 'DEMO')) {
+    try { sessionStorage.removeItem('dandoonjan_active_case'); } catch (_) {}
+  }
+  navigation.savedValues = JSON.stringify(['question','dentist',...dossierFields].map(id => $(id).value));
+  renderFiles(); setBusy(false); $('print-report').disabled = true; navigate('home', {}, true);
+}
 const SAMPLE_FILES = ['طرح-درمان-نمونه.txt', 'synthetic-pattern-not-radiograph.png', 'synthetic-plan.pdf', 'synthetic-prior-report.txt'];
 const DOSSIER = {symptoms:"علائم", duration:"مدت علائم", medical_history:"سابقه پزشکی", medications:"داروها", allergies:"حساسیت‌ها", treatment_plan:"طرح درمان", previous_reports:"گزارش قبلی", previous_treatments:"درمان‌های قبلی", dental_images:"تصویر دندان", main_question:"سؤال اصلی"};
 const dossierFields = Object.keys(DOSSIER).filter(id => $(id));
@@ -16,38 +63,63 @@ function humanText(text) {
   if (["موردی باقی نمانده است.", "شواهد کاملی ثبت شده است."].includes(text)) return "در محدودهٔ این بررسی، مورد تکمیلی ثبت نشده است؛ این به معنی کامل بودن ارزیابی بالینی نیست.";
   return String(text).replace(/\b(ROOT_CANAL|EXTRACTION|CROWN|FILLING|SCALING|IMPLANT|BRIDGE|DENTURE|ORTHODONTICS|UNKNOWN)\b/g, key => TREATMENTS[key]);
 }
-class ApiError extends Error {
-  constructor(message, status = 0) { super(message); this.status = status; }
-}
+const ApiError = Account.RequestError;
 async function api(path, options = {}) {
-  // Browser sample state selects transport only; the server authorizes its cookie.
-  if (state.sample && /^\/api\/cases(?:\/|$)/.test(path)) {
-    path = path.replace('/api/cases', '/api/demo/cases');
-    if (!demoCSRF) {
-      const session = await api('/api/demo/session');
-      demoCSRF = session.csrf_token;
+  const generation = boundary.generation, demo = state.sample;
+  const caseRequest = /^\/api\/cases(?:\/|$)/.test(path);
+  const mutation = ['POST','PUT','PATCH','DELETE'].includes((options.method || 'GET').toUpperCase());
+  if (caseRequest) {
+    if (demo) {
+      path = path.replace('/api/cases','/api/demo/cases');
+      if (!demoCSRF) {
+        if (!demoRefresh) {
+          const pending = api('/api/demo/session').then(session => { assertBoundary(generation); demoCSRF = session.csrf_token; })
+            .finally(() => { if (demoRefresh === pending) demoRefresh = null; });
+          demoRefresh = pending;
+        }
+        await demoRefresh;
+      }
+    } else {
+      await Account.ready; assertBoundary(generation);
+      if (Account.status !== 'authenticated' || !Account.csrf) throw new ApiError('ورود به حساب لازم است.',401,'AUTH_REQUIRED');
     }
-    if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(options.method)) {
-      options = {...options, headers: {...options.headers, 'X-CSRF-Token': demoCSRF}};
-    }
+    assertBoundary(generation);
+    if (mutation) options = {...options, headers:{...options.headers, 'X-CSRF-Token':demo ? demoCSRF : Account.csrf}};
   }
-  let response;
-  try { response = await fetch(path, options); }
-  catch (_) { throw new ApiError("ارتباط قطع شد؛ نتیجهٔ این درخواست مشخص نیست. پروندهٔ موجود را نگه داشته‌ایم."); }
-  let payload;
-  try { payload = await response.json(); }
-  catch (_) { throw new ApiError("پاسخ سرویس قابل خواندن نیست؛ دوباره وضعیت همین پرونده را بررسی کنید.", response.status); }
-  if (!response.ok) {
-    if (state.sample && response.status === 401) {
-      demoCSRF = null;
-      clearReport();
+  const controller = new AbortController(); boundary.controllers.add(controller);
+  try {
+    let response;
+    try { response = await fetch(path, {...options, credentials:'same-origin', cache:'no-store', signal:controller.signal}); }
+    catch (_) { assertBoundary(generation); throw new ApiError('ارتباط قطع شد؛ نتیجهٔ این درخواست مشخص نیست. پروندهٔ موجود را نگه داشته‌ایم.'); }
+    assertBoundary(generation);
+    if (response.status === 204) return null;
+    let payload;
+    try { payload = await response.json(); }
+    catch (_) { assertBoundary(generation); throw new ApiError('پاسخ سرویس قابل خواندن نیست؛ دوباره وضعیت همین پرونده را بررسی کنید.',response.status); }
+    assertBoundary(generation);
+    if (!response.ok) {
+      const code = typeof payload.detail === 'string' ? payload.detail : payload.detail?.code || '';
+      if (code === 'AUTH_REQUIRED' && !demo && caseRequest) { Account.ended(); throw new Account.StaleRequest(); }
+      if (code === 'DEMO_AUTH_REQUIRED') {
+        demoCSRF = null; clearBoundary();
+        navigate('intake');
+        error('نشست پروندهٔ نمونه پایان یافته است؛ برای یک نمونهٔ جدید دوباره شروع کنید.');
+        throw new Account.StaleRequest();
+      }
+      if (code === 'CSRF_FAILED' && caseRequest) {
+        if (demo) {
+          demoCSRF = null;
+          const session = await api('/api/demo/session'); assertBoundary(generation); demoCSRF = session.csrf_token;
+        } else { await Account.refreshCSRF(); assertBoundary(generation); }
+      }
+      const retry = response.headers.get('Retry-After');
+      throw new ApiError(payload.detail?.message_fa || payload.message_fa || (response.status === 404 ? 'گزارش فعلی در دسترس نیست؛ همین پرونده را دوباره بررسی کنید.' : 'درخواست کامل نشد. لطفاً دوباره تلاش کنید.'),response.status,code,retry === null ? null : Number(retry));
     }
-    throw new ApiError(payload.detail?.message_fa || payload.message_fa || (response.status === 404 ? "گزارش فعلی در دسترس نیست؛ همین پرونده را دوباره بررسی کنید." : "درخواست کامل نشد. لطفاً دوباره تلاش کنید."), response.status);
-  }
-  return payload;
+    return payload;
+  } finally { boundary.controllers.delete(controller); }
 }
 function saveCase() {
-  try { sessionStorage.setItem("dandoonjan_active_case", JSON.stringify({id: state.caseId, sample: state.sample})); } catch (_) { /* Storage is optional; in-page retry still works. */ }
+  try { sessionStorage.setItem("dandoonjan_active_case", JSON.stringify({version:2, id:state.caseId, namespace:state.sample ? 'DEMO' : 'ACCOUNT', accountId:state.sample ? null : Account.user?.public_id})); } catch (_) { /* Optional continuity. */ }
   $("resume-case").classList.toggle("hidden", navigation.draft || !state.caseId);
 }
 function showView(name) {
@@ -58,13 +130,13 @@ function showView(name) {
 }
 // History contains presentation identity only; drafts and File objects stay in memory.
 function navigationId() { return globalThis.crypto?.randomUUID?.() || `${Date.now()}-${Math.random()}`; }
-const navigation = {session: navigationId(), current: null, revision: 0, draft: false, lastWork: 'intake', operations: new Map()};
+const navigation = {session: navigationId(), current: null, revision: 0, draft: false, lastWork: 'intake', operations: new Map(), savedValues:null};
 // Install this optional enhancement only when there is work to return to.
 const draftReturnControl = $('return-draft');
 const draftReturnParent = draftReturnControl?.parentElement;
 draftReturnControl?.remove();
 function route(view, extra = {}) {
-  return {app: 'dandoonjan', session: navigation.session, view, caseId: state.caseId, ...extra};
+  return {app:'dandoonjan', session:navigation.session, namespace:state.sample ? 'DEMO' : 'ACCOUNT', accountId:state.sample ? null : Account.user?.public_id || null, view, caseId:state.caseId, ...extra};
 }
 function reportIdentity(report) {
   return {caseId: report.case_id, reportId: report.report_id, snapshotId: report.snapshot_id, runId: report.review?.run?.run_id || null};
@@ -94,8 +166,7 @@ function present(entry) {
   }
 }
 function sessionCaseAvailable() {
-  try { return !!JSON.parse(sessionStorage.getItem('dandoonjan_active_case') || 'null')?.id; }
-  catch (_) { return false; }
+  return !!continuityRecord();
 }
 function navigate(view, extra = {}, replace = false) {
   const entry = route(view, extra);
@@ -111,7 +182,10 @@ function unavailableReport() {
   $('report-unavailable')?.classList.remove('hidden');
 }
 async function restoreNavigation(entry) {
+  const generation = boundary.generation;
   if (!entry || entry.app !== 'dandoonjan' || entry.session !== navigation.session ||
+      entry.namespace !== (state.sample ? 'DEMO' : 'ACCOUNT') ||
+      (entry.namespace === 'ACCOUNT' && entry.accountId !== (Account.user?.public_id || null)) ||
       !['home', 'intake', 'evidence', 'processing', 'report'].includes(entry.view) ||
       (entry.caseId && entry.caseId !== state.caseId)) {
     navigate('home', {}, true); return;
@@ -133,11 +207,12 @@ async function restoreNavigation(entry) {
   const revision = navigation.revision;
   try {
     const report = await api(`/api/cases/${entry.caseId}/report`);
+    assertBoundary(generation);
     if (revision !== navigation.revision) return;
     if (!sameReport(entry, report)) { unavailableReport(); return; }
     renderReport(report, false);
     setBusy(state.busy, $('activity').textContent);
-  } catch (_) { if (revision === navigation.revision) unavailableReport(); }
+  } catch (_) { if (currentBoundary(generation) && revision === navigation.revision) unavailableReport(); }
 }
 window.addEventListener('popstate', event => {
   // Native fragment entries do not represent a workflow transition.
@@ -157,7 +232,7 @@ if (draftReturnControl) draftReturnControl.onclick = () => {
 if ($('return-evidence')) $('return-evidence').onclick = () => navigate(state.caseId ? 'evidence' : 'intake');
 function setBusy(busy, message = "") {
   state.busy = busy;
-  document.querySelectorAll("button, textarea, input").forEach(el => { el.disabled = busy; });
+  document.querySelectorAll("main button, main textarea, main input").forEach(el => { el.disabled = busy; });
   document.querySelectorAll('select').forEach(el => { el.disabled = busy; });
   ['back-home', 'home-from-report'].forEach(id => $(id).disabled = false);
   ['return-draft', 'return-evidence'].forEach(id => { if ($(id)) $(id).disabled = false; });
@@ -209,65 +284,73 @@ function addFiles(files) {
   renderFiles();
 }
 function evidenceView(replace = false) { navigate('evidence', {}, replace); }
-function startNewCase() {
+function startNewCase({demo = false, confirmed = false} = {}) {
   if (state.busy) return;
-  navigation.session = navigationId(); navigation.draft = true; navigation.operations.clear();
-  Object.assign(state, {caseId: null, files: [], sample: false, report: null, createUncertain: false});
-  // Keep Home in the new session; earlier work entries cannot bind to this draft.
-  try { sessionStorage.removeItem('dandoonjan_active_case'); } catch (_) {}
-  navigate('home', {}, true);
-  clearReport(); clearError();
-  $("case-form").reset(); $("evidence-panel").classList.add("hidden");
+  if (!demo && Account.status !== 'authenticated') { void Account.open('new-case'); return; }
+  if (!confirmed && !confirmWorkspaceTransition()) return;
+  clearBoundary({demo});
+  navigation.draft = true;
   $("intake-panel").classList.remove("hidden"); $("sample-notice").classList.add("hidden");
   $("outcome").classList.add("hidden"); $("submit-case").textContent = "ساخت پرونده و افزودن مدارک";
   renderFiles(); setBusy(false); navigate("intake"); $("question").focus();
+  return true;
 }
 async function createOrUpdate(transition = true, replace = false) {
+  const generation = boundary.generation;
   const revision = navigation.revision;
   const data = new FormData();
   data.append("question", $("question").value.trim());
   data.append("dentist_recommendation", $("dentist").value.trim());
   clearReport();
   setBusy(true, state.caseId ? "در حال ذخیرهٔ تغییرات همین پرونده…" : "در حال ساخت پرونده…");
-  if (state.caseId) await api(`/api/cases/${state.caseId}`, {method: "PATCH", body: data});
+  if (state.caseId) { await api(`/api/cases/${state.caseId}`, {method: "PATCH", body: data}); assertBoundary(generation); }
   else {
     try {
       const created = await api("/api/cases", {method: "POST", body: data});
+      assertBoundary(generation);
       state.caseId = created.case_id;
       saveCase();
     } catch (e) {
+      assertBoundary(generation);
       // A lost creation response must never trigger an automatic second POST.
       if (!e.status || e.status >= 500 || e.status === 201) state.createUncertain = true;
       throw e;
     }
   }
   const dossier = Object.fromEntries(dossierFields.map(id => [id, $(id).value]));
-  showCompleteness(await api(`/api/cases/${state.caseId}/dossier`, {method:"PUT", headers:{"Content-Type":"application/json"}, body:JSON.stringify(dossier)}));
+  const completeness = await api(`/api/cases/${state.caseId}/dossier`, {method:"PUT", headers:{"Content-Type":"application/json"}, body:JSON.stringify(dossier)});
+  assertBoundary(generation); showCompleteness(completeness);
+  navigation.savedValues = JSON.stringify(['question','dentist',...dossierFields].map(id => $(id).value));
   $("submit-case").textContent = "ذخیرهٔ تغییرات همین پرونده";
   if (transition && revision === navigation.revision) evidenceView(replace);
 }
 async function submitForm(event) {
+  const generation = boundary.generation;
   event.preventDefault();
   if (state.busy || state.createUncertain || !$("case-form").reportValidity()) return;
   clearError();
   try { await createOrUpdate(); }
-  catch (e) { error(e.message + (state.createUncertain ? " ساخت مجدد خودکار متوقف شد تا پروندهٔ تکراری ایجاد نشود." : "")); }
-  finally { setBusy(false); }
+  catch (e) { if (currentBoundary(generation) && !e.stale) error(e.message + (state.createUncertain ? " ساخت مجدد خودکار متوقف شد تا پروندهٔ تکراری ایجاد نشود." : "")); }
+  finally { if (currentBoundary(generation)) setBusy(false); }
 }
 async function uploadPending() {
+  const generation = boundary.generation;
   for (const row of state.files.filter(r => r.uploadState === "pending")) {
+    assertBoundary(generation);
     row.uploadState = "uploading"; renderFiles();
     setBusy(true, "در حال آپلود فایل‌ها…");
     const data = new FormData(); data.append("file", row.file);
     data.append('document_role', row.role || 'unspecified');
     try {
       const result = await api(`/api/cases/${state.caseId}/artifacts`, {method: "POST", body: data});
+      assertBoundary(generation);
       row.artifactId = result.artifact_id;
       row.persistenceUncertain = false;
       row.uploadState = result.duplicate_of ? "duplicate" : "uploaded";
       row.message = result.duplicate_of ? "این مدرک قبلاً در همین پرونده ثبت شده است؛ نام فایل و نوع مدرک ثبت‌شدهٔ قبلی معتبر می‌ماند و با نام یا نوع انتخابی جدید تغییر نمی‌کند." : "";
       if (!row.sampleMessage && /\.(png|jpe?g)$/i.test(row.name)) row.message += " تصویر ذخیره شد؛ نوع بررسی آن به حالت اجرای گزارش بستگی دارد.";
     } catch (e) {
+      assertBoundary(generation);
       row.uploadState = e.status === 422 ? "rejected" : "retryable";
       row.message = e.message;
       if (row.uploadState === "retryable") row.persistenceUncertain = true;
@@ -303,37 +386,54 @@ function outcome(result) {
 }
 async function processCase({replaceHistory = false} = {}) {
   if (state.busy || !state.caseId) return;
+  const generation = boundary.generation;
   clearError(); clearReport(); $('outcome').classList.add('hidden'); evidenceView(replaceHistory);
   const operation = {id: navigationId(), caseId: state.caseId, done: false, report: null};
   navigation.operations.set(operation.id, operation);
   navigate('processing', {operationId: operation.id}, replaceHistory);
   try {
     await createOrUpdate(false);
+    assertBoundary(generation);
     setBusy(true, 'در حال آپلود فایل‌ها…');
     await uploadPending();
+    assertBoundary(generation);
     if (state.sample && !SAMPLE_FILES.every(name => state.files.some(row => row.name === name && row.artifactId && ['uploaded', 'duplicate'].includes(row.uploadState)))) {
       throw new ApiError('آماده‌سازی نمونه کامل نشده است؛ چهار مدرک ساختگی باید ثبت شوند. فایل ناموفق را دوباره ارسال و همین پرونده را بررسی کنید.');
     }
     setBusy(true, 'در حال پردازش در سرور؛ لطفاً منتظر بمانید…');
     const result = await api(`/api/cases/${operation.caseId}/process`, {method: 'POST'});
+    assertBoundary(generation);
     applyAttention(result);
     if (result.report) {
       setBusy(true, 'در حال آماده‌سازی نتیجه…');
       operation.report = await api(`/api/cases/${operation.caseId}/report`);
+      assertBoundary(generation);
     } else outcome(result);
-  } catch (e) { error(e.message); outcome({status: 'FAILED'}); }
+  } catch (e) { if (currentBoundary(generation) && !e.stale) { error(e.message); outcome({status: 'FAILED'}); } }
   finally {
-    operation.done = true;
-    if (navigation.current?.view === 'processing' && navigation.current.operationId === operation.id) {
-      if (operation.report) renderReport(operation.report, true, true);
-      else navigate('evidence', {}, true);
+    if (currentBoundary(generation)) {
+      operation.done = true;
+      if (navigation.current?.view === 'processing' && navigation.current.operationId === operation.id) {
+        if (operation.report) renderReport(operation.report, true, true);
+        else navigate('evidence', {}, true);
+      }
+      setBusy(false); renderFiles();
     }
-    setBusy(false); renderFiles();
   }
+}
+async function fixtureAsset(path, kind, generation) {
+  const controller = new AbortController(); boundary.controllers.add(controller);
+  try {
+    const response = await fetch(path, {signal:controller.signal, cache:'no-store'});
+    assertBoundary(generation);
+    if (!response.ok) throw new ApiError('مدرک نمونه در دسترس نیست.',response.status);
+    const value = await response[kind](); assertBoundary(generation); return value;
+  } finally { boundary.controllers.delete(controller); }
 }
 async function startSample() {
   if (state.busy) return;
-  startNewCase(); state.sample = true;
+  if (!startNewCase({demo:true})) return;
+  const generation = boundary.generation;
   $("sample-notice").classList.remove("hidden");
   $("question").value = "آیا پیشنهاد عصب‌کشی برای دندان ۴۶ پشتیبانی کافی دارد؟";
   $("dentist").value = "دندان‌پزشک عصب‌کشی و روکش را پیشنهاد کرده است.";
@@ -341,14 +441,12 @@ async function startSample() {
   let prepared = false;
   try {
     setBusy(true, "در حال دریافت مدرک ساختگی نمونه…");
-    const response = await fetch("/api/demo/sample");
-    if (!response.ok) throw new ApiError("مدرک نمونه در دسترس نیست؛ می‌توانید مدارک ساختگی خودتان را اضافه کنید.", response.status);
-    const file = new File([await response.text()], "طرح-درمان-نمونه.txt", {type: "text/plain"});
+    const text = await fixtureAsset('/api/demo/sample','text',generation); assertBoundary(generation);
+    const file = new File([text], "طرح-درمان-نمونه.txt", {type: "text/plain"});
     const files = [{file, name: file.name, role:'treatment_plan', uploadState: "pending", sampleMessage: "طرح درمان کاملاً ساختگی؛ ثبت پیشنهاد، نه اثبات ضرورت درمان."}];
     for (const [path,name,type,role,sampleMessage] of [['sample-image','synthetic-pattern-not-radiograph.png','image/png','dental_image','الگوی آزمون انتقال فایل؛ رادیوگرافی نیست و تفسیر بالینی نشده است.'], ['sample-plan','synthetic-plan.pdf','application/pdf','treatment_plan','PDF طرح درمان کاملاً ساختگی؛ متن آن برای آزمون نرم‌افزار استفاده می‌شود.']]) {
-      const asset = await fetch('/api/demo/' + path);
-      if (!asset.ok) throw new ApiError('مدرک نمونه در دسترس نیست.');
-      const extra = new File([await asset.blob()], name, {type});
+      const asset = await fixtureAsset('/api/demo/' + path,'blob',generation); assertBoundary(generation);
+      const extra = new File([asset], name, {type});
       files.push({file:extra, name, role, uploadState:'pending', sampleMessage});
     }
     const previous = new File(['SYNTHETIC prior clinical note\nTooth 46: cold sensitivity for three days. No examination or pulp test recorded.\nFor software testing only; not clinical evidence.'], 'synthetic-prior-report.txt', {type:'text/plain'});
@@ -357,12 +455,14 @@ async function startSample() {
     // The Sample click owns one entry; automatic steps update that entry.
     renderFiles();
     const session = await api('/api/demo/session', {method: 'POST'});
+    assertBoundary(generation);
     demoCSRF = session.csrf_token;
     await createOrUpdate(true, true);
+    assertBoundary(generation);
     prepared = true;
-  } catch (e) { error(e.message); }
-  finally { setBusy(false); }
-  if (prepared) await processCase({replaceHistory: true});
+  } catch (e) { if (currentBoundary(generation) && !e.stale) error(e.message); }
+  finally { if (currentBoundary(generation)) setBusy(false); }
+  if (prepared && currentBoundary(generation)) await processCase({replaceHistory: true});
 }
 function section(title, body) { return `<section class="report-section"><h2>${escapeHtml(title)}</h2>${body}</section>`; }
 function audience(name, focus = false) {
@@ -467,6 +567,7 @@ function renderReport(report, transition = true, replace = false) {
 }
 async function printReport() {
   if (state.busy || !state.caseId) return;
+  const generation = boundary.generation;
   ReportExport.discard();
   setBusy(true);
   const entry = navigation.current, revision = navigation.revision;
@@ -474,35 +575,43 @@ async function printReport() {
     // Revalidate authority/version immediately before offering export.
     const selectedAudience = document.querySelector('[data-audience]:not(.audience-hidden)')?.dataset.audience || 'patient';
     const report = await api(`/api/cases/${state.caseId}/report`);
+    assertBoundary(generation);
     if (revision !== navigation.revision) return;
     if (!sameReport(entry, report)) { unavailableReport(); return; }
     ReportExport.prepare(report, selectedAudience);
     window.print();
-  } catch (e) { ReportExport.discard(); if (revision === navigation.revision) { clearReport(); evidenceView(); error(e.message); } }
-  finally { setBusy(false); }
+  } catch (e) { if (currentBoundary(generation)) { ReportExport.discard(); if (revision === navigation.revision) { clearReport(); evidenceView(); error(e.message); } } }
+  finally { if (currentBoundary(generation)) setBusy(false); }
 }
 async function resumeCase() {
   if (state.busy) return;
+  if (!confirmWorkspaceTransition()) return;
+  const stored = continuityRecord();
+  if (!stored) return;
+  clearBoundary({preserveResume:true});
+  const generation = boundary.generation;
   try {
-    const stored = JSON.parse(sessionStorage.getItem("dandoonjan_active_case") || "null");
-    if (!stored?.id) return;
     navigation.session = navigationId(); navigation.draft = true;
-    state.caseId = stored.id; state.sample = !!stored.sample;
+    state.caseId = stored.id; state.sample = stored.namespace === 'DEMO';
     navigate("evidence"); const revision = navigation.revision; setBusy(true, "در حال دریافت وضعیت همین پرونده…");
     const current = await api(`/api/cases/${state.caseId}`);
+    assertBoundary(generation);
     $("question").value = current.question; $("dentist").value = current.dentist_recommendation;
     const dossier = await api(`/api/cases/${state.caseId}/dossier`);
+    assertBoundary(generation);
     dossierFields.forEach(id => $(id).value = dossier.fields[id] || "");
+    navigation.savedValues = JSON.stringify(['question','dentist',...dossierFields].map(id => $(id).value));
     showCompleteness(dossier);
     state.files = current.artifacts.map(a => localRow({file:null, name:a.filename, artifactId:a.artifact_id, uploadState:"uploaded", message:"مدرک ثبت‌شده در همین پرونده"}));
     renderFiles(); clearError();
     try {
       const report = await api(`/api/cases/${state.caseId}/report`);
+      assertBoundary(generation);
       if (revision === navigation.revision) renderReport(report);
     }
     catch (e) { if (e.status !== 404) throw e; outcome(current); }
-  } catch (e) { error(e.message); }
-  finally { setBusy(false); }
+  } catch (e) { if (currentBoundary(generation) && !e.stale) { clearReport(); error(e.message); } }
+  finally { if (currentBoundary(generation)) setBusy(false); }
 }
 $("start-case").onclick = startNewCase;
 $("start-sample").onclick = startSample;
@@ -525,6 +634,28 @@ const dropzone = $("dropzone");
 for (const name of ["dragenter", "dragover"]) dropzone.addEventListener(name, e => { e.preventDefault(); if (!state.busy) dropzone.classList.add("dragging"); });
 for (const name of ["dragleave", "drop"]) dropzone.addEventListener(name, e => { e.preventDefault(); dropzone.classList.remove("dragging"); });
 dropzone.addEventListener("drop", e => addFiles(e.dataTransfer.files));
-try { if (JSON.parse(sessionStorage.getItem("dandoonjan_active_case") || "null")?.id) $("resume-case").classList.remove("hidden"); } catch (_) { /* Optional session continuity. */ }
-
 navigate('home', {}, true);
+Account.initialize({
+  generation:() => boundary.generation,
+  clear:clearBoundary,
+  confirmTransition:confirmWorkspaceTransition,
+  startAccount:() => startNewCase({confirmed:true}),
+  continuity:async () => {
+    const generation = boundary.generation;
+    const stored = continuityRecord();
+    if (stored?.namespace === 'ACCOUNT') {
+      try {
+        await Account.request(`/api/cases/${encodeURIComponent(stored.id)}`);
+        if (!currentBoundary(generation)) return;
+      }
+      catch (e) {
+        if (e.stale || !currentBoundary(generation)) throw e;
+        if (e.code === 'AUTH_REQUIRED') { Account.ended(); throw new Account.StaleRequest(); }
+        if (e.code === 'CASE_NOT_FOUND') {
+          try { sessionStorage.removeItem('dandoonjan_active_case'); } catch (_) {}
+        } else throw e;
+      }
+    }
+    $('resume-case').classList.toggle('hidden', !continuityRecord());
+  }
+});

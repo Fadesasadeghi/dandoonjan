@@ -60,7 +60,8 @@ def browser():
 @pytest.fixture()
 def page(browser, server):
     context = browser.new_context(viewport={"width": 1440, "height": 1000})
-    # Test-only ACCOUNT transport. Product ACCOUNT frontend auth remains Gate 3.
+    # Synthetic ACCOUNT setup only; Gate 3 product transport restores the session
+    # and refreshes CSRF. Never overwrite its independent ACCOUNT/Demo headers.
     import uuid
     email = f'browser-{uuid.uuid4().hex}@example.com'
     credentials = {'email': email, 'password': 'Synthetic browser passphrase 12345'}
@@ -70,22 +71,10 @@ def page(browser, server):
     assert context.request.post(server+'/api/auth/register', data=credentials, headers=preauth()).status == 201
     logged = context.request.post(server+'/api/auth/login', data=credentials, headers=preauth())
     assert logged.status == 200
-    token = logged.json()['csrf_token']
     context.set_extra_http_headers({'Origin': server})
     page = context.new_page()
-    page.add_init_script(script=r"""(() => {
-        const fetchOriginal = window.fetch.bind(window);
-        const csrf = TOKEN;
-        window.__testAccountCSRF = csrf;
-        window.fetch = (path, options = {}) => {
-            if (typeof path === 'string' && /^\/api\/cases(?:\/|$)/.test(path)
-                && ['POST','PUT','PATCH','DELETE'].includes(options.method)) {
-                options = {...options, headers: {...options.headers, 'X-CSRF-Token': csrf}};
-            }
-            return fetchOriginal(path, options);
-        };
-    })();""".replace('TOKEN', __import__('json').dumps(token)))
     page.goto(server)
+    page.wait_for_function("Account.status === 'authenticated'")
     yield page
     context.close()
 
@@ -265,7 +254,7 @@ def test_print_refuses_stale_report(page):
     expect(page.locator("#view-report")).to_be_visible(timeout=20000)
     original = case_id(page)
     changed = page.request.patch(f"{page.url.rstrip('/')}/api/cases/{original}", form={"question": "changed input"},
-                                 headers={'X-CSRF-Token': page.evaluate('window.__testAccountCSRF')})
+                                 headers={'X-CSRF-Token': page.evaluate('Account.csrf')})
     assert changed.status == 200 and changed.json()["changed"]
     page.evaluate("() => { window.printCalled = false; window.print = () => { window.printCalled = true; }; }")
     page.locator("#print-report").click()

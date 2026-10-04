@@ -85,8 +85,11 @@ def test_storage_sample_hint_cannot_authorize(page):
     page.locator('#start-sample').click()
     expect(page.locator('#view-report')).to_be_visible(timeout=30000)
     page.evaluate("sessionStorage.setItem('dandoonjan_active_case', JSON.stringify({id:state.caseId,sample:false}))")
+    requests = []
+    page.on('request', lambda r: requests.append(r.url) if '/api/cases/' in r.url or '/api/demo/cases/' in r.url else None)
     page.reload()
-    page.locator('#resume-case').click()
-    expect(page.locator('#workspace-error')).to_be_visible(timeout=30000)
-    page.wait_for_function('!state.busy')
+    page.wait_for_function("Account.status === 'authenticated'")
+    expect(page.locator('#resume-case')).not_to_be_visible()
+    assert requests == []  # Unbound hints are rejected before any case transport.
+    assert page.evaluate('state.caseId') is None
     assert page.evaluate('state.report') is None

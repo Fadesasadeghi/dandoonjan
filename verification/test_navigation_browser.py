@@ -184,7 +184,7 @@ def test_report_history_revalidates_exact_result(page, wrong_identity):
         page.route('**/api/cases/*/report', different)
     else:
         changed = page.request.patch(f"{page.url.rstrip('/')}/api/cases/{entry['caseId']}", form={'question': 'changed backend input'},
-                                     headers={'X-CSRF-Token': page.evaluate('window.__testAccountCSRF')})
+                                     headers={'X-CSRF-Token': page.evaluate('Account.csrf')})
         assert changed.status == 200
     before = list(requests)
     page.go_forward()
@@ -199,6 +199,9 @@ def test_report_history_revalidates_exact_result(page, wrong_identity):
 def test_new_session_does_not_restore_previous_case(page):
     evidence(page)
     old = page.evaluate('history.state')
+    metadata = page.evaluate("JSON.parse(sessionStorage.getItem('dandoonjan_active_case'))")
+    assert metadata['version'] == 2 and metadata['namespace'] == 'ACCOUNT'
+    assert metadata['accountId'] == page.evaluate('Account.user.public_id')
     page.locator('.brand').click()
     page.locator('#start-case').click()
     page.locator('#question').fill('new draft')

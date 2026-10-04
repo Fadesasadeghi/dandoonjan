@@ -8,6 +8,8 @@
   <link rel="stylesheet" href="/ui/styles.css">
   <link rel="stylesheet" href="/ui/landing.css">
   <link rel="stylesheet" href="/ui/report-print.css">
+  <link rel="stylesheet" href="/ui/account.css">
+  <script src="/ui/account.js" defer></script>
   <script src="/ui/app.js" defer></script>
   <script src="/ui/landing.js" defer></script>
 </head>
@@ -16,8 +18,24 @@
   <header class="shell site-header">
     <a class="brand" href="/" aria-label="دندونجان — صفحه اصلی"><span class="brand-name">دندونجان</span><span class="brand-home-wordmark" dir="ltr">DANDOONJAN</span><span class="brand-mark" aria-hidden="true"></span></a>
     <nav class="landing-nav" aria-label="راهنمای صفحهٔ اصلی"><a href="#view-home" aria-current="page">خانه</a><a href="#landing-story-title">درباره ما</a><a href="#landing-features">چطور کار می‌کند؟</a><a href="#landing-faq">سوالات متداول</a></nav>
-    <button id="landing-auth" class="landing-auth" type="button" disabled aria-label="ورود / ثبت‌نام — در نسخهٔ آینده فعال خواهد شد" title="ورود / ثبت‌نام در نسخهٔ آینده فعال خواهد شد">ورود / ثبت‌نام</button>
+    <button id="landing-auth" class="landing-auth" type="button" aria-haspopup="dialog" aria-controls="account-dialog">ورود / ثبت‌نام</button>
   </header>
+  <aside id="account-panel" class="account-panel hidden" aria-label="حساب شما"><bdi id="account-identity" dir="ltr"></bdi><button id="account-logout" type="button">خروج</button></aside>
+  <div class="account-notification"><p id="account-global-status" role="status" aria-live="polite"></p><button id="account-revalidate" class="hidden" type="button">بررسی دوبارهٔ نشست</button></div>
+  <dialog id="account-dialog" aria-labelledby="account-title" aria-describedby="account-help" dir="rtl">
+    <button id="account-close" class="account-close" type="button" aria-label="بستن پنجرهٔ حساب">×</button>
+    <h2 id="account-title">ورود به حساب</h2>
+    <p id="account-help">برای ساخت و استفاده از پروندهٔ خود وارد شوید. این نسخه فقط برای دادهٔ ساختگی است.</p>
+    <div id="account-signed-in" class="hidden"><p>وارد حساب شده‌اید:</p><bdi id="account-dialog-identity" dir="ltr"></bdi><p><button id="account-dialog-logout" type="button">خروج از حساب</button></p></div>
+    <div id="account-modes" class="account-modes" role="group" aria-label="ورود یا ثبت‌نام"><button id="account-login-mode" type="button" aria-pressed="true">ورود</button><button id="account-register-mode" type="button" aria-pressed="false">ثبت‌نام</button></div>
+    <form id="account-form" novalidate>
+      <label for="account-email">ایمیل</label><input id="account-email" name="email" type="email" autocomplete="username" dir="ltr" required maxlength="320" aria-describedby="account-status">
+      <label for="account-password">گذرواژه</label><input id="account-password" name="password" type="password" autocomplete="current-password" required aria-describedby="account-password-help account-status">
+      <p id="account-password-help">۱۵ تا ۱۲۸ نویسه؛ فاصله‌ها بخشی از گذرواژه هستند.</p>
+      <p id="account-status" role="status" aria-live="polite" aria-atomic="true"></p>
+      <button id="account-submit" type="submit">ورود</button>
+    </form>
+  </dialog>
   <main id="main">
     <section id="view-home" class="view active" aria-labelledby="landing-title">
       <div class="landing-scene">
