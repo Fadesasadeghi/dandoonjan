@@ -147,7 +147,8 @@ def test_real_sample_responsive_and_print(page, width):
     page.emulate_media(media="print")
     expect(page.locator(".site-header")).not_to_be_visible()
     expect(page.locator("#print-report")).not_to_be_visible()
-    expect(page.locator("#report-content")).to_be_visible()
+    expect(page.locator("#report-content")).not_to_be_visible()
+    expect(page.locator("#report-export")).to_be_visible()
     if width == 1440 and os.environ.get("P1_SCREENSHOTS"):
         capture(page, "print-layout")
         pdf = page.pdf(path=str(Path(os.environ["P1_SCREENSHOTS"]) / "sample-report.pdf"), prefer_css_page_size=True)

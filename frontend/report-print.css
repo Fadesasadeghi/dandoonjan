@@ -1,0 +1,29 @@
+/* Loaded last; the screen report is never a printable export. */
+#report-export{display:none}
+@page{size:A4;margin:16mm}
+@media print{
+  body> *{display:none!important}
+  body.export-prepared>#report-export{display:block!important}
+  html,body{background:#fff!important;color:#193c3e!important;font-size:11pt;line-height:1.8}
+  #report-export{font-family:Calibri,"Segoe UI",Tahoma,sans-serif;width:100%;max-width:none;overflow:visible;direction:rtl;text-align:start}
+  #report-export *{box-sizing:border-box;max-width:100%;overflow-wrap:anywhere}
+  #report-export h1,#report-export h2,#report-export h3,#report-export h4{color:#145d62;break-after:avoid;page-break-after:avoid;line-height:1.5}
+  #report-export h1{font-size:23pt;margin:8pt 0}
+  #report-export h2{font-size:15pt;margin:0 0 8pt}
+  #report-export h3{font-size:12pt;margin:0 0 6pt}
+  #report-export h4{font-size:11pt;margin:8pt 0 5pt}
+  #report-export p{margin:5pt 0;orphans:3;widows:3}
+  #report-export ul,#report-export ol{padding-inline-start:22pt;margin:6pt 0}
+  #report-export li{padding:4pt 0;orphans:3;widows:3}
+  #report-export .export-header{border-bottom:2pt solid #39aeb0;padding-bottom:12pt;margin-bottom:16pt}
+  #report-export .export-brand{color:#145d62;font-weight:bold;font-size:12pt}
+  #report-export .export-validity,#report-export .export-reference,#report-export .export-support{font-size:9pt}
+  #report-export .export-section{padding:12pt 0;border-bottom:0.6pt solid #91bfbc}
+  #report-export .export-summary,#report-export .export-safety{background:#edf8f6;border:0.8pt solid #5b9e9b;padding:10pt;margin:10pt 0}
+  #report-export .export-safety,#report-export .export-assertion,#report-export .export-source,#report-export .export-hypothesis,#report-export .export-claim{break-inside:avoid;page-break-inside:avoid}
+  /* Avoid is advisory: oversized blocks remain in normal flow and may split. */
+  #report-export .export-assertion>div{white-space:pre-line}
+  #report-export .export-reference{color:#193c3e;margin-top:3pt}
+  #report-export a{color:#193c3e;text-decoration:none}
+  #report-export .export-footer{border-top:1pt solid #5b9e9b;margin-top:16pt;padding-top:10pt;font-size:9pt}
+}

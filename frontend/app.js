@@ -34,6 +34,7 @@ function saveCase() {
   $("resume-case").classList.toggle("hidden", navigation.draft || !state.caseId);
 }
 function showView(name) {
+  ReportExport.discard();
   ["home", "workspace", "report"].forEach(v => $("view-" + v).classList.toggle("active", v === name));
   document.body.classList.toggle("print-ready", name === "report" && !!state.report);
   window.scrollTo({top: 0, behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth"});
@@ -153,7 +154,7 @@ function error(message) {
   $("workspace-error").classList.remove("hidden");
 }
 function clearError() { $("workspace-error").classList.add("hidden"); }
-function clearReport() { state.report = null; $("report-content").replaceChildren(); document.body.classList.remove("print-ready"); }
+function clearReport() { ReportExport.discard(); state.report = null; $("report-content").replaceChildren(); document.body.classList.remove("print-ready"); }
 let nextLocalRowId = 0;
 function localRow(values) {
   return {localId: ++nextLocalRowId, uploadState: 'pending', processingState: 'unknown', message: '', ...values};
@@ -409,9 +410,6 @@ function renderReview(report) {
     if (target?.closest('details')) target.closest('details').open = true;
   }));
 }
-let printDisclosures = [];
-window.addEventListener('beforeprint', () => { printDisclosures = [...document.querySelectorAll('#report-content details')].map(el => [el, el.open]); printDisclosures.forEach(([el]) => el.open = true); });
-window.addEventListener('afterprint', () => printDisclosures.forEach(([el, open]) => el.open = open));
 function renderReport(report, transition = true, replace = false) {
   state.report = report;
   if (transition) navigate('report', reportIdentity(report), replace);
@@ -450,6 +448,7 @@ function renderReport(report, transition = true, replace = false) {
 }
 async function printReport() {
   if (state.busy || !state.caseId) return;
+  ReportExport.discard();
   setBusy(true);
   const entry = navigation.current, revision = navigation.revision;
   try {
@@ -458,10 +457,9 @@ async function printReport() {
     const report = await api(`/api/cases/${state.caseId}/report`);
     if (revision !== navigation.revision) return;
     if (!sameReport(entry, report)) { unavailableReport(); return; }
-    renderReport(report, false);
-    if (state.report?.review) audience(selectedAudience);
+    ReportExport.prepare(report, selectedAudience);
     window.print();
-  } catch (e) { if (revision === navigation.revision) { clearReport(); evidenceView(); error(e.message); } }
+  } catch (e) { ReportExport.discard(); if (revision === navigation.revision) { clearReport(); evidenceView(); error(e.message); } }
   finally { setBusy(false); }
 }
 async function resumeCase() {

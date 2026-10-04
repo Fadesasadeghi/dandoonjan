@@ -53,10 +53,13 @@ def test_four_stages_reports_pdf_and_fallback(page, width):
     page.keyboard.press('Enter')
     assert page.locator('.result-disclosure').first.get_attribute('open') is not None
     assert page.locator(':focus-visible').count() == 1
-    # Export is generated from both audience sections in the shared report DOM.
+    # Only the selected audience is exported after authoritative preparation.
+    page.evaluate("window.print = () => window.dispatchEvent(new Event('beforeprint'))")
+    page.locator('#print-report').click()
+    page.wait_for_function("document.body.classList.contains('export-prepared')")
     page.emulate_media(media='print')
-    page.evaluate("window.dispatchEvent(new Event('beforeprint'))")
-    expect(page.locator('[data-audience=professional]')).to_be_visible()
+    expect(page.locator('[data-audience=professional]')).not_to_be_visible()
+    expect(page.locator('#report-export')).to_be_visible()
     if width == 1440:
         cid = prior.case_id(page)
         recorded = page.evaluate('(cid) => fetch(`/api/cases/${cid}/report`).then(r => r.json())', cid)
@@ -66,7 +69,8 @@ def test_four_stages_reports_pdf_and_fallback(page, width):
         with pymupdf.open(stream=pdf, filetype='pdf') as doc:
             assert 1 <= len(doc) <= 12
             text = ''.join(p.get_text() for p in doc)
-            assert recorded['review']['run']['model'] in text and 'MRUN-' in text and 'SNP-' in text
+            assert recorded['review']['run']['model'] not in text
+            assert all(token not in text for token in ('MRUN-', 'SNP-', 'ART-', 'runtime_ms'))
             for sheet in doc:
                 assert sheet.get_text().strip()
                 for block in sheet.get_text('blocks'):
