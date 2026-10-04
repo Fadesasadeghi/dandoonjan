@@ -688,3 +688,95 @@ body:has(#view-workspace.active) #view-workspace textarea:focus-visible {
 #view-workspace label span, #view-workspace .paper .small { color: #EAF3F6; }
 #view-workspace .dossier-section { background: #ffffff0b; border-color: #ffffff24; }
 #view-workspace .dossier-section:hover { background: #ffffff13; }
+
+/* Evidence / case input only. Never apply these rules to the processing scene. */
+body:has(#view-workspace.active:not(.analyzing)) {
+  background: radial-gradient(ellipse at 4% 3%, #D5F1F455, transparent 75%),
+    linear-gradient(110deg, #9ED7E0, #91CEDB 45%, #73B8CF) #9ED7E0;
+}
+body:has(#view-workspace.active:not(.analyzing))::before { display: none; }
+#view-workspace:not(.analyzing) { color: #f5fcfd; padding-bottom: 56px; }
+#view-workspace:not(.analyzing) :is(.paper > p, .eyebrow, label, label span, .small, summary, #activity, .file-message) { color: #f5fcfd; }
+#view-workspace:not(.analyzing) .paper { background: transparent; border: 0; box-shadow: none; min-width: 0; }
+#view-workspace:not(.analyzing) h1 { margin-bottom: 16px; }
+#view-workspace:not(.analyzing) label { margin: 24px 0 10px; font-weight: 600; }
+#view-workspace:not(.analyzing) :is(textarea, input:not([type=file]), select) {
+  background: #e0f7f526; color: #143f49; border: 1px solid #ffffff80;
+  border-radius: 16px; box-shadow: inset 0 1px #ffffff20;
+  padding: 14px 16px; min-width: 0; line-height: 1.9;
+}
+#view-workspace:not(.analyzing) textarea { min-height: 112px; }
+#view-workspace:not(.analyzing) :is(textarea, input)::placeholder { color: #315f69; opacity: 1; }
+#view-workspace:not(.analyzing) :is(textarea, input:not([type=file]), select):hover { border-color: #ffffffc0; background: #e0f7f538; }
+body:has(#view-workspace.active:not(.analyzing)) #view-workspace :focus-visible {
+  outline: 3px solid #175d6c; outline-offset: 4px;
+}
+body:has(#view-workspace.active:not(.analyzing)) #view-workspace textarea:focus-visible {
+  background: #e0f7f542; border-color: #ffffffd0; box-shadow: none;
+}
+#view-workspace:not(.analyzing) .dossier-section { margin-top: 14px; padding-inline: 16px; border-color: #ffffff50; background: #d5f1f412; }
+#view-workspace:not(.analyzing) .dossier-section:hover { background: #d5f1f424; }
+#view-workspace:not(.analyzing) .dossier-section[open] { padding-bottom: 20px; }
+#view-workspace:not(.analyzing) summary { min-height: 56px; padding-block: 10px; }
+#view-workspace:not(.analyzing) summary::marker { color: #f5fcfd; }
+#view-workspace:not(.analyzing) .actions { gap: 14px; margin-top: 28px; }
+#view-workspace:not(.analyzing) .btn.text { color: #f5fcfd; background: #d5f1f41c; }
+#view-workspace:not(.analyzing) .btn:hover { border-color: #fff; }
+#view-workspace:not(.analyzing) #evidence-panel { margin-top: 40px; padding-top: 32px; border-top: 1px solid #ffffff70; }
+#view-workspace:not(.analyzing) #case-question { border-inline-start: 2px solid #258091; padding-inline-start: 16px; }
+#view-workspace:not(.analyzing) .notice:not(.error) { color: #f5fcfd; background: #d5f1f426; border-color: #438d9c; padding: 16px 18px; }
+#view-workspace:not(.analyzing) #completeness { font-size: 14px; padding-block: 12px; }
+#view-workspace:not(.analyzing) .dropzone {
+  display: flex; flex-direction: column; align-items: center; gap: 12px;
+  padding: 28px 20px; background: #d5f1f41c; border: 1.5px dashed #ffffffb0;
+  border-radius: 22px; color: #f5fcfd; font-weight: 500;
+}
+#view-workspace:not(.analyzing) .dropzone:hover,
+#view-workspace:not(.analyzing) .dropzone.dragging { background: #d5f1f448; border-color: #256b7b; }
+#view-workspace:not(.analyzing) .dropzone:focus-within { border-color: #175d6c; }
+#view-workspace:not(.analyzing) .upload-icon { width: 44px; height: 44px; flex-shrink: 0; }
+#view-workspace:not(.analyzing) .dropzone strong { font-size: 17px; font-weight: 600; }
+/* Keep the native input focusable and clickable; cover only its browser chrome. */
+#view-workspace:not(.analyzing) .upload-control {
+  position: relative; display: flex; align-items: center; justify-content: center;
+  width: 100%; min-height: 52px; border: 1px solid #ffffffa0;
+  border-radius: 12px; background: #d5f1f44d; color: #f5fcfd;
+}
+#view-workspace:not(.analyzing) #files {
+  position: absolute; inset: 0; width: 100%; height: 100%; min-height: 52px;
+  margin: 0; opacity: 0; cursor: pointer; border-radius: 12px;
+}
+#view-workspace:not(.analyzing) .upload-control:focus-within {
+  outline: 3px solid #175d6c; outline-offset: 4px;
+}
+#view-workspace:not(.analyzing) .upload-help { color: #effbfc; font-size: 14px; font-weight: 400; }
+#view-workspace:not(.analyzing) .file-list { margin: 20px 0 0; }
+#view-workspace:not(.analyzing) .file-list li { padding: 16px; margin-top: 10px; border: 1px solid #ffffff60; border-radius: 16px; background: #d5f1f426; align-items: center; }
+#view-workspace:not(.analyzing) .file-list .filename { min-width: 0; }
+#view-workspace:not(.analyzing) .file-status { padding: 3px 12px; border-radius: 999px; background: #d5f1f44d; color: #f5fcfd; font-size: 14px; }
+#view-workspace:not(.analyzing) .file-list [data-upload-state="rejected"] .file-status { color: #76352d; background: #ffe0d680; }
+#view-workspace:not(.analyzing) .file-list [data-upload-state="uploaded"] .file-status { color: #125444; background: #c5f1de80; }
+#view-workspace:not(.analyzing) .evidence-empty { margin: 20px 0 0; font-size: 14px; }
+#file-list:not(:empty) + .evidence-empty { display: none; }
+@media (min-width: 1051px) {
+  #view-workspace.active:not(.analyzing) { grid-template-columns: minmax(0, 640px) minmax(0, 1fr); column-gap: 48px; }
+  #view-workspace:not(.analyzing) .workspace-art { width: min(100%, 360px); }
+  #view-workspace:not(.analyzing) .workspace-caption { color: #f5fcfd; }
+}
+@media (max-width: 1050px) {
+  #view-workspace:not(.analyzing) { max-width: 760px; padding-top: 32px; }
+}
+@media (max-width: 600px) {
+  #view-workspace:not(.analyzing) { padding-top: 24px; padding-bottom: 36px; }
+  #view-workspace:not(.analyzing) .dropzone { padding: 24px 16px; }
+  #view-workspace:not(.analyzing) .upload-control,
+  #view-workspace:not(.analyzing) #files { min-height: 84px; }
+  #view-workspace:not(.analyzing) .file-list .filename { flex-basis: 100%; }
+}
+
+/* Light Evidence hierarchy, with local edge contrast over the aqua canvas. */
+#view-workspace:not(.analyzing) :is(h1, .eyebrow, .paper > p, label, summary, .workspace-caption, .source-layer, .btn.text, #activity, .filename, .file-message, .file-status) {
+  text-shadow: 0 1px 2px #23596b9e;
+}
+#view-workspace:not(.analyzing) :is(h1, .dropzone strong, .upload-icon) { color: #ffffff; }
+#view-workspace:not(.analyzing) :is(textarea, input, select, .file-list [data-upload-state="rejected"] .file-status, .file-list [data-upload-state="uploaded"] .file-status) { text-shadow: none; }

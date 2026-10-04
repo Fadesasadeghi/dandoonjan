@@ -111,8 +111,9 @@
         <p class="notice">این نسخهٔ آفلاین از Mock استفاده می‌کند؛ تصویر واقعاً تفسیر نمی‌شود. آپلود مدرک به معنی تأیید بالینی آن نیست.</p>
         <p id="completeness" role="status"></p>
         <label for="document-role">نوع مدرک برای فایل‌های بعدی</label><select id="document-role"><option value="unspecified">سایر مدارک</option value="treatment_plan">طرح درمان</option><option value="prescription">نسخه</option><option value="dental_image">رادیوگرافی یا تصویر دندان</option><option value="previous_report">گزارش قبلی</option></select>
-        <label id="dropzone" class="dropzone" for="files"><strong>انتخاب مدارک یا رها کردن فایل‌ها در اینجا</strong><input id="files" type="file" multiple accept=".pdf,.txt,.jpg,.jpeg,.png,.heic"></label>
+        <label id="dropzone" class="dropzone" for="files"><svg class="upload-icon" aria-hidden="true" viewBox="0 0 40 40" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 26V7m-7 7 7-7 7 7M7 25v8h26v-8"/></svg><strong>انتخاب مدارک یا رها کردن فایل‌ها در اینجا</strong><span class="upload-control"><span aria-hidden="true">انتخاب فایل‌ها</span><input id="files" type="file" multiple accept=".pdf,.txt,.jpg,.jpeg,.png,.heic" aria-label="انتخاب فایل‌های مدارک" aria-describedby="upload-help" aria-controls="file-list"></span><span id="upload-help" class="upload-help">می‌توانید چند فایل انتخاب کنید؛ نوع مدرک را پیش از انتخاب مشخص کنید.</span></label>
         <ul id="file-list" class="file-list" aria-label="وضعیت هر فایل" aria-live="polite"></ul>
+        <p class="evidence-empty">هنوز فایلی انتخاب نشده است. مدارک انتخاب‌شده و وضعیت ارسال آن‌ها اینجا نمایش داده می‌شود.</p>
         <div class="actions"><button id="process-case" class="btn primary">بررسی مدارک و تهیهٔ نتیجه</button><button id="edit-case" class="btn text">ویرایش سؤال و پیشنهاد</button></div>
       </section>
       <p id="activity" role="status" aria-live="polite"></p>
