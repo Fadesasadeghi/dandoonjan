@@ -167,8 +167,8 @@ def test_edit_during_bundle_preparation_stops_review_dispatch(api_client, monkey
     router = OfflineRouter(monkeypatch)
     cid = create_dossier(client)
     original = review.bundle
-    def changed(case):
-        data = original(case)
+    def changed(case, **kwargs):
+        data = original(case, **kwargs)
         assert client.put(f'/api/cases/{cid}/dossier', json={'duration': 'changed during preparation'}).status_code == 200
         return data
     monkeypatch.setattr(review, 'bundle', changed)

@@ -96,6 +96,9 @@ Normalization rules:
 - Do not infer a tooth-treatment relationship that is not supported by the document.
 - If a treatment is present but the tooth is not clear: "tooth": null.
 - Do not guess. Omit anything not actually in the document.
+- Locator spans must use line:N (zero-based document-body line) or char:A-B.
+- Pages must refer to the source page, never an invented page. If a locator
+  cannot be established from supplied data, use null rather than guessing.
 - Use predicate REQUIRED only when the document explicitly states necessity.
 
 DOCUMENT_CONTENT:
@@ -111,11 +114,11 @@ not a clinical recommendation or evidence of necessity.
 
 PROMPTS: dict[str, Prompt] = {
     "artifact_classifier": Prompt("artifact_classifier", "v2", CLASSIFIER_V2),
-    "treatment_plan_extractor": Prompt("treatment_plan_extractor", "v2", EXTRACTOR_V2),
-    "invoice_extractor": Prompt("invoice_extractor", "v3", FINANCIAL_EXTRACTOR_V2),
+    "treatment_plan_extractor": Prompt("treatment_plan_extractor", "v3", EXTRACTOR_V2),
+    "invoice_extractor": Prompt("invoice_extractor", "v4", FINANCIAL_EXTRACTOR_V2),
     "claim_builder": Prompt(
-        "claim_builder", "v2",
-        ISOLATION_RULE + "\nPropose claim candidates from case facts. FACTS:\n<<<\n{content}\n>>>",
+        "claim_builder", "v3",
+        ISOLATION_RULE + "\nRestate only supplied atomic facts. Never invent a tooth, treatment, modality or price. FACTS:\n<<<\n{content}\n>>>",
     ),
     "report_composer": Prompt(
         "report_composer", "v1",

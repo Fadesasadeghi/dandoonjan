@@ -82,6 +82,8 @@ def test_aliases_are_request_scoped_and_only_resolved_after_validation():
     ref = next(iter(mapping))
     value['source_index'] = [{'source_ref': ref}]
     value['diagnostic_hypotheses'][0]['supporting_evidence_refs'] = [ref]
+    for section in ('patient_summary', 'professional_report'):
+        value[section][0]['source_refs'] = [ref]
     output = validate_review(value, mapping)
     assert resolve_review(output, mapping)['source_index'] == [{'source_ref': 'CASE_PRIVATE:v2:symptoms'}]
     with pytest.raises(ProviderUnavailableError): validate_review(value, another)
@@ -95,7 +97,9 @@ def test_reference_contract(mutation):
     if mutation == 'missing': value['source_index'] = []
     if mutation == 'extra': value['source_index'].append({'source_ref': 'foreign'})
     if mutation == 'conflict': value['diagnostic_hypotheses'][0]['contradicting_evidence_refs'] = ['s1']
-    if mutation == 'unsupported': value['diagnostic_hypotheses'][0]['supporting_evidence_refs'] = []
+    if mutation == 'unsupported':
+        value['diagnostic_hypotheses'][0]['supporting_evidence_refs'] = []
+        value['diagnostic_hypotheses'][0]['insufficient_support'] = False
     with pytest.raises(ProviderUnavailableError): validate_review(value, ['s1'])
 
 

@@ -10,7 +10,8 @@ MAX_PAGES = 8
 MAX_PIXELS = 20_000_000
 MAX_IMAGES = 16
 MAX_BYTES = 12 * 1024 * 1024
-VERSION = 'outbound-v2'
+VERSION = 'outbound-v3'
+MAX_TEXT = 20000
 
 
 def prepare_image(data: bytes) -> bytes:
@@ -18,6 +19,8 @@ def prepare_image(data: bytes) -> bytes:
         with warnings.catch_warnings():
             warnings.simplefilter('error', Image.DecompressionBombWarning)
             with Image.open(io.BytesIO(data)) as image:
+                if getattr(image, 'n_frames', 1) != 1:
+                    raise ValueError('IMAGE_MULTIFRAME_UNSUPPORTED')
                 if image.width * image.height > MAX_PIXELS:
                     raise ValueError('IMAGE_PIXEL_LIMIT')
                 image = ImageOps.exif_transpose(image)
@@ -38,7 +41,7 @@ def prepare_image(data: bytes) -> bytes:
 def prepare_pdf(data: bytes) -> list[bytes]:
     try:
         with pymupdf.open(stream=data, filetype='pdf') as doc:
-            if doc.needs_pass or not 0 < doc.page_count <= MAX_PAGES:
+            if doc.needs_pass or doc.is_encrypted or (doc.metadata or {}).get('encryption') or not 0 < doc.page_count <= MAX_PAGES:
                 raise ValueError('PDF_PAGE_LIMIT_OR_LOCKED')
             output = []
             for page in doc:
@@ -55,10 +58,11 @@ def prepare_pdf(data: bytes) -> list[bytes]:
 def bundle(case, *, artifacts=None, read_artifact=None):
     from app.core.cases.dossier import fields
     from app.security.ingestion import read_bytes
-    sources, text, images = [], [], []
+    sources, text, images, coverage = [], [], [], {}
+    intake = fields(case)
     values = {'main_question': case.question_text,
               'clinician_recommendation': case.dentist_recommendation_text,
-              'context': case.context_text, **fields(case)}
+              'context': case.context_text, **intake}
     for key, value in values.items():
         if not value.strip():
             continue
@@ -67,9 +71,15 @@ def bundle(case, *, artifacts=None, read_artifact=None):
                         'artifact_id': None, 'page': None, 'label': key,
                         'sha256': hashlib.sha256(value.encode()).hexdigest()})
         text.append({'source_ref': ref, 'text': value})
+        coverage[ref] = {'representation': 'TEXT', 'partial': False, 'clinical_use': 'UNVERIFIED'}
     total = 0
-    for artifact in case.artifacts if artifacts is None else artifacts:
+    selected = list(case.artifacts if artifacts is None else artifacts)
+    for artifact in sorted(selected, key=lambda a: a.public_id):
         data = read_artifact(artifact) if read_artifact else read_bytes(artifact.storage_key)
+        if hashlib.sha256(data).hexdigest() != artifact.sha256:
+            raise ValueError('ARTIFACT_INTEGRITY')
+        if artifact.detected_mime_type not in ('application/pdf', 'image/jpeg', 'image/png', 'text/plain'):
+            raise ValueError('UNSUPPORTED_REVIEW_ARTIFACT')
         pages = (prepare_pdf(data) if artifact.detected_mime_type == 'application/pdf'
                  else [prepare_image(data)] if artifact.detected_mime_type.startswith('image/') else [])
         for page, image in enumerate(pages, 1):
@@ -83,30 +93,61 @@ def bundle(case, *, artifacts=None, read_artifact=None):
                             'sha256': artifact.sha256,
                             'derivative_sha256': hashlib.sha256(image).hexdigest()})
             images.append({'source_ref': ref, 'data': base64.b64encode(image).decode()})
-        if not pages and artifact.text_content:
+            nonclinical = False
+            if artifact.detected_mime_type.startswith('image/'):
+                from app.core.cases.sample import image_pattern
+                # Exact application-owned transport pattern, including metadata
+                # variants with the same pixels. No filename-based clinical claim.
+                with Image.open(io.BytesIO(data)) as original, Image.open(io.BytesIO(image_pattern())) as known:
+                    nonclinical = original.size == known.size and original.convert('RGB').tobytes() == known.convert('RGB').tobytes()
+            coverage[ref] = {'representation': 'PDF_PAGE' if artifact.detected_mime_type == 'application/pdf' else 'IMAGE',
+                             'partial': False, 'clinical_use': 'NON_CLINICAL' if nonclinical else 'UNVERIFIED'}
+        if not pages:
+            try:
+                original_text = data.decode('utf-8-sig')
+            except UnicodeError:
+                raise ValueError('TEXT_INVALID') from None
+            if not original_text.strip() or '\x00' in original_text:
+                raise ValueError('TEXT_INVALID')
             ref = f'{artifact.public_id}:text'
             sources.append({'source_ref': ref, 'kind': 'DOCUMENT_EXTRACTED',
                             'artifact_id': artifact.public_id, 'page': None,
                             'label': f'document-{len(sources)+1}', 'document_role': artifact.document_role, 'sha256': artifact.sha256})
-            text.append({'source_ref': ref, 'text': artifact.text_content[:20000]})
+            text.append({'source_ref': ref, 'text': original_text[:MAX_TEXT]})
+            coverage[ref] = {'representation': 'TEXT', 'partial': len(original_text) > MAX_TEXT,
+                             'original_characters': len(original_text), 'clinical_use': 'UNVERIFIED'}
     if sum(len(t['text']) for t in text) > 100000:
         raise ValueError('OUTBOUND_TEXT_LIMIT')
     if len(sources) > 100:
         raise ValueError('OUTBOUND_SOURCE_LIMIT')
-    return {'version': VERSION, 'sources': sources, 'text': text, 'images': images}
+    missing = [key for key, value in values.items() if key in intake and
+               value.strip().lower() in ('', 'unknown', 'نامشخص', 'نمی‌دانم', 'نمی دانم')]
+    omitted = len({a.public_id for a in case.artifacts} - {a.public_id for a in selected})
+    return {'version': VERSION, 'sources': sources, 'text': text, 'images': images,
+            'coverage': coverage, 'missing_intake': missing, 'omitted_artifacts': omitted}
 
 
 def provider_bundle(local):
     """Fresh aliases per request; mapping never leaves this process."""
     import secrets
-    aliases = {s['source_ref']: 'src_' + secrets.token_hex(16) for s in local['sources']}
+    refs = [s['source_ref'] for s in local['sources']]
+    from app.ai.preflight import failure
+    if len(refs) != len(set(refs)):
+        raise failure('reference')
+    aliases = {ref: 'src_' + secrets.token_hex(16) for ref in refs}
+    if len(set(aliases.values())) != len(aliases):
+        raise failure('reference')
     sources = []
     for source in local['sources']:
         sources.append({'source_ref': aliases[source['source_ref']],
-            **{key: source[key] for key in ('kind', 'page', 'label', 'document_role') if key in source}})
+            **{key: source[key] for key in ('kind', 'page', 'label', 'document_role') if key in source},
+            **{key: value for key, value in local.get('coverage', {}).get(source['source_ref'], {}).items()
+               if key in ('representation', 'partial', 'clinical_use')}})
     outbound = {'sources': sources,
         'text': [{'source_ref': aliases[t['source_ref']], 'text': t['text']} for t in local['text']],
         'images': [{'source_ref': aliases[i['source_ref']], 'data': i['data']} for i in local['images']]}
+    outbound['coverage_notes'] = {'missing_intake': local.get('missing_intake', []),
+                                 'omitted_artifacts': local.get('omitted_artifacts', 0)}
     return outbound, {alias: ref for ref, alias in aliases.items()}
 
 

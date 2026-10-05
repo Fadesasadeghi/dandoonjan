@@ -188,7 +188,7 @@ class MockProvider:
                               "source_locator": {"page": 1, "span": span,
                                                  "bounding_box": None}})
 
-        price = re.search(r"(\d[\d,،\.]*)\s*(تومان|ریال|toman|rial)", content.lower())
+        price = re.search(r"(\d[\d,،\.]*)\s*(تومان|ریال|toman|rial)", '\n'.join(body_lines).lower())
         if price:
             fields.append({"field_name": "price", "raw_value": price.group(0),
                            "confidence": 0.7, "page": 1,
@@ -426,6 +426,17 @@ class OpenRouterProvider:
             'Rank possible diagnostic hypotheses; confidence LOW/MEDIUM/HIGH is '
             'qualitative uncertainty, NOT probability or truth. Never numeric scores. '
             'Every assertion needs valid supplied source refs or insufficient_support=true. '
+            'All paraphrases, interpretations and inferences require insufficient_support=true. '
+            'Only an exact attributed quotation from supplied text may set it false: '
+            'use «exact quotation» with به گفته شما for patient data, به روایت for clinician data, '
+            'or در متن سند for documents. Source kind describes input provenance, not clinical truth. '
+            'Source IDs belong only in reference arrays, never narrative prose. '
+            'Non-clinical patterns never support or contradict diagnostic hypotheses. '
+            'A partial text source does not establish that its whole document was reviewed. '
+            'PDF_PAGE means rendered visual input, not extracted PDF text. '
+            'Both audience sections must be substantive Persian; technical abbreviations may remain Latin. '
+            'Provide a limitation that this is not diagnosis and requires dentist confirmation. '
+            'Hypotheses require missing-information and examination/question entries. '
             'Do not invent sources, facts, image locations or examinations. '
             'Separate patient short summary from professional evidence discussion. '
             'Recommended checks are examinations/questions, never treatment instructions. '
@@ -438,7 +449,8 @@ class OpenRouterProvider:
             + json.dumps(_review_schema_for_prompt(ReviewOutput.model_json_schema()),
                          ensure_ascii=False, separators=(',', ':')))
         parts = [{'type': 'text', 'text': json.dumps(
-            {'sources': bundle['sources'], 'documents': bundle['text']},
+            {'sources': bundle['sources'], 'documents': bundle['text'],
+             'coverage_notes': bundle.get('coverage_notes', {})},
             ensure_ascii=False, separators=(',', ':'))}]
         for item in bundle['images']:
             parts.extend([{'type': 'text', 'text': 'Source: ' + item['source_ref']},

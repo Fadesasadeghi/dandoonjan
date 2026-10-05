@@ -56,11 +56,11 @@ class ModelGateway:
         """Mode the configuration intends: AI when a real provider is active."""
         return "AI" if self.provider.name in REAL_PROVIDER_NAMES else "DEMO"
 
-    def review(self, case, derivation_run_id):
+    def review(self, case, derivation_run_id, *, artifacts=None):
         if self.input_guard:
             self.input_guard()
         from app.ai.review import run_review
-        return run_review(self, case, derivation_run_id)
+        return run_review(self, case, derivation_run_id, artifacts=artifacts)
 
     def run(self, prompt_id: str, schema: type[T], content: str,
         temperature: float = 0.0) -> tuple[T, ModelRun]:

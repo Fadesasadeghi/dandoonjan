@@ -7,6 +7,10 @@ from app.domain.models import ReviewRun, DiagnosticHypothesis, HypothesisEvidenc
 from app.errors import ExtractionValidationError
 from app.core.cases.sample import is_demo, DEMO_VERSION
 
+MISSING_LABELS = {'symptoms':'علائم', 'duration':'مدت علائم', 'medical_history':'سابقه پزشکی',
+    'medications':'داروها', 'allergies':'حساسیت‌ها', 'treatment_plan':'طرح درمان',
+    'previous_reports':'گزارش قبلی', 'previous_treatments':'درمان قبلی', 'dental_images':'تصویر دندان'}
+
 
 def demo_review(db, case, derivation_run_id, data, missing):
     """Render recorded facts/rule results; never interpret pixels or assess anew."""
@@ -31,7 +35,7 @@ def demo_review(db, case, derivation_run_id, data, missing):
     def assertion(text, refs=(), insufficient=None):
         refs = list(dict.fromkeys(refs))
         return {'text': text, 'source_refs': refs,
-                'insufficient_support': not bool(refs) if insufficient is None else insufficient}
+                'insufficient_support': True if insufficient is None else insufficient}
 
     dossier = fields(case)
     claims = scoped(Claim)
@@ -83,9 +87,9 @@ def demo_review(db, case, derivation_run_id, data, missing):
     professional = [*patient[:3],
         assertion(patient[3]['text'] + ' نتیجهٔ قواعد موجود: ' + '؛ '.join(assessment_lines)[:1500], insufficient=True),
         patient[4]]
-    limitations = [assertion('Mock؛ فقط متن و نتایج قواعد همین اجرا بازگو شده‌اند. PNG الگوی انتقال/آزمون است، رادیوگرافی نیست و هیچ تفسیر یا یافتهٔ بالینی از آن استخراج نشده است. تشخیص یا تعیین ضرورت درمان انجام نمی‌شود.')]
+    limitations = [assertion('Mock؛ فقط متن و نتایج قواعد همین اجرا بازگو شده‌اند. PNG الگوی انتقال/آزمون است، رادیوگرافی نیست و هیچ تفسیر یا یافتهٔ بالینی از آن استخراج نشده است. تشخیص یا تعیین ضرورت درمان انجام نمی‌شود؛ برداشت نیازمند تأیید دندان‌پزشک است.')]
     if missing:
-        limitations.append(assertion('بخش‌های ثبت‌نشدهٔ شرح حال: ' + '، '.join(missing)))
+        limitations.append(assertion('این بخش‌های شرح حال ثبت نشده است: ' + '، '.join(MISSING_LABELS.get(key, key) for key in missing)))
     if safety:
         limitations.append(assertion(SAFETY_NOTE_FA.get(safety[-1].state, 'محدودیت ایمنی اجرا باید رعایت شود.')))
     return {'patient_summary': patient, 'professional_report': professional,
@@ -96,25 +100,22 @@ def demo_review(db, case, derivation_run_id, data, missing):
 def mock_review(data, missing):
     refs = [s['source_ref'] for s in data['sources']]
     document_refs = [s['source_ref'] for s in data['sources'] if s['artifact_id'] is not None]
-    missing_labels = {'symptoms':'علائم', 'duration':'مدت علائم', 'medical_history':'سابقه پزشکی',
-        'medications':'داروها', 'allergies':'حساسیت‌ها', 'treatment_plan':'طرح درمان',
-        'previous_reports':'گزارش قبلی', 'previous_treatments':'درمان قبلی', 'dental_images':'تصویر دندان'}
     def assertion(text, sources=None):
-        return {'text': text, 'source_refs': sources or [], 'insufficient_support': not bool(sources)}
+        return {'text': text, 'source_refs': sources or [], 'insufficient_support': True}
     return {
-        'patient_summary': [assertion('این خروجی نمونهٔ ساختگی است. برای روشن‌شدن علت علائم، معاینه لازم است.')],
+        'patient_summary': [assertion('این خروجی نمونهٔ ساختگی است. برای روشن‌شدن علت علائم، معاینه لازم است.', refs[:1])],
         'professional_report': [assertion('مدارک ثبت‌شده برای بررسی منبع‌محور آماده‌اند؛ در اجرای Mock تحلیل بالینی تصویر غیرفعال است.', document_refs[:1])],
         'diagnostic_hypotheses': [{'label': 'حساسیت دندانی — فرضیهٔ نمایشی Mock',
             'confidence_label': 'LOW', 'supporting_evidence_refs': [],
             'contradicting_evidence_refs': [], 'insufficient_support': True,
-            'missing_information': [assertion('اطلاعات ثبت‌نشده: ' + '، '.join(missing_labels.get(key, key) for key in missing))] if missing else [],
+            'missing_information': [assertion('این اطلاعات ثبت نشده است: ' + '، '.join(MISSING_LABELS.get(key, key) for key in missing))] if missing else [assertion('کفایت شواهد بالینی هنوز تأیید نشده است.')],
             'recommended_checks': [assertion('دربارهٔ معاینه و بررسی تکمیلی با دندان‌پزشک گفت‌وگو کنید.')]}],
         'safety_red_flags': [],
-        'limitations': [assertion('Mock؛ بدون تحلیل واقعی تصویر یا اعتبارسنجی بالینی. اطمینان کیفی، احتمال بیماری نیست.')],
+        'limitations': [assertion('Mock؛ تشخیص انجام نمی‌شود و تفسیر واقعی تصویر غیرفعال است. اطمینان کیفی، احتمال بیماری نیست؛ برداشت نیازمند تأیید دندان‌پزشک است.')],
         'source_index': [{'source_ref': ref} for ref in refs]}
 
 
-def run_review(gateway, case, derivation_run_id):
+def run_review(gateway, case, derivation_run_id, *, artifacts=None):
     db = gateway.db
     provider = gateway.provider
     from app.config import get_settings
@@ -129,7 +130,7 @@ def run_review(gateway, case, derivation_run_id):
         # Bind intake provenance to the revision used to prepare the input, not
         # whichever revision happens to be latest after provider execution.
         revision = latest(case)
-        data = bundle(case)
+        data = bundle(case, artifacts=artifacts)
         if gateway.input_guard:
             gateway.input_guard()  # Preparation can race an edit; stop before dispatch.
         if provider.name == 'mock':
@@ -137,11 +138,27 @@ def run_review(gateway, case, derivation_run_id):
             raw = demo_review(db, case, derivation_run_id, data, missing) if is_demo(case) else mock_review(data, missing)
         else:
             outbound, mapping = provider_bundle(data)
-            candidate = validate_review(provider.review(outbound), mapping)
+            candidate = validate_review(provider.review(outbound), mapping, source_context=outbound)
             raw = resolve_review(candidate, mapping)
         if gateway.input_guard:
             gateway.input_guard()
-        output = validate_review(raw, [s['source_ref'] for s in data['sources']])
+        output = validate_review(raw, [s['source_ref'] for s in data['sources']], source_context=data)
+        notes, note_refs = [], []
+        for ref, coverage in data['coverage'].items():
+            if coverage.get('partial'):
+                notes.append('بخشی از متن مدرک ارسال شده است؛ بررسی کامل متن انجام نشده است.')
+                note_refs.append(ref)
+            if coverage.get('clinical_use') == 'NON_CLINICAL':
+                notes.append('تصویر الگوی آزمون غیر بالینی است؛ رادیوگرافی یا شاهد بیماری نیست.')
+                note_refs.append(ref)
+        if data['omitted_artifacts']:
+            notes.append('برخی مدارک ردشده به بررسی مدل وارد نشده‌اند و شاهد بررسی‌شده محسوب نمی‌شوند.')
+        if data['missing_intake']:
+            notes.append('بخش‌های متنی ثبت‌نشده در شرح حال: ' + '، '.join(MISSING_LABELS[key] for key in data['missing_intake']) + '؛ این وضعیت درباره محتوای مدارک جداگانه داوری نمی‌کند.')
+        if notes:
+            from app.ai.review_schema import Assertion
+            output.limitations.append(Assertion(text=' '.join(dict.fromkeys(notes)), source_refs=list(dict.fromkeys(note_refs)), insufficient_support=True))
+        output = validate_review(output.model_dump(), [s['source_ref'] for s in data['sources']], source_context=data)
         run.output = output.model_dump()
         run.source_index = data['sources']
         run.status = 'SUCCEEDED'

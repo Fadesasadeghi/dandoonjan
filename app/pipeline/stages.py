@@ -147,6 +147,8 @@ def extract_structured(db: Session, gw: ModelGateway, artifact: Artifact,
     prompt_id = ("invoice_extractor" if artifact.category == ArtifactCategory.FINANCIAL_DOCUMENT
                  else "treatment_plan_extractor")
     out, run = gw.run(prompt_id, ExtractionOutput, describe_for_ai(artifact))
+    from app.ai.grounding import validate_extraction_source
+    validate_extraction_source(artifact, out)
     extraction = Extraction(
         public_id=public_id("EXT"), artifact_id=artifact.id,
         schema_name=prompt_id, schema_version=run.schema_version,

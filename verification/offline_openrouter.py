@@ -35,9 +35,9 @@ class OfflineRouter:
             assert payload['model'] == MODEL and payload['temperature'] == 0
             parts = payload['messages'][1]['content']
             data = json.loads(parts[0]['text'])
-            assert set(data) == {'sources', 'documents'}
+            assert set(data) == {'sources', 'documents', 'coverage_notes'}
             for source in data['sources']:
-                assert set(source) <= {'source_ref', 'kind', 'page', 'label', 'document_role'}
+                assert set(source) <= {'source_ref', 'kind', 'page', 'label', 'document_role', 'representation', 'partial', 'clinical_use'}
                 assert source['source_ref'].startswith('src_') and len(source['source_ref']) == 36
             for document in data['documents']:
                 assert set(document) == {'source_ref', 'text'}
@@ -48,14 +48,16 @@ class OfflineRouter:
                     assert part['image_url']['url'].startswith('data:image/jpeg;base64,')
             refs = [s['source_ref'] for s in data['sources']]
             image = next(s['source_ref'] for s in data['sources'] if s['kind'] == 'DOCUMENT_EXTRACTED')
-            assertion = lambda text: {'text': text, 'source_refs': [image], 'insufficient_support': False}
-            value = {'patient_summary': [assertion('Synthetic evidence needs examination.')],
-                'professional_report': [assertion('Synthetic pattern supplied; clinical interpretation unverified.')],
-                'diagnostic_hypotheses': [{'truth_type': 'MODEL_INFERRED', 'label': 'Possible sensitivity',
-                    'confidence_label': 'LOW', 'supporting_evidence_refs': [image],
-                    'contradicting_evidence_refs': [], 'insufficient_support': False,
-                    'missing_information': [], 'recommended_checks': [assertion('Ask about symptom duration.')]}],
-                'safety_red_flags': [], 'limitations': [assertion('Synthetic transport test only.')],
+            intake = next(s['source_ref'] for s in data['sources'] if s['label'] == 'symptoms')
+            assertion = lambda text, refs: {'text': text, 'source_refs': refs, 'insufficient_support': True}
+            value = {'patient_summary': [assertion('علائم گزارش‌شده نیازمند معاینه است؛ علت هنوز تأیید نشده است.', [intake])],
+                'professional_report': [assertion('تصویر الگوی ساختگی ارسال شده است؛ تفسیر بالینی آن تأیید نشده است.', [image])],
+                'diagnostic_hypotheses': [{'truth_type': 'MODEL_INFERRED', 'label': 'حساسیت دندانی احتمالی',
+                    'confidence_label': 'LOW', 'supporting_evidence_refs': [intake],
+                    'contradicting_evidence_refs': [], 'insufficient_support': True,
+                    'missing_information': [assertion('کفایت شواهد بالینی هنوز تأیید نشده است.', [])],
+                    'recommended_checks': [assertion('درباره معاینه با دندان‌پزشک گفت‌وگو کنید.', [])]}],
+                'safety_red_flags': [], 'limitations': [assertion('این گزارش تشخیص قطعی نیست؛ برداشت نیازمند تأیید دندان‌پزشک است.', [])],
                 'source_index': [{'source_ref': ref} for ref in refs]}
             if self.failure == 'reference': value['source_index'][0]['source_ref'] = 'foreign_alias'
             if self.failure == 'safety': value['patient_summary'][0]['text'] = 'Diagnostic confidence: 0.95'
@@ -98,7 +100,10 @@ def verify_success(client, sessions, router):
         assert review.status == 'SUCCEEDED' and review.output
         assert snapshot.payload['review']['patient_summary'] == review.output['patient_summary']
         assert snapshot.payload['review']['professional_report'] == review.output['professional_report']
-        assert db.query(HypothesisEvidence).one().artifact_id == artifact.id
+        evidence = db.query(HypothesisEvidence).one()
+        assert evidence.artifact_id is None  # Nonclinical pattern cannot support diagnosis.
+        assert evidence.dossier_revision_id is not None
+        assert evidence.source_ref.endswith(':symptoms')
         for private in (cid, artifact.public_id, artifact.storage_key, artifact.sha256, 'PRIVATE_FILENAME'):
             assert private not in serialized
         for source in review.source_index:

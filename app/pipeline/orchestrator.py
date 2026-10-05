@@ -47,8 +47,8 @@ PIPELINE_SCHEMA_VERSION = "pipeline-v4"
 MODULE_VERSIONS = {
     "classification": "classifier-mock-v3",
     "quality_gate": "quality-rules-v2",
-    "extraction": "extraction-mock-v3",
-    "claims": "claim-engine-v3",
+    "extraction": "extraction-mock-v4",
+    "claims": "claim-engine-v4",
     "assessment": "assessment-rules-v2",
     "snapshot_report": "report-composer-v3",
 }
@@ -445,7 +445,7 @@ def run_case_pipeline(db: Session, case: Case) -> dict:
         db.commit()
         result["assessments"] = len(assessments)
         if next_phase and safety.state in (SafetyState.NORMAL, SafetyState.CAUTION):
-            review = gw.review(case, derivation_run_id)
+            review = gw.review(case, derivation_run_id, artifacts=processable)
             from app.ai.review_schema import escalated_state
             safety.state = SafetyState(escalated_state(safety.state.value, review.output['safety_red_flags']))
             if review.output['safety_red_flags']:

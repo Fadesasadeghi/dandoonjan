@@ -16,16 +16,17 @@ from tests.next_phase.test_contract import candidate
 def test_diagnostic_numeric_forms_rejected(number, prefix):
     value = candidate()
     value['patient_summary'] = [{'text': prefix + number,
-        'source_refs': ['s1'], 'insufficient_support': False}]
-    with pytest.raises(ProviderUnavailableError):
+        'source_refs': ['s1'], 'insufficient_support': True}]
+    with pytest.raises(ProviderUnavailableError) as caught:
         validate_review(value, ['s1'])
+    assert caught.value.category == 'safety'
 
 
-@pytest.mark.parametrize('text', ['Symptoms lasted 3 days.', 'Tooth 46 is referenced.',
-    'Document measurement: .85 mm.', 'مدت علائم ۳ روز است.'])
+@pytest.mark.parametrize('text', ['مدت علائم گزارش‌شده 3 روز است.', 'دندان 46 در گزارش ذکر شده است.',
+    'اندازه گزارش‌شده در مدرک .85 mm است.', 'مدت علائم ۳ روز است.'])
 def test_nondiagnostic_numbers_remain_allowed(text):
     value = candidate()
-    value['patient_summary'] = [{'text': text, 'source_refs': ['s1'], 'insufficient_support': False}]
+    value['patient_summary'] = [{'text': text, 'source_refs': ['s1'], 'insufficient_support': True}]
     assert validate_review(value, ['s1']).patient_summary[0].text == text
 
 

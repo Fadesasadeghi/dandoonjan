@@ -157,18 +157,33 @@ def ingest_artifact(db: Session, case: Case, filename: str, declared_mime: str,
     return IngestResult(artifact=artifact)
 
 
+TEXT_EXTRACTION_LIMIT = 20001  # 20k input plus one explicit truncation sentinel.
+
+
+def pdf_text_pages_bounded(data: bytes) -> list[str]:
+    with pymupdf.open(stream=data, filetype='pdf') as doc:
+        if doc.needs_pass or doc.is_encrypted or (doc.metadata or {}).get('encryption'):
+            raise UnreadableArtifactError('encrypted PDF')
+        pages, remaining = [], TEXT_EXTRACTION_LIMIT
+        for page in doc:
+            if pages:
+                remaining -= 1  # Joining newline belongs to the extraction budget.
+            if remaining <= 0: break
+            value = page.get_text()[:remaining]
+            pages.append(value)
+            remaining -= len(value)
+        return pages
+
+
 def extract_text_if_supported(artifact: Artifact, data: bytes) -> str | None:
     """Extracted text is DATA only. Never interpreted as instructions downstream."""
     if artifact.detected_mime_type == "application/pdf":
         try:
-            doc = pymupdf.open(stream=data, filetype="pdf")
-            pages = [page.get_text() for page in doc]
-            doc.close()
-            return "\n".join(pages)
+            return "\n".join(pdf_text_pages_bounded(data))
         except Exception as exc:
             raise UnreadableArtifactError(str(exc)) from exc
     if artifact.detected_mime_type == "text/plain":
-        return data.decode("utf-8", errors="replace")
+        return data.decode("utf-8-sig")[:TEXT_EXTRACTION_LIMIT]
     return None
 
 

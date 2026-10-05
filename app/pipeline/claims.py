@@ -164,6 +164,8 @@ def build_case_claims(db: Session, gw: ModelGateway, case: Case,
         "price_facts": price_facts}
     if facts["treatment_items"] or facts["price_facts"]:
         out, run = gw.run("claim_builder", ClaimsOutput, json.dumps(facts))
+        from app.ai.grounding import validate_claim_sources
+        validate_claim_sources(out, facts)
         for c in out.claims:
             try:
                 ct = ClaimType(c.claim_type)
