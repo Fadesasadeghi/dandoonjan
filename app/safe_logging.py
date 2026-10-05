@@ -9,6 +9,12 @@ def safe_error_code(exc: Exception) -> str:
     from app import errors
     if isinstance(exc, errors.ProviderUnavailableError):
         return "REAL_PROVIDER_" + exc.category.upper()
+    if isinstance(exc, errors.ExtractionValidationError):
+        allowed = {'REAL_PROVIDER_' + category.upper()
+                   for category in errors.ProviderUnavailableError.CATEGORIES}
+        allowed.add('SCHEMA_VALIDATION_FAILED')
+        if exc.failure_code in allowed:
+            return exc.failure_code
     for cls in vars(errors).values():
         if isinstance(cls, type) and issubclass(cls, errors.DandoonjanError):
             if type(exc) is cls:

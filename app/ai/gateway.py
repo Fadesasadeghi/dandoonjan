@@ -29,6 +29,7 @@ class ModelGateway:
         self.db = db
         self.strict_real = strict_real
         self.demo = demo
+        self.input_guard = None
         settings = get_settings()
         self.fallback = MockProvider()
         self.model_name = settings.ai_model_name
@@ -56,6 +57,8 @@ class ModelGateway:
         return "AI" if self.provider.name in REAL_PROVIDER_NAMES else "DEMO"
 
     def review(self, case, derivation_run_id):
+        if self.input_guard:
+            self.input_guard()
         from app.ai.review import run_review
         return run_review(self, case, derivation_run_id)
 
@@ -74,15 +77,27 @@ class ModelGateway:
             temperature=temperature, input_hash=input_hash, status="RUNNING",
         )
         self.db.add(run)
-        self.db.flush()
+        # Persist audit/preceding completed work and release write locks before I/O.
+        self.db.commit()
+        # Request-local ownership lets a failed stage close only its own durable
+        # RUNNING model records after rolling back unfinished candidate writes.
+        self.db.info.setdefault('model_run_ids', set()).add(run.id)
 
         try:
+            if self.input_guard:
+                self.input_guard()
             raw = self._call_raw(provider, prompt, content)
+            if self.input_guard:
+                self.input_guard()
             validated = self._validate_schema(schema, raw)
-        except (ProviderUnavailableError, ValidationError) as exc:
+        except Exception as exc:
             run.status = "FAILED"
             run.error = safe_error_code(exc)
-            raise ExtractionValidationError("AI output validation failed") from None
+            self.db.commit()
+            if isinstance(exc, (ProviderUnavailableError, ValidationError)):
+                raise ExtractionValidationError("AI output validation failed",
+                    failure_code=run.error, retry_after=getattr(exc, 'retry_after', None)) from None
+            raise
 
         run.status = "SUCCEEDED"
         run.error = None

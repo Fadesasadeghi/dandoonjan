@@ -31,7 +31,7 @@ from app.domain.models import (ArtifactClassification, ArtifactQualityAssessment
                                Assessment, Case, Claim, EvidenceGap, EvidenceLink,
                                Extraction, Finding, ProcessingRun, SafetyResult,
                                TreatmentItem, public_id, utcnow)
-from app.errors import InvalidTransitionError
+from app.errors import InvalidTransitionError, ProcessingInputChangedError
 from app.safe_logging import safe_error_code
 from app.governance.record import audit
 from app.pipeline import claims as claims_mod
@@ -40,9 +40,9 @@ from app.pipeline import reporting as reporting_mod
 from app.pipeline import stages
 from app.pipeline.assessment import screen_case_text
 from app.core.cases.sample import is_demo, execution_identity, DEMO_VERSION
-from app.pipeline.runs import next_attempt, processing_run
+from app.pipeline.runs import next_attempt, processing_run, lock_case
 
-PIPELINE_SCHEMA_VERSION = "pipeline-v3"
+PIPELINE_SCHEMA_VERSION = "pipeline-v4"
 
 MODULE_VERSIONS = {
     "classification": "classifier-mock-v3",
@@ -111,7 +111,7 @@ def effective_input_hash(db: Session, case: Case) -> str:
         "case_version": case.version,
         # Only source inputs — derived fields (classification) are outputs.
         "artifacts": sorted(
-            [a.public_id, a.sha256, a.text_content or ""]
+            [a.public_id, a.sha256, a.text_content or "", a.document_role, a.detected_mime_type]
             for a in case.artifacts),
     }
     if is_demo(case):
@@ -195,6 +195,17 @@ def _mark_derivation_rows(db: Session, case: Case, derivation_run_id: int,
 def _activate_derivation(db: Session, case: Case, derivation: ProcessingRun) -> None:
     """Atomic authority switch (D-Q1): old ACTIVE → SUPERSEDED, this derivation's
     rows stay ACTIVE, derivation run → SUCCEEDED + ACTIVE. Callers commit."""
+    # Final input check and authority transition share the writer/Case lock.
+    # Edits committed before this point invalidate work; edits afterwards bump
+    # version and hide it through the existing current-report boundary.
+    db.flush()
+    lock_case(db, case.id)
+    db.expire(case, ['version', 'question_text', 'context_text',
+                     'dentist_recommendation_text', 'artifacts'])
+    for artifact in case.artifacts:
+        db.expire(artifact, ['text_content', 'sha256', 'document_role', 'detected_mime_type'])
+    if effective_input_hash(db, case) != derivation.input_hash:
+        raise ProcessingInputChangedError()
     for table in DERIVED_TABLES:
         if hasattr(table, "case_id"):
             q = db.query(table).filter(
@@ -224,6 +235,24 @@ def _activate_derivation(db: Session, case: Case, derivation: ProcessingRun) -> 
 
 
 def run_case_pipeline(db: Session, case: Case) -> dict:
+    # HTTP ownership is already authoritative. Commit its bounded session touch,
+    # then coordinate admission before provider construction or input inspection.
+    db.commit()
+    lock_case(db, case.id)
+    db.refresh(case)
+    db.expire(case, ['artifacts'])
+    pending = db.query(ProcessingRun).filter(
+        ProcessingRun.case_id == case.id, ProcessingRun.module == 'pipeline',
+        ProcessingRun.status == ProcessingRunStatus.RUNNING).order_by(ProcessingRun.id.desc()).first()
+    if pending is not None:
+        # No lease/heartbeat can prove an old worker is dead. Keep it unresolved;
+        # never replay, activate it, or return an older report as a new result.
+        pending.authority = RunAuthority.NON_AUTHORITATIVE
+        response = {'case_public_id': case.public_id, 'status': CaseStatus.PROCESSING.value,
+                    'pipeline_run_id': pending.public_id, 'reused': False,
+                    'snapshot': None, 'report': None, 'report_kind': None}
+        db.commit()
+        return response
     from app.core.cases.dossier import latest
     next_phase = latest(case) is not None
     configuration_error = None
@@ -245,13 +274,15 @@ def run_case_pipeline(db: Session, case: Case) -> dict:
             from app.security.ingestion import read_bytes
             data = read_bytes(artifact.storage_key)
             artifact.text_content = extract_text_if_supported(artifact, data)
-    db.commit()
+    db.flush()
 
     # ---- Reuse resolution BEFORE creating a derivation run (Correction 2)
     input_hash = effective_input_hash(db, case)
     prior = _reusable_derivation(db, case, input_hash)
     if prior is not None and configuration_error is None:
-        return _reused_result(db, case, prior)
+        response = _reused_result(db, case, prior)
+        db.commit()
+        return response
 
     # ---- Create the derivation run (attempt = max(prev)+1, D1)
     attempt = next_attempt(db, case.id, "pipeline", input_hash)
@@ -267,11 +298,23 @@ def run_case_pipeline(db: Session, case: Case) -> dict:
     _advance(case, CaseStatus.PROCESSING)
     db.commit()
 
+    def assert_current_inputs():
+        # Separate read transaction avoids stale ORM identity-map data. No writes,
+        # and never holds the admission lock during provider work.
+        with Session(bind=db.get_bind(), autoflush=False) as current:
+            fresh = current.get(Case, case.id)
+            if fresh is None or effective_input_hash(current, fresh) != input_hash:
+                raise ProcessingInputChangedError()
+
+    if configuration_error is None:
+        gw.input_guard = assert_current_inputs
+
     # ---- Intake safety screening (D3): artifact-independent, runs before any
     # document-dependent early exit; safety ⊥ evidence sufficiency.
     intake_state, intake_reasons = screen_case_text(case)
 
     try:
+        assert_current_inputs()
         if configuration_error is not None:
             if next_phase:
                 from app.domain.models import ReviewRun
@@ -410,6 +453,8 @@ def run_case_pipeline(db: Session, case: Case) -> dict:
             db.commit()
         result["safety_state"] = safety.state.value
 
+        assert_current_inputs()
+
         _advance(case, CaseStatus.READY_FOR_ASSESSMENT)
         db.commit()
 
@@ -437,10 +482,9 @@ def run_case_pipeline(db: Session, case: Case) -> dict:
                 result["snapshot"] = snapshot.public_id
                 result["report"] = report.public_id
                 result["report_kind"] = report.content.get("report_kind")
-        db.commit()
-
-        # ---- Atomic authority switch (D-Q1): old ACTIVE → SUPERSEDED, new → ACTIVE
-        _activate_derivation(db, case, derivation)
+            # Keep final input rejection inside the stage's rollback/failure audit.
+            # Report persistence and authority still share the outer atomic commit.
+            _activate_derivation(db, case, derivation)
         db.commit()
 
         result.update({"status": case.status.value, "reused": False,
@@ -467,7 +511,7 @@ def run_case_pipeline(db: Session, case: Case) -> dict:
             _advance(case, CaseStatus.MANUAL_REVIEW_REQUIRED)
         db.commit()
         result.update({"status": case.status.value, "failed_module": "pipeline",
-                       "error_code": getattr(exc, "code", "INTERNAL_ERROR"),
+                       "error_code": safe_error_code(exc),
                        "snapshot": None, "report": None, "report_kind": None,
                        "reused": False,
                        "pipeline_run_id": derivation.public_id})

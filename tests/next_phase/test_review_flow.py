@@ -45,17 +45,15 @@ def test_shared_snapshot_reuse_failure_and_history(api_client, monkeypatch):
         assert run.output is None
 
 
-def test_offline_real_adapter_images_and_retry():
+def test_offline_real_adapter_images_single_dispatch():
     from app.ai.providers import OpenRouterProvider
     seen = []
     def handler(request):
         seen.append(json.loads(request.content))
-        if len(seen) == 1:
-            return httpx.Response(503)
         return httpx.Response(200, json={'model': 'vendor/fixed-model', 'choices': [{'finish_reason': 'stop', 'message': {'content': '{"offline": true}'}}]})
     provider = OpenRouterProvider('OFFLINE_TEST_ONLY', 'vendor/fixed-model', offline_handler=handler)
     assert provider.review({'sources': [], 'text': [], 'images': [{'source_ref': 's1', 'data': 'AA=='}]}) == {'offline': True}
-    assert len(seen) == 2
+    assert len(seen) == 1
     assert seen[-1]['messages'][1]['content'][-1]['type'] == 'image_url'
 
 
@@ -85,7 +83,7 @@ def test_retry_exhaustion_is_bounded():
     provider = OpenRouterProvider('OFFLINE_TEST_ONLY', 'vendor/fixed-model', offline_handler=fail)
     with pytest.raises(ProviderUnavailableError):
         provider.review({'sources': [], 'text': [], 'images': []})
-    assert len(requests) == 2
+    assert len(requests) == 1  # Ambiguous 5xx must not be replayed.
 
 
 @pytest.mark.parametrize('symptom,state', [('facial swelling', 'URGENT_EVALUATION'), ('prescribe me', 'BLOCKED')])

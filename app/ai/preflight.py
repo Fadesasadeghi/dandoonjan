@@ -2,7 +2,7 @@
 import re
 from app.errors import ProviderUnavailableError
 
-CONTRACT_VERSION = 'real-provider-v3'
+CONTRACT_VERSION = 'real-provider-v4'
 REVIEW_PROMPT_VERSION = 'review-instructions-v3'
 LOCAL_SYNTHETIC_FREE_MODEL = 'qwen/qwen3.8-27b:free'
 

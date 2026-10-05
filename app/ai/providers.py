@@ -3,7 +3,7 @@
 - MockProvider: deterministic, offline, no network. Explicit development/test selection only.
 - OpenRouterProvider: real provider (OpenRouter, OpenAI-compatible chat completions)
   for classification, structured extraction and claim candidates. Conservative settings:
-  temperature 0, JSON response format, bounded output, timeout, limited retries.
+  temperature 0, JSON response format, bounded output and a single dispatch.
   Any unavailability (network, timeout, 429/5xx, unparseable envelope) raises
   ProviderUnavailableError; the gateway fails closed in every environment.
 
@@ -18,6 +18,9 @@ import re
 import time
 import queue
 import threading
+import math
+from datetime import datetime, timezone
+from email.utils import parsedate_to_datetime
 from typing import Any, Callable, Protocol
 
 import httpx
@@ -28,13 +31,29 @@ from app.errors import ProviderUnavailableError
 OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
 
 _DEFAULT_TIMEOUT = 30.0
-_MAX_ATTEMPTS = 2
+_MAX_ATTEMPTS = 1  # No automatic replay of a possibly accepted remote request.
 MAX_REQUEST_BYTES = 18 * 1024 * 1024
 MAX_RESPONSE_BYTES = 256000
 MAX_DURATION = 45.0
 # Generation target, not a latency guarantee. Truncation still fails closed.
 REVIEW_MAX_TOKENS = 1200
 _TRANSPORT_SLOTS = threading.BoundedSemaphore(8)
+
+
+def retry_after_seconds(value):
+    """Untrusted header -> bounded delay metadata. Never sleep or retain raw header."""
+    if not isinstance(value, str) or len(value) > 128:
+        return None
+    value = value.strip()
+    if re.fullmatch(r'[0-9]{1,10}', value):
+        return min(int(value), 86400)
+    try:
+        when = parsedate_to_datetime(value)
+        if when.tzinfo is None:
+            return None
+        return min(86400, max(0, math.ceil((when - datetime.now(timezone.utc)).total_seconds())))
+    except (ValueError, TypeError, OverflowError):
+        return None
 
 
 def _review_schema_for_prompt(value):
@@ -208,7 +227,8 @@ class OpenRouterProvider:
 
     def __init__(self, api_key: str, model: str, timeout: float = _DEFAULT_TIMEOUT,
                  client: httpx.Client | None = None, *,
-                 offline_handler: Callable[[httpx.Request], httpx.Response] | None = None):
+                 offline_handler: Callable[[httpx.Request], httpx.Response] | None = None,
+                 dispatch_accounting=None):
         from app.config import get_settings
         from app.ai.preflight import validate_configuration
         # Explicit trusted test-code boundary, never derived from client internals.
@@ -227,14 +247,20 @@ class OpenRouterProvider:
             raise ProviderUnavailableError(category='configuration')
         self.api_key, self.model, self.timeout = api_key, model, timeout
         self._client = client
+        from app.ai.dispatch import DispatchAccounting
+        self.dispatch_accounting = dispatch_accounting if dispatch_accounting is not None else DispatchAccounting()
 
-    def _request(self, payload):
+    def _request(self, payload, kind):
         """Bound caller elapsed time even if a transport stalls between chunks.
 
         Worker has no database/report access. Late results are discarded. Slots
         bound outstanding workers; the deadline also prevents any late retry.
         """
         from app.ai.preflight import failure
+        image_bearing = any(isinstance(message.get('content'), list) and
+            any(part.get('type') == 'image_url' for part in message['content'])
+            for message in payload['messages'])
+        self.dispatch_accounting.record('logical_call', self.name, self.model, kind, image_bearing)
         deadline = time.monotonic() + MAX_DURATION
         if not _TRANSPORT_SLOTS.acquire(blocking=False):
             raise failure('provider')
@@ -242,26 +268,28 @@ class OpenRouterProvider:
 
         def work():
             try:
-                result.put((self._exchange(payload, deadline), None))
+                result.put((self._exchange(payload, deadline, kind, image_bearing), None))
             except ProviderUnavailableError as exc:
-                result.put((None, exc.category))
+                # Only safe scalar metadata crosses the worker boundary; never
+                # retain an exception traceback containing HTTP/payload locals.
+                result.put((None, (exc.category, exc.retry_after)))
             except Exception:
-                result.put((None, 'provider'))
+                result.put((None, ('provider', None)))
             finally:
                 _TRANSPORT_SLOTS.release()
 
         threading.Thread(target=work, daemon=True, name='bounded-provider').start()
         try:
-            value, category = result.get(timeout=max(0, deadline - time.monotonic()))
+            value, error_info = result.get(timeout=max(0, deadline - time.monotonic()))
         except queue.Empty:
             raise failure('timeout') from None
         if time.monotonic() >= deadline:
             raise failure('timeout')
-        if category:
-            raise failure(category)
+        if error_info:
+            raise ProviderUnavailableError(category=error_info[0], retry_after=error_info[1])
         return value
 
-    def _exchange(self, payload, deadline):
+    def _exchange(self, payload, deadline, kind, image_bearing):
         """Shared bounds for text and images; no response repair or redirects."""
         from app.config import get_settings
         from app.ai.preflight import validate_configuration, failure
@@ -275,7 +303,6 @@ class OpenRouterProvider:
         serialized = json.dumps(payload, ensure_ascii=False, separators=(',', ':')).encode('utf-8')
         if len(serialized) > MAX_REQUEST_BYTES:
             raise failure('configuration')
-        category = 'provider'
         # Owned clients are closed on every outcome; supplied clients belong to caller.
         client = self._client or httpx.Client(
             transport=httpx.MockTransport(self._offline_handler) if self._offline_handler is not None else None,
@@ -286,6 +313,7 @@ class OpenRouterProvider:
                 if remaining <= 0:
                     raise failure('timeout')
                 try:
+                    self.dispatch_accounting.record('http_dispatch', self.name, self.model, kind, image_bearing)
                     with client.stream('POST', OPENROUTER_URL, content=serialized,
                             headers={'Authorization': f'Bearer {self.api_key}',
                                      'Content-Type': 'application/json', 'Accept-Encoding': 'identity'},
@@ -295,9 +323,13 @@ class OpenRouterProvider:
                         status = response.status_code
                         if status in (401, 403):
                             raise failure('authentication')
-                        if status == 429 or 500 <= status <= 599:
-                            category = 'rate_limit' if status == 429 else 'provider'
-                            continue
+                        if status == 429:
+                            raise ProviderUnavailableError(category='rate_limit',
+                                retry_after=retry_after_seconds(response.headers.get('Retry-After')))
+                        if 500 <= status <= 599:
+                            raise failure('ambiguous_remote_outcome')
+                        if status in (400, 404, 405, 413, 415, 422):
+                            raise failure('incompatible_request')
                         if status != 200:
                             raise failure('provider')
                         if response.headers.get('content-encoding', 'identity') != 'identity':
@@ -318,10 +350,11 @@ class OpenRouterProvider:
                         self._completion(envelope)
                         return envelope
                 except httpx.TimeoutException:
-                    category = 'timeout'
+                    raise failure('timeout') from None
                 except httpx.TransportError:
-                    category = 'provider'
-            raise failure(category)
+                    # HTTPX errors do not prove the remote application saw no input.
+                    raise failure('ambiguous_remote_outcome') from None
+            raise failure('provider')
         finally:
             if self._client is None:
                 client.close()
@@ -331,8 +364,10 @@ class OpenRouterProvider:
         try:
             if not isinstance(envelope, dict) or envelope.get('error'):
                 raise ValueError
-            if envelope.get('model') != self.model:
+            if 'model' not in envelope:
                 raise ValueError
+            if envelope['model'] != self.model:
+                raise failure('model_mismatch')
             choices = envelope['choices']
             if not isinstance(choices, list) or len(choices) != 1:
                 raise ValueError
@@ -342,11 +377,19 @@ class OpenRouterProvider:
             message = choice['message']
             if not isinstance(message, dict):
                 raise ValueError
-            if choice['finish_reason'] != 'stop' or message.get('refusal') or message.get('tool_calls'):
+            if message.get('refusal') or choice.get('finish_reason') == 'content_filter':
+                raise failure('refusal')
+            if choice.get('finish_reason') == 'length':
+                raise failure('truncation')
+            if choice.get('finish_reason') == 'cancelled':
+                raise failure('cancelled')
+            if choice['finish_reason'] != 'stop' or message.get('tool_calls'):
                 raise ValueError
             content = message['content']
             if not isinstance(content, str):
                 raise ValueError
+        except ProviderUnavailableError:
+            raise
         except (KeyError, IndexError, TypeError, ValueError):
             raise failure('malformed_envelope') from None
         try:
@@ -370,7 +413,7 @@ class OpenRouterProvider:
         return self._request({'model': self.model, 'temperature': 0, 'max_tokens': 2000,
             'response_format': {'type': 'json_object'},
             'messages': [{'role': 'system', 'content': instructions},
-                         {'role': 'user', 'content': content}]})
+                         {'role': 'user', 'content': content}]}, prompt.prompt_id)
 
     def review(self, bundle: dict) -> dict:
         """Backend-only candidates; the explicit handler path is offline."""
@@ -404,7 +447,7 @@ class OpenRouterProvider:
                    'response_format': {'type': 'json_object'},
                    'messages': [{'role': 'system', 'content': instructions},
                                 {'role': 'user', 'content': parts}]}
-        return self._completion(self._request(payload))
+        return self._completion(self._request(payload, 'review'))
 
     def run(self, prompt: Prompt, content: str, params: dict[str, Any]) -> dict[str, Any]:
         if prompt.prompt_id not in ("artifact_classifier", "treatment_plan_extractor",

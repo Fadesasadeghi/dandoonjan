@@ -36,6 +36,16 @@ class ExtractionValidationError(DandoonjanError):
     code = "EXTRACTION_VALIDATION"
     user_message_fa = "خروجی پردازش سند معتبر نبود."
 
+    def __init__(self, message='', *, failure_code=None, retry_after=None):
+        super().__init__(message)
+        self.failure_code = failure_code
+        self.retry_after = retry_after
+
+
+class ProcessingInputChangedError(DandoonjanError):
+    code = 'PROCESSING_INPUT_CHANGED'
+    user_message_fa = 'اطلاعات پرونده تغییر کرده است؛ نتیجهٔ این اجرا جاری نیست.'
+
 
 class OntologyValidationError(DandoonjanError):
     code = "ONTOLOGY_VALIDATION"
@@ -71,10 +81,13 @@ class ProviderUnavailableError(ModelProviderError, ValueError):
     """Content-free real-provider failure; never authorizes a fallback."""
     code = "PROVIDER_UNAVAILABLE"
     CATEGORIES = frozenset({'configuration', 'authentication', 'timeout', 'rate_limit',
-        'provider', 'malformed_envelope', 'schema', 'reference', 'safety'})
+        'provider', 'ambiguous_remote_outcome', 'incompatible_request',
+        'malformed_envelope', 'schema', 'reference', 'safety', 'refusal',
+        'truncation', 'cancelled', 'model_mismatch'})
 
-    def __init__(self, message=None, *, category='provider'):
+    def __init__(self, message=None, *, category='provider', retry_after=None):
         self.category = category if category in self.CATEGORIES else 'provider'
+        self.retry_after = retry_after if type(retry_after) is int and 0 <= retry_after <= 86400 else None
         super().__init__('REAL_PROVIDER_' + self.category.upper())
 
 

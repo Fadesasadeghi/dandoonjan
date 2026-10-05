@@ -140,7 +140,7 @@ def test_total_elapsed_bound_even_for_stalled_transport(path, monkeypatch):
 
 
 @pytest.mark.parametrize('status,category', [(401, 'authentication'), (403, 'authentication'),
-    (429, 'rate_limit'), (500, 'provider'), (302, 'provider')])
+    (429, 'rate_limit'), (500, 'ambiguous_remote_outcome'), (302, 'provider')])
 def test_content_free_transport_categories(status, category):
     p = provider(lambda request: httpx.Response(status, text='PRIVATE_CANARY https://private.invalid'))
     with pytest.raises(ProviderUnavailableError) as exc:

@@ -126,7 +126,12 @@ def run_review(gateway, case, derivation_run_id):
     db.commit()
     start = time.monotonic()
     try:
+        # Bind intake provenance to the revision used to prepare the input, not
+        # whichever revision happens to be latest after provider execution.
+        revision = latest(case)
         data = bundle(case)
+        if gateway.input_guard:
+            gateway.input_guard()  # Preparation can race an edit; stop before dispatch.
         if provider.name == 'mock':
             missing = presentation(case)['missing_information']
             raw = demo_review(db, case, derivation_run_id, data, missing) if is_demo(case) else mock_review(data, missing)
@@ -134,12 +139,13 @@ def run_review(gateway, case, derivation_run_id):
             outbound, mapping = provider_bundle(data)
             candidate = validate_review(provider.review(outbound), mapping)
             raw = resolve_review(candidate, mapping)
+        if gateway.input_guard:
+            gateway.input_guard()
         output = validate_review(raw, [s['source_ref'] for s in data['sources']])
         run.output = output.model_dump()
         run.source_index = data['sources']
         run.status = 'SUCCEEDED'
         run.runtime_ms = int((time.monotonic() - start) * 1000)
-        revision = latest(case)
         by_ref = {s['source_ref']: s for s in data['sources']}
         artifacts = {a.public_id: a.id for a in case.artifacts}
         for rank, value in enumerate(output.diagnostic_hypotheses, 1):
@@ -167,4 +173,8 @@ def run_review(gateway, case, derivation_run_id):
         run.output = None
         run.runtime_ms = int((time.monotonic() - start) * 1000)
         db.commit()
-        raise ExtractionValidationError('Review failed closed') from None
+        from app.errors import ProcessingInputChangedError
+        if isinstance(exc, ProcessingInputChangedError):
+            raise
+        raise ExtractionValidationError('Review failed closed', failure_code=code,
+            retry_after=getattr(exc, 'retry_after', None)) from None

@@ -49,5 +49,5 @@ def test_incomplete_review_rejected_even_when_json_is_valid(regression_settings,
     provider = OpenRouterProvider('OFFLINE_TEST_ONLY', 'synthetic/fixed', offline_handler=handler)
     with pytest.raises(ProviderUnavailableError) as exc:
         provider.review({'sources': [{'source_ref': 's1'}], 'text': [], 'images': []})
-    assert exc.value.category == 'malformed_envelope'
+    assert exc.value.category == {'length': 'truncation', 'cancelled': 'cancelled'}[finish]
     assert len(calls) == 1
