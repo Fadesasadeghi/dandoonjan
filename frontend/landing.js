@@ -13,6 +13,10 @@ if (landingTooth.complete && !landingTooth.naturalWidth) showLandingFallback();
   const rings = [...home.querySelectorAll('.landing-orbits span')].map((el, i) => ({
     el, scale: [.016, .020, .012, .018][i], drift: [[3, -4], [-4, -3], [4, 3], [-3, 5]][i], level: 0, target: 0, lx: 50, ly: 50, tx: 50, ty: 50, specularAngle: 0, specularTarget: 0
   }));
+  const artwork = landingTooth.closest('.landing-artwork');
+  const sheen = {level: 0, target: 0, x: 50, y: 50, tx: 50, ty: 50, angle: 0, targetAngle: 0};
+  let toothBounds = null;
+  const clearSheen = () => ['--tooth-sheen', '--tooth-sheen-x', '--tooth-sheen-y', '--tooth-light-angle'].forEach(name => artwork.style.removeProperty(name));
   let geometry = null, frame = 0, lastTime = 0;
   const clear = r => {
     ['--ring-light', '--ring-light-x', '--ring-light-y', '--ring-specular-x', '--ring-specular-y', 'scale', 'translate'].forEach(name => r.el.style.removeProperty(name));
@@ -21,6 +25,9 @@ if (landingTooth.complete && !landingTooth.naturalWidth) showLandingFallback();
     cancelAnimationFrame(frame);
     frame = lastTime = 0;
     geometry = null;
+    toothBounds = null;
+    sheen.level = sheen.target = 0;
+    clearSheen();
     rings.forEach(r => { r.level = r.target = 0; clear(r); });
   };
   const tick = time => {
@@ -50,11 +57,28 @@ if (landingTooth.complete && !landingTooth.naturalWidth) showLandingFallback();
         r.el.style.scale = (1 + r.level * r.scale).toFixed(5);
       }
     });
+    // Additive lighting only; the tooth's geometry and ring formulas are untouched.
+    sheen.level += (sheen.target - sheen.level) * blend;
+    sheen.x += (sheen.tx - sheen.x) * blend;
+    sheen.y += (sheen.ty - sheen.y) * blend;
+    const lightArc = Math.atan2(Math.sin(sheen.targetAngle - sheen.angle), Math.cos(sheen.targetAngle - sheen.angle));
+    sheen.angle += lightArc * blend;
+    if (Math.abs(sheen.target - sheen.level) < .001) sheen.level = sheen.target;
+    else moving = true;
+    if (sheen.level === 0) clearSheen();
+    else {
+      if (Math.abs(lightArc) > .002) moving = true;
+      if (Math.hypot(sheen.tx - sheen.x, sheen.ty - sheen.y) > .1) moving = true;
+      artwork.style.setProperty('--tooth-light-angle', `${(sheen.angle * 180 / Math.PI - 90).toFixed(3)}deg`);
+      artwork.style.setProperty('--tooth-sheen', (sheen.level * .45).toFixed(4));
+      artwork.style.setProperty('--tooth-sheen-x', `${sheen.x.toFixed(2)}%`);
+      artwork.style.setProperty('--tooth-sheen-y', `${sheen.y.toFixed(2)}%`);
+    }
     frame = moving ? requestAnimationFrame(tick) : 0;
     if (!moving) lastTime = 0;
   };
   const schedule = () => { if (!frame) frame = requestAnimationFrame(tick); };
-  const neutral = () => { rings.forEach(r => { r.target = 0; }); schedule(); };
+  const neutral = () => { sheen.target = 0; rings.forEach(r => { r.target = 0; }); schedule(); };
   window.addEventListener('pointermove', event => {
     if (!eligible.matches || event.pointerType !== 'mouse' || !home.classList.contains('active')) return;
     // Read once after invalidation, never in the animation loop. Recover resting
@@ -76,12 +100,22 @@ if (landingTooth.complete && !landingTooth.naturalWidth) showLandingFallback();
       r.tx = Math.max(0, Math.min(100, 50 + dx / (g.rx || 1) * 50));
       r.ty = Math.max(0, Math.min(100, 50 + dy / (g.ry || 1) * 50));
     });
+    if (!toothBounds) toothBounds = landingTooth.getBoundingClientRect();
+    const b = toothBounds;
+    const dx = event.clientX - (b.x + b.width / 2), dy = event.clientY - (b.y + b.height / 2);
+    const radial = b.width && b.height ? Math.hypot(dx / (b.width / 2), dy / (b.height / 2)) : Infinity;
+    const gap = Math.max(0, (radial - 1) * Math.min(b.width, b.height) / 2);
+    const proximity = Math.max(0, 1 - gap / 90);
+    sheen.target = proximity * proximity * (3 - 2 * proximity);
+    if (Math.hypot(dx, dy) > 1) sheen.targetAngle = Math.atan2(dy / (b.height || 1), dx / (b.width || 1));
+    sheen.tx = Math.max(0, Math.min(100, 50 + dx / (b.width || 1) * 100));
+    sheen.ty = Math.max(0, Math.min(100, 50 + dy / (b.height || 1) * 100));
     schedule();
   }, { passive: true });
   document.documentElement.addEventListener('pointerleave', neutral);
   window.addEventListener('blur', neutral);
   eligible.addEventListener('change', reset);
   window.addEventListener('resize', reset, { passive: true });
-  window.addEventListener('scroll', () => { geometry = null; neutral(); }, { passive: true });
+  window.addEventListener('scroll', () => { geometry = null; toothBounds = null; neutral(); }, { passive: true });
   document.addEventListener('visibilitychange', reset);
 })();
