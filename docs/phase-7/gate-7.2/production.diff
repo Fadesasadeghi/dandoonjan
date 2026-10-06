@@ -1,0 +1,40 @@
+diff --git a/alembic/env.py b/alembic/env.py
+index e2899e2..6ef981a 100644
+--- a/alembic/env.py
++++ b/alembic/env.py
+@@ -28,7 +28,13 @@ def run_migrations_online():
+     with connectable.begin() as connection:
+         inspector = inspect(connection)
+         tables = set(inspector.get_table_names())
+-        target_revision = context.get_revision_argument()
++        try:
++            target_revision = context.get_revision_argument()
++        except KeyError as exc:
++            # Introspection commands have no destination; never adopt for them.
++            if exc.args != ("destination_rev",):
++                raise
++            target_revision = None
+         current_head = context.script.get_current_head()
+         if ("alembic_version" not in tables and tables and
+                 target_revision == current_head):
+diff --git a/app/core/cases/dossier.py b/app/core/cases/dossier.py
+index f3e7c4b..b9af95b 100644
+--- a/app/core/cases/dossier.py
++++ b/app/core/cases/dossier.py
+@@ -2,6 +2,7 @@
+ from pydantic import BaseModel, ConfigDict, Field
+ from sqlalchemy.orm import object_session
+ from app.domain.models import DossierRevision, public_id
++from app.pipeline.runs import lock_case
+ 
+ FIELDS = ('symptoms', 'duration', 'medical_history', 'medications', 'allergies',
+           'treatment_plan', 'previous_reports', 'previous_treatments')
+@@ -42,6 +43,8 @@ def presentation(case):
+ 
+ 
+ def update(db, case, patch):
++    lock_case(db, case.id)
++    db.refresh(case)
+     values = fields(case)
+     updated = {**values, **{k: v.strip() for k, v in patch.model_dump(exclude_none=True).items()}}
+     if updated != values or latest(case) is None:

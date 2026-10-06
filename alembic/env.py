@@ -28,7 +28,13 @@ def run_migrations_online():
     with connectable.begin() as connection:
         inspector = inspect(connection)
         tables = set(inspector.get_table_names())
-        target_revision = context.get_revision_argument()
+        try:
+            target_revision = context.get_revision_argument()
+        except KeyError as exc:
+            # Introspection commands have no destination; never adopt for them.
+            if exc.args != ("destination_rev",):
+                raise
+            target_revision = None
         current_head = context.script.get_current_head()
         if ("alembic_version" not in tables and tables and
                 target_revision == current_head):

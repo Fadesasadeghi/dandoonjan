@@ -18,14 +18,16 @@ def pg_url():
         pytest.skip("NOT VERIFIED: RC_POSTGRES_SOCKET private temporary cluster not supplied")
     path = Path(socket)
     assert path.is_dir() and path.stat().st_mode & 0o077 == 0
+    port = int(os.environ.get("RC_POSTGRES_PORT", "5432"))
+    assert 1 <= port <= 65535
     import psycopg
     from psycopg import sql
     name = "rc_synthetic_" + uuid.uuid4().hex
-    with psycopg.connect(dbname="postgres", host=socket, autocommit=True) as admin:
+    with psycopg.connect(dbname="postgres", host=socket, port=port, autocommit=True) as admin:
         admin.execute(sql.SQL("CREATE DATABASE {}").format(sql.Identifier(name)))
         try:
             # Percent encoding also exercises Alembic's ConfigParser escaping.
-            yield f"postgresql+psycopg:///{name}?host={quote(socket, safe='')}"
+            yield f"postgresql+psycopg:///{name}?host={quote(socket, safe='')}&port={port}"
         finally:
             admin.execute(sql.SQL("DROP DATABASE {} WITH (FORCE)").format(sql.Identifier(name)))
 
@@ -126,11 +128,14 @@ def test_postgres_injected_openrouter_dossier_lifecycle(pg_url, tmp_path, monkey
     import app.main as main
     from verification.offline_openrouter import OfflineRouter, verify_success
     from app.domain.models import ReviewRun, AssessmentSnapshot
+    from tests.auth.helpers import register, login
     migrate(pg_url)
     settings = get_settings()
     monkeypatch.setattr(settings, 'database_url', pg_url)
     monkeypatch.setattr(settings, 'artifact_storage_dir', str(tmp_path / 'store'))
     monkeypatch.setattr(settings, 'environment', 'test')
+    monkeypatch.setattr(settings, 'auth_foundation_enabled', True)
+    monkeypatch.setattr(settings, 'auth_allowed_origins', ['http://testserver'])
     monkeypatch.setattr(settings, 'require_clinician_reviewed_knowledge_pack', False)
     router = OfflineRouter(monkeypatch)
     engine = database.make_engine(pg_url)
@@ -139,14 +144,28 @@ def test_postgres_injected_openrouter_dossier_lifecycle(pg_url, tmp_path, monkey
     monkeypatch.setattr(main, 'engine', engine)
     try:
         with TestClient(main.app) as client:
+            assert client.post('/api/cases', data={'question': 'Synthetic'}).status_code == 401
+            assert register(client, 'postgres-lifecycle@example.com').status_code == 201
+            response = login(client, 'postgres-lifecycle@example.com')
+            assert response.status_code == 200
+            # Login rotates CSRF; use the authenticated token for all mutations.
+            client.headers.update({'Origin': 'http://testserver',
+                'X-CSRF-Token': response.json()['csrf_token']})
+            assert client.post('/api/cases', data={'question': 'Synthetic'},
+                headers={'X-CSRF-Token': 'invalid-synthetic-token'}).status_code == 403
             cid, report, frozen = verify_success(client, sessions, router)
         engine.dispose()
         with TestClient(main.app) as client:
+            assert client.get(f'/api/cases/{cid}/report').status_code == 401
+            response = login(client, 'postgres-lifecycle@example.com')
+            assert response.status_code == 200
+            client.headers.update({'Origin': 'http://testserver',
+                'X-CSRF-Token': response.json()['csrf_token']})
             count = len(router.requests)
             assert client.get(f'/api/cases/{cid}/report').json() == report
             assert client.post(f'/api/cases/{cid}/process').json()['reused']
             assert len(router.requests) == count
-            client.put(f'/api/cases/{cid}/dossier', json={'duration': '4 days'})
+            assert client.put(f'/api/cases/{cid}/dossier', json={'duration': '4 days'}).status_code == 200
             router.failure = 'authentication'
             assert client.post(f'/api/cases/{cid}/process').json()['report'] is None
             assert client.get(f'/api/cases/{cid}/report').status_code == 404

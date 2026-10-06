@@ -2,6 +2,7 @@
 from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy.orm import object_session
 from app.domain.models import DossierRevision, public_id
+from app.pipeline.runs import lock_case
 
 FIELDS = ('symptoms', 'duration', 'medical_history', 'medications', 'allergies',
           'treatment_plan', 'previous_reports', 'previous_treatments')
@@ -42,6 +43,8 @@ def presentation(case):
 
 
 def update(db, case, patch):
+    lock_case(db, case.id)
+    db.refresh(case)
     values = fields(case)
     updated = {**values, **{k: v.strip() for k, v in patch.model_dump(exclude_none=True).items()}}
     if updated != values or latest(case) is None:
