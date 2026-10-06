@@ -178,10 +178,82 @@ def test_restore_network_failure_is_not_logout(page):
 def test_auth_unavailable_fails_closed_demo_available(page, code, status):
     page.route('**/api/auth/me', lambda r: r.fulfill(status=status,json={'detail':{'code':code}}))
     page.reload()
-    expect(page.locator('#account-global-status')).to_contain_text('ورود به حساب در دسترس نیست')
+    page.wait_for_function("Account.status === 'unavailable'")
+    expect(page.locator('#account-global-status')).to_have_text('')
+    expect(page.locator('#account-revalidate')).not_to_be_visible()
     assert page.evaluate('Account.user') is None
     page.locator('#start-sample').click()
     expect(page.locator('#view-report')).to_be_visible(timeout=30000)
+
+
+@pytest.mark.parametrize('code,status', [('AUTH_NOT_ENABLED',404),('AUTH_CONFIGURATION_INVALID',503)])
+def test_auth_unavailable_explicit_account_flow(page, code, status):
+    page.route('**/api/auth/*', lambda r: r.fulfill(status=status,json={'detail':{'code':code}}))
+    page.reload()
+    page.wait_for_function("Account.status === 'unavailable'")
+    open_auth(page)
+    expect(page.locator('#account-status')).to_contain_text('ورود به حساب در دسترس نیست')
+    page.locator('#account-email').fill(email())
+    page.locator('#account-password').fill(PASSWORD)
+    page.locator('#account-submit').click()
+    page.wait_for_function("!document.getElementById('account-submit').disabled")
+    expect(page.locator('#account-status')).not_to_have_text('')
+    assert page.evaluate('Account.status') == 'unavailable'
+    assert page.evaluate('Account.user') is None
+    if status >= 500:
+        expect(page.locator('#account-global-status')).to_contain_text('نتیجهٔ درخواست مشخص نیست')
+        assert not page.locator('#account-revalidate').evaluate("el => el.classList.contains('hidden')")
+    page.keyboard.press('Escape')
+    page.unroute('**/api/auth/*')
+    signed_in(page)
+    expect(page.locator('#account-global-status')).to_contain_text('با موفقیت وارد حساب شدید')
+
+
+@pytest.mark.parametrize('code,status', [('AUTH_NOT_ENABLED',404),('AUTH_CONFIGURATION_INVALID',503)])
+@pytest.mark.parametrize('continuity', [False, True])
+def test_known_account_unavailable_retry_and_recovery(page, code, status, continuity):
+    address = signed_in(page)
+    if continuity:
+        create(page)
+    page.route('**/api/auth/me', lambda r: r.fulfill(status=status,json={'detail':{'code':code}}))
+    if continuity:
+        saved = page.evaluate("sessionStorage.getItem('dandoonjan_active_case')")
+        page.reload()
+    else:
+        page.evaluate("window.dispatchEvent(new PageTransitionEvent('pageshow', {persisted:true}))")
+    expect(page.locator('#account-global-status')).to_contain_text('ورود به حساب در دسترس نیست')
+    expect(page.locator('#account-revalidate')).to_be_visible()
+    assert page.evaluate('Account.status') == 'unavailable'
+    if continuity:
+        assert page.evaluate("sessionStorage.getItem('dandoonjan_active_case')") == saved
+    page.locator('#account-revalidate').click()
+    page.wait_for_function("Account.status === 'unavailable'")
+    expect(page.locator('#account-global-status')).to_contain_text('ورود به حساب در دسترس نیست')
+    page.unroute('**/api/auth/me')
+    page.locator('#account-revalidate').click()
+    page.wait_for_function("Account.status === 'authenticated'")
+    expect(page.locator('#account-identity')).to_have_text(address)
+    expect(page.locator('#account-global-status')).to_have_text('')
+    expect(page.locator('#account-revalidate')).not_to_be_visible()
+
+
+def test_fresh_auth_required_is_anonymous(page):
+    page.wait_for_function("Account.status === 'anonymous'")
+    assert page.evaluate('Account.user') is None
+    expect(page.locator('#account-global-status')).to_have_text('')
+    expect(page.locator('#account-revalidate')).not_to_be_visible()
+
+
+def test_fresh_network_failure_remains_visible_and_recovers(page):
+    page.route('**/api/auth/me', lambda r: r.abort(), times=1)
+    page.reload()
+    expect(page.locator('#account-global-status')).to_contain_text('وضعیت نشست مشخص نیست')
+    expect(page.locator('#account-revalidate')).to_be_visible()
+    assert page.evaluate('Account.status') == 'unavailable'
+    page.locator('#account-revalidate').click()
+    page.wait_for_function("Account.status === 'anonymous'")
+    expect(page.locator('#account-global-status')).to_have_text('')
+    expect(page.locator('#account-revalidate')).not_to_be_visible()
 
 
 def test_csrf_failure_refresh_requires_explicit_resubmit(page):

@@ -10,6 +10,7 @@ window.Account = (() => {
   }
   class StaleRequest extends Error { constructor() { super('STALE_REQUEST'); this.stale = true; } }
   let user = null, status = 'restoring', preauthCSRF = null, accountCSRF = null;
+  let passiveAuthUnavailable = false;
   let epoch = 0, refreshPromise = null, hooks = null, mode = 'login', pending = false;
   let opener = null, intent = null, ready = Promise.resolve(), preauthIssued = 0;
   const controllers = new Set();
@@ -18,13 +19,17 @@ window.Account = (() => {
   let channel = null;
   try { channel = new BroadcastChannel('dandoonjan-account-session'); } catch (_) { /* Revalidate on page return. */ }
 
-  function announce(message = '') { el('account-global-status').textContent = message; }
+  function announce(message = '') {
+    if (message) passiveAuthUnavailable = false;
+    el('account-global-status').textContent = message;
+  }
   function render() {
     el('account-panel').classList.toggle('hidden', !user && status !== 'logout-uncertain');
     el('account-identity').textContent = user?.email || 'خروج در انتظار تأیید';
     el('landing-auth').textContent = user ? 'حساب شما' : 'ورود / ثبت‌نام';
     el('account-logout').disabled = status === 'logging-out';
-    el('account-revalidate').classList.toggle('hidden', !['unavailable','logout-uncertain'].includes(status));
+    el('account-revalidate').classList.toggle('hidden', !['unavailable','logout-uncertain'].includes(status) ||
+      (status === 'unavailable' && passiveAuthUnavailable));
     const authenticated = !!user && status === 'authenticated';
     el('account-signed-in').classList.toggle('hidden', !authenticated);
     el('account-dialog-identity').textContent = authenticated ? user.email : '';
@@ -89,6 +94,8 @@ window.Account = (() => {
   async function restore({external = false} = {}) {
     if (pending || status === 'logging-out' || status === 'logout-uncertain') return;
     const known = !!user || knownContinuity();
+    const meaningfulFailure = known || external || (status === 'unavailable' && !passiveAuthUnavailable);
+    passiveAuthUnavailable = false;
     invalidate(); const generation = epoch;
     status = 'restoring';
     hooks.clear({preserveResume:true, accountOnly:true}); render();
@@ -110,7 +117,11 @@ window.Account = (() => {
         announce(known || external ? 'نشست شما پایان یافته است؛ دوباره وارد شوید.' : '');
       } else {
         status = 'unavailable'; accountCSRF = null;
-        announce(['AUTH_NOT_ENABLED','AUTH_CONFIGURATION_INVALID'].includes(error.code)
+        const authUnavailable = ['AUTH_NOT_ENABLED','AUTH_CONFIGURATION_INVALID'].includes(error.code);
+        // Presentation only: a fresh visitor's passive capability failure is
+        // still unavailable, and explicit account interaction exposes it below.
+        passiveAuthUnavailable = authUnavailable && !meaningfulFailure;
+        announce(passiveAuthUnavailable ? '' : authUnavailable
           ? 'ورود به حساب در دسترس نیست؛ پروندهٔ نمونه همچنان مستقل است.'
           : 'وضعیت نشست مشخص نیست؛ برای بررسی دوباره تلاش کنید.');
       }
@@ -150,6 +161,7 @@ window.Account = (() => {
       el('account-status').textContent = 'شما وارد حساب شده‌اید؛ خروج از کنترل حساب در دسترس است.';
       return;
     }
+    if (passiveAuthUnavailable) el('account-status').textContent = 'ورود به حساب در دسترس نیست؛ دوباره نشست را بررسی کنید.';
     try { await refreshCSRF(); }
     catch (error) { if (!error.stale && dialog.open) el('account-status').textContent = 'ورود به حساب در دسترس نیست؛ دوباره نشست را بررسی کنید.'; }
   }
