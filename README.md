@@ -28,6 +28,11 @@ No AI credentials needed: `DJ_AI_PROVIDER=mock` is a deterministic offline provi
 
 ## Presentation deployment
 
+Current provider-neutral packaging and operational contract:
+[Gate 7.3](docs/phase-7/gate-7.3/README.md). Container startup now requires a passing
+production preflight; the historical offline Docker example is not the current
+container startup recipe. Local offline Python startup remains available above.
+
 The repository contains Netlify proxy and Render configuration, but this is not
 verification of a working hosted deployment. Do not publish the frontend without
 a functional backend. The existing Render production/Mock configuration is refused

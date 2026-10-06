@@ -2,6 +2,9 @@
 .env.*
 !.env.example
 *.db
+*.db-wal
+*.db-shm
+data/
 artifact_store/
 pilot-data/
 *_artifact_store/
@@ -13,3 +16,21 @@ docs/
 .git/
 .netlify/
 node_modules/
+.tmp-*/
+*.zip
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.aws/
+.codex/
+.agents/
+.ssh/
+*.pem
+*.key
+tools/
+verification/
+frontend-demo/
+# Owner-only untracked assets are not part of the reviewed application artifact.
+frontend/fonts/
+frontend/landing-tooth*.webp

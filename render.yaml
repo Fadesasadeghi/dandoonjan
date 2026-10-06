@@ -1,3 +1,7 @@
+# NOT A PRODUCTION DEPLOYMENT RECIPE. Historical incomplete template only.
+# SQLite/Mock, missing auth origins, migrations and persistent storage conflict
+# with the Gate 7.3 runtime contract; preflight will reject these settings.
+# See docs/phase-7/gate-7.3/README.md. No hosting provider is selected by this file.
 services:
   - type: web
     name: dandoonjan-api

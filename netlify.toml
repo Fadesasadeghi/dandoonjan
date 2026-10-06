@@ -1,3 +1,7 @@
+# NOT A PRODUCTION DEPLOYMENT RECIPE. Historical incomplete template only.
+# Asset routes and authenticated HTTPS proxy behavior have not been verified.
+# Gate 7.3 preserves the application's same-origin FastAPI frontend/API layout.
+# See docs/phase-7/gate-7.3/README.md. No hosting provider is selected by this file.
 [build]
   publish = "frontend"
   # Netlify does not expand environment variables directly in redirect targets.
