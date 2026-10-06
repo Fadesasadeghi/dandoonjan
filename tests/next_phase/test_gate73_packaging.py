@@ -3,7 +3,6 @@ import importlib.metadata as metadata
 import json
 import os
 from pathlib import Path
-import shlex
 import subprocess
 import sys
 
@@ -292,10 +291,11 @@ def test_docker_packaging_source():
     assert 'requirements-runtime.txt' in content
     assert 'DJ_ARTIFACT_STORAGE_DIR=/app/data/artifact_store' in content
     command = docker_command()
-    assert command[:2] == ['sh', '-c']
-    assert 'python -m app.deployment_preflight && exec uvicorn' in command[2]
-    assert 'alembic' not in command[2] and 'upgrade' not in command[2]
-    assert '--forwarded-allow-ips' not in command[2]  # Preserve existing proxy trust.
+    assert command == ['python', '-m', 'app.deployment_serve']
+    wrapper = (ROOT / 'app/deployment_serve.py').read_text()
+    assert 'run_preflight()' in wrapper and 'os.execv' in wrapper
+    assert 'alembic' not in wrapper and 'upgrade' not in wrapper
+    assert '--forwarded-allow-ips' in wrapper
 
 
 def test_docker_normalizes_source_permissions():
@@ -342,18 +342,17 @@ def test_cli_database_error_redaction(preflight, settings, tmp_path):
 
 
 @pytest.mark.parametrize('exit_code,served', [(0, True), (1, False)])
-def test_startup_preflight_gates_serve(exit_code, served, tmp_path):
+def test_startup_preflight_gates_serve(exit_code, served, tmp_path, monkeypatch):
+    from app import deployment_serve
     command = docker_command()
-    assert 'deployment_preflight' in command[2]
-    marker = tmp_path / 'served'
-    (tmp_path / 'python').write_text('#!/bin/sh\nexit ' + str(exit_code) + '\n')
-    (tmp_path / 'uvicorn').write_text('#!/bin/sh\n: > ' + shlex.quote(str(marker)) + '\n')
-    for name in ('python', 'uvicorn'):
-        (tmp_path / name).chmod(0o700)
-    result = subprocess.run(command, env={**os.environ, 'PATH': str(tmp_path) + os.pathsep + os.environ['PATH']},
-                            capture_output=True, timeout=5)
-    assert marker.exists() is served
-    assert result.returncode == exit_code
+    assert command == ['python', '-m', 'app.deployment_serve']
+    monkeypatch.setenv('DJ_TRUSTED_PROXY_PEERS', '127.0.0.1')
+    monkeypatch.setenv('PORT', '8000')
+    monkeypatch.setattr(deployment_serve, 'run_preflight', lambda: exit_code)
+    calls = []
+    monkeypatch.setattr(deployment_serve.os, 'execv', lambda *args: calls.append(args))
+    assert deployment_serve.main() == exit_code
+    assert bool(calls) is served
 
 
 def test_build_context_excludes_owner_and_sensitive_material():

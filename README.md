@@ -33,6 +33,13 @@ Current provider-neutral packaging and operational contract:
 production preflight; the historical offline Docker example is not the current
 container startup recipe. Local offline Python startup remains available above.
 
+Current local/offline operational hardening and explicit finite proxy trust:
+[Gate 7.4](docs/phase-7/gate-7.4/README.md). Production container serving now uses
+`python -m app.deployment_serve`, requiring `DJ_TRUSTED_PROXY_PEERS` as an explicit
+list of proxy IP peers, then passing preflight. Migration remains a separate
+serialized release step. Local process rehearsal does not verify hosted HTTPS,
+container lifecycle, durable mounts or paired PostgreSQL restoration.
+
 The repository contains Netlify proxy and Render configuration, but this is not
 verification of a working hosted deployment. Do not publish the frontend without
 a functional backend. The existing Render production/Mock configuration is refused
