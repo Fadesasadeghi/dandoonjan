@@ -20,6 +20,9 @@ if (landingTooth.complete && !landingTooth.naturalWidth) showLandingFallback();
     ...home.querySelectorAll('.landing-process li'), home.querySelector('.landing-story')]
     .map((el, i) => ({el, kind: i === 0 ? 'card' : i === 5 ? 'edge' : 'step',
       level: 0, target: 0, x: 50, y: 50, tx: 50, ty: 50, angle: 0, ta: 0, textLevel: 0, textTarget: 0}));
+  const faqLights = [...home.querySelectorAll('.landing-faq details')].map(el =>
+    ({el, level: 0, target: 0, x: 50, y: 50, tx: 50, ty: 50}));
+  const clearFaq = s => ['--faq-light', '--faq-x', '--faq-y'].forEach(name => s.el.style.removeProperty(name));
   let surfaceBounds = null;
   const clearSurface = s => ['--local-light', '--local-x', '--local-y', '--local-angle', '--local-edge-x', '--local-edge-y', '--step-text-light']
     .forEach(name => s.el.style.removeProperty(name));
@@ -35,6 +38,7 @@ if (landingTooth.complete && !landingTooth.naturalWidth) showLandingFallback();
     geometry = null;
     toothBounds = null;
     surfaceBounds = null;
+    faqLights.forEach(s => { s.level = s.target = 0; clearFaq(s); });
     surfaces.forEach(s => { s.level = s.target = s.textLevel = s.textTarget = 0; clearSurface(s); });
     sheen.level = sheen.target = 0;
     clearSheen();
@@ -113,11 +117,25 @@ if (landingTooth.complete && !landingTooth.naturalWidth) showLandingFallback();
         }
       }
     });
+    faqLights.forEach(s => {
+      s.level += (s.target - s.level) * blend;
+      s.x += (s.tx - s.x) * blend;
+      s.y += (s.ty - s.y) * blend;
+      if (Math.abs(s.target - s.level) < .001) s.level = s.target;
+      else moving = true;
+      if (s.level === 0) clearFaq(s);
+      else {
+        if (Math.hypot(s.tx - s.x, s.ty - s.y) > .1) moving = true;
+        s.el.style.setProperty('--faq-light', s.level.toFixed(4));
+        s.el.style.setProperty('--faq-x', `${s.x.toFixed(2)}%`);
+        s.el.style.setProperty('--faq-y', `${s.y.toFixed(2)}%`);
+      }
+    });
     frame = moving ? requestAnimationFrame(tick) : 0;
     if (!moving) lastTime = 0;
   };
   const schedule = () => { if (!frame) frame = requestAnimationFrame(tick); };
-  const neutral = () => { surfaces.forEach(s => { s.target = s.textTarget = 0; }); sheen.target = 0; rings.forEach(r => { r.target = 0; }); schedule(); };
+  const neutral = () => { faqLights.forEach(s => { s.target = 0; }); surfaces.forEach(s => { s.target = s.textTarget = 0; }); sheen.target = 0; rings.forEach(r => { r.target = 0; }); schedule(); };
   window.addEventListener('pointermove', event => {
     if (!eligible.matches || event.pointerType !== 'mouse' || !home.classList.contains('active')) return;
     // Read once after invalidation, never in the animation loop. Recover resting
@@ -181,6 +199,24 @@ if (landingTooth.complete && !landingTooth.naturalWidth) showLandingFallback();
       }
     });
     surfaces.forEach(s => { if (s.kind === 'step') s.textTarget = s === nearestStep ? s.target : 0; });
+    // Measure FAQ rows on pointer input: accordion/reveal geometry may be changing.
+    // Select just the nearest row within 28px; never light both neighboring rows.
+    let nearestFaq = null, faqDistance = Infinity;
+    faqLights.forEach(s => {
+      const b = s.el.getBoundingClientRect();
+      const gap = Math.hypot(Math.max(b.left - event.clientX, 0, event.clientX - b.right),
+        Math.max(b.top - event.clientY, 0, event.clientY - b.bottom));
+      s.target = 0;
+      if (gap < 28 && gap < faqDistance) {
+        nearestFaq = s; faqDistance = gap;
+        s.tx = Math.max(0, Math.min(100, (event.clientX - b.left) / (b.width || 1) * 100));
+        s.ty = Math.max(0, Math.min(100, (event.clientY - b.top) / (b.height || 1) * 100));
+      }
+    });
+    if (nearestFaq) {
+      const proximity = 1 - faqDistance / 28;
+      nearestFaq.target = proximity * proximity * (3 - 2 * proximity);
+    }
     schedule();
   }, { passive: true });
   document.documentElement.addEventListener('pointerleave', neutral);
@@ -229,5 +265,77 @@ if (landingTooth.complete && !landingTooth.naturalWidth) showLandingFallback();
       seen.add(el);
       el.classList.remove('middle-entry-pending', 'middle-entry-revealed');
     });
+  });
+})();
+
+// Native summary activation (including keyboard) with reversible answer animation.
+(() => {
+  const motion = matchMedia('(prefers-reduced-motion: no-preference)');
+  document.querySelectorAll('.landing-faq details').forEach(row => {
+    const summary = row.querySelector('summary'), answer = row.querySelector('p');
+    if (!answer || typeof answer.animate !== 'function') return; // Native fallback.
+    let animation = null, desired = row.open;
+    const finish = () => {
+      if (animation) { animation.onfinish = null; animation.cancel(); animation = null; }
+      row.open = desired;
+      row.removeAttribute('data-faq-open');
+      answer.style.removeProperty('overflow');
+    };
+    summary.addEventListener('click', event => {
+      event.preventDefault();
+      desired = !desired;
+      const fromHeight = row.open ? answer.getBoundingClientRect().height : 0;
+      const currentStyle = row.open ? getComputedStyle(answer) : null;
+      const fromOpacity = currentStyle ? currentStyle.opacity : '0';
+      const spacing = ['paddingTop', 'paddingBottom', 'marginTop', 'marginBottom'];
+      const fromSpacing = Object.fromEntries(spacing.map(name => [name, currentStyle ? currentStyle[name] : '0px']));
+      if (animation) { animation.onfinish = null; animation.cancel(); }
+      row.open = true; // Keep native content rendered throughout closing.
+      row.setAttribute('data-faq-open', String(desired));
+      summary.setAttribute('aria-expanded', String(desired));
+      if (!motion.matches) { finish(); return; }
+      const toHeight = desired ? answer.getBoundingClientRect().height : 0;
+      const restingStyle = getComputedStyle(answer);
+      const toSpacing = Object.fromEntries(spacing.map(name => [name, desired ? restingStyle[name] : '0px']));
+      answer.style.overflow = 'hidden';
+      animation = answer.animate([
+        {...fromSpacing, height: `${fromHeight}px`, opacity: fromOpacity, boxSizing: 'border-box', minHeight: '0'},
+        {...toSpacing, height: `${toHeight}px`, opacity: desired ? '1' : '0', boxSizing: 'border-box', minHeight: '0'}
+      ], {duration: 320, easing: 'cubic-bezier(.22, 1, .36, 1)', fill: 'both'});
+      animation.onfinish = finish;
+    });
+    row.addEventListener('toggle', () => {
+      if (!animation) { desired = row.open; summary.setAttribute('aria-expanded', String(row.open)); }
+    });
+    motion.addEventListener('change', () => { if (!motion.matches) finish(); });
+  });
+})();
+
+// FAQ entry uses the approved middle reveal language, once per page lifecycle.
+(() => {
+  const faq = document.getElementById('landing-faq');
+  const motion = matchMedia('(prefers-reduced-motion: no-preference)');
+  if (!faq || !motion.matches || typeof IntersectionObserver === 'undefined') return;
+  const targets = [faq.querySelector('.landing-faq-intro'), ...faq.querySelectorAll('details')];
+  let seen = false;
+  const clear = () => targets.forEach(el => el.classList.remove('faq-entry-pending', 'faq-entry-revealed'));
+  const observer = new IntersectionObserver(entries => {
+    if (seen || !entries.some(entry => entry.isIntersecting)) return;
+    seen = true;
+    targets.forEach(el => {
+      el.classList.remove('faq-entry-pending');
+      el.classList.add('faq-entry-revealed');
+    });
+    observer.disconnect();
+  }, {threshold: .08});
+  targets.forEach(el => {
+    el.classList.add('faq-entry-pending');
+    el.addEventListener('animationend', event => {
+      if (event.target === el && event.animationName === 'faq-entry') el.classList.remove('faq-entry-revealed');
+    });
+  });
+  observer.observe(faq);
+  motion.addEventListener('change', () => {
+    if (!motion.matches) { seen = true; observer.disconnect(); clear(); }
   });
 })();
