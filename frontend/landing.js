@@ -15,6 +15,14 @@ if (landingTooth.complete && !landingTooth.naturalWidth) showLandingFallback();
   }));
   const artwork = landingTooth.closest('.landing-artwork');
   const sheen = {level: 0, target: 0, x: 50, y: 50, tx: 50, ty: 50, angle: 0, targetAngle: 0};
+  // Middle surfaces share the existing scheduler; no geometry is animated.
+  const surfaces = [home.querySelector('.landing-product-context'),
+    ...home.querySelectorAll('.landing-process li'), home.querySelector('.landing-story')]
+    .map((el, i) => ({el, kind: i === 0 ? 'card' : i === 5 ? 'edge' : 'step',
+      level: 0, target: 0, x: 50, y: 50, tx: 50, ty: 50, angle: 0, ta: 0, textLevel: 0, textTarget: 0}));
+  let surfaceBounds = null;
+  const clearSurface = s => ['--local-light', '--local-x', '--local-y', '--local-angle', '--local-edge-x', '--local-edge-y', '--step-text-light']
+    .forEach(name => s.el.style.removeProperty(name));
   let toothBounds = null;
   const clearSheen = () => ['--tooth-sheen', '--tooth-sheen-x', '--tooth-sheen-y', '--tooth-light-angle'].forEach(name => artwork.style.removeProperty(name));
   let geometry = null, frame = 0, lastTime = 0;
@@ -26,6 +34,8 @@ if (landingTooth.complete && !landingTooth.naturalWidth) showLandingFallback();
     frame = lastTime = 0;
     geometry = null;
     toothBounds = null;
+    surfaceBounds = null;
+    surfaces.forEach(s => { s.level = s.target = s.textLevel = s.textTarget = 0; clearSurface(s); });
     sheen.level = sheen.target = 0;
     clearSheen();
     rings.forEach(r => { r.level = r.target = 0; clear(r); });
@@ -74,11 +84,40 @@ if (landingTooth.complete && !landingTooth.naturalWidth) showLandingFallback();
       artwork.style.setProperty('--tooth-sheen-x', `${sheen.x.toFixed(2)}%`);
       artwork.style.setProperty('--tooth-sheen-y', `${sheen.y.toFixed(2)}%`);
     }
+    surfaces.forEach(s => {
+      if (s.kind === 'step') {
+        s.textLevel += (s.textTarget - s.textLevel) * blend;
+        if (Math.abs(s.textTarget - s.textLevel) < .001) s.textLevel = s.textTarget;
+        else moving = true;
+        if (s.textLevel === 0) s.el.style.removeProperty('--step-text-light');
+        else s.el.style.setProperty('--step-text-light', s.textLevel.toFixed(4));
+      }
+      s.level += (s.target - s.level) * blend;
+      s.x += (s.tx - s.x) * blend;
+      s.y += (s.ty - s.y) * blend;
+      const arc = Math.atan2(Math.sin(s.ta - s.angle), Math.cos(s.ta - s.angle));
+      s.angle += arc * blend;
+      if (Math.abs(s.target - s.level) < .001) s.level = s.target;
+      else moving = true;
+      if (s.level === 0) clearSurface(s);
+      else {
+        if (Math.hypot(s.tx - s.x, s.ty - s.y) > .1 || Math.abs(arc) > .002) moving = true;
+        s.el.style.setProperty('--local-light', s.level.toFixed(4));
+        s.el.style.setProperty('--local-x', `${s.x.toFixed(2)}%`);
+        s.el.style.setProperty('--local-y', `${s.y.toFixed(2)}%`);
+        s.el.style.setProperty('--local-angle', `${(s.angle * 180 / Math.PI + 90).toFixed(3)}deg`);
+        if (s.kind === 'edge') {
+          // Same pointer-facing projection as the approved Hero C+ reflection.
+          s.el.style.setProperty('--local-edge-x', `${(50 + Math.cos(s.angle) * 50).toFixed(2)}%`);
+          s.el.style.setProperty('--local-edge-y', `${(50 + Math.sin(s.angle) * 50).toFixed(2)}%`);
+        }
+      }
+    });
     frame = moving ? requestAnimationFrame(tick) : 0;
     if (!moving) lastTime = 0;
   };
   const schedule = () => { if (!frame) frame = requestAnimationFrame(tick); };
-  const neutral = () => { sheen.target = 0; rings.forEach(r => { r.target = 0; }); schedule(); };
+  const neutral = () => { surfaces.forEach(s => { s.target = s.textTarget = 0; }); sheen.target = 0; rings.forEach(r => { r.target = 0; }); schedule(); };
   window.addEventListener('pointermove', event => {
     if (!eligible.matches || event.pointerType !== 'mouse' || !home.classList.contains('active')) return;
     // Read once after invalidation, never in the animation loop. Recover resting
@@ -110,12 +149,85 @@ if (landingTooth.complete && !landingTooth.naturalWidth) showLandingFallback();
     if (Math.hypot(dx, dy) > 1) sheen.targetAngle = Math.atan2(dy / (b.height || 1), dx / (b.width || 1));
     sheen.tx = Math.max(0, Math.min(100, 50 + dx / (b.width || 1) * 100));
     sheen.ty = Math.max(0, Math.min(100, 50 + dy / (b.height || 1) * 100));
+    if (!surfaceBounds) surfaceBounds = surfaces.map(s => {
+      const b = s.el.getBoundingClientRect();
+      // Existing outline: right:-85px (RTL inline-start), top:-25px,
+      // 470x370 border box, 1px border, rotated -18deg about its center.
+      return s.kind === 'edge' ? {cx: b.right + 85 - 235, cy: b.top - 25 + 185, rx: 235, ry: 185} : b;
+    });
+    let nearestStep = null, nearestDistance = Infinity;
+    surfaces.forEach((s, i) => {
+      const b = surfaceBounds[i];
+      let gap;
+      if (s.kind === 'edge') {
+        const dx = event.clientX - b.cx, dy = event.clientY - b.cy;
+        const a = 18 * Math.PI / 180;
+        const x = dx * Math.cos(a) - dy * Math.sin(a), y = dx * Math.sin(a) + dy * Math.cos(a);
+        const radial = Math.hypot(x / b.rx, y / b.ry);
+        gap = radial ? Math.abs(Math.hypot(x, y) * (1 - 1 / radial)) : Infinity;
+        s.ta = Math.atan2(y / b.ry, x / b.rx);
+      } else {
+        gap = Math.hypot(Math.max(b.left - event.clientX, 0, event.clientX - b.right),
+          Math.max(b.top - event.clientY, 0, event.clientY - b.bottom));
+        s.tx = Math.max(0, Math.min(100, (event.clientX - b.left) / b.width * 100));
+        s.ty = Math.max(0, Math.min(100, (event.clientY - b.top) / b.height * 100));
+      }
+      const proximity = Math.max(0, 1 - gap / (s.kind === 'step' ? 38 : s.kind === 'edge' ? 130 : 70));
+      s.target = proximity * proximity * (3 - 2 * proximity);
+      if (s.kind === 'step' && s.target > 0) {
+        const distance = Math.hypot(event.clientX - (b.left + b.width / 2),
+          event.clientY - (b.top + b.height / 2));
+        if (distance < nearestDistance) { nearestStep = s; nearestDistance = distance; }
+      }
+    });
+    surfaces.forEach(s => { if (s.kind === 'step') s.textTarget = s === nearestStep ? s.target : 0; });
     schedule();
   }, { passive: true });
   document.documentElement.addEventListener('pointerleave', neutral);
   window.addEventListener('blur', neutral);
   eligible.addEventListener('change', reset);
   window.addEventListener('resize', reset, { passive: true });
-  window.addEventListener('scroll', () => { geometry = null; toothBounds = null; neutral(); }, { passive: true });
+  window.addEventListener('scroll', () => { geometry = null; toothBounds = null; surfaceBounds = null; neutral(); }, { passive: true });
   document.addEventListener('visibilitychange', reset);
+  home.addEventListener('animationend', event => {
+    if (event.animationName === 'middle-entry') surfaceBounds = null;
+  });
+})();
+
+// One-time middle entry. The process and statement share their existing wrapper,
+// so they reveal together without doubled movement or alignment changes.
+(() => {
+  const home = document.getElementById('view-home');
+  const targets = [home.querySelector('.landing-product-context'), home.querySelector('.landing-story')];
+  const motion = matchMedia('(min-width: 1051px) and (prefers-reduced-motion: no-preference)');
+  if (!motion.matches || typeof IntersectionObserver === 'undefined') return;
+  const seen = new Set();
+  const observer = new IntersectionObserver(entries => {
+    entries.forEach(entry => {
+      if (!entry.isIntersecting || seen.has(entry.target)) return;
+      seen.add(entry.target);
+      entry.target.classList.remove('middle-entry-pending');
+      entry.target.classList.add('middle-entry-revealed');
+      observer.unobserve(entry.target);
+    });
+    if (seen.size === targets.length) observer.disconnect();
+  }, { threshold: .08 });
+  targets.forEach(el => {
+    el.classList.add('middle-entry-pending');
+    el.addEventListener('animationend', event => {
+      if (event.target === el && event.animationName === 'middle-entry') {
+        // Restore the original resting opacity/translate and stacking behavior.
+        el.classList.remove('middle-entry-revealed');
+      }
+    });
+    observer.observe(el);
+  });
+  motion.addEventListener('change', () => {
+    if (motion.matches) return;
+    observer.disconnect();
+    targets.forEach(el => {
+      seen.add(el);
+      el.classList.remove('middle-entry-pending', 'middle-entry-revealed');
+    });
+  });
 })();
