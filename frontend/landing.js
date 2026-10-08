@@ -17,8 +17,9 @@ if (landingTooth.complete && !landingTooth.naturalWidth) showLandingFallback();
   const sheen = {level: 0, target: 0, x: 50, y: 50, tx: 50, ty: 50, angle: 0, targetAngle: 0};
   // Middle surfaces share the existing scheduler; no geometry is animated.
   const surfaces = [home.querySelector('.landing-product-context'),
-    ...home.querySelectorAll('.landing-process li'), home.querySelector('.landing-story')]
-    .map((el, i) => ({el, kind: i === 0 ? 'card' : i === 5 ? 'edge' : 'step',
+    ...home.querySelectorAll('.landing-process li'), home.querySelector('.landing-story'),
+    home.querySelector('.landing-story-copy')]
+    .map(el => ({el, kind: el.matches('.landing-process li') ? 'step' : el.matches('.landing-story') ? 'edge' : 'card',
       level: 0, target: 0, x: 50, y: 50, tx: 50, ty: 50, angle: 0, ta: 0, textLevel: 0, textTarget: 0}));
   const faqLights = [...home.querySelectorAll('.landing-faq details')].map(el =>
     ({el, level: 0, target: 0, x: 50, y: 50, tx: 50, ty: 50}));

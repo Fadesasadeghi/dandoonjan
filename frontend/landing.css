@@ -928,8 +928,15 @@ body:has(#view-workspace.active:not(.analyzing)) #view-workspace textarea:focus-
 /* Local process refinement: internal alignment and nearest-step illumination only. */
 @media (min-width: 1051px) {
   .landing-process { inset-inline-start: 18px; }
+  .landing-process li p { color: #47798B; }
 }
 @media (min-width: 1051px) and (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+  .landing-story-copy::after {
+    content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
+    background: radial-gradient(ellipse 300px 210px at var(--local-x, 50%) var(--local-y, 50%),
+      rgba(250,255,255,.28), rgba(235,253,255,.11) 42%, transparent 100%);
+    opacity: var(--local-light, 0);
+  }
   .landing-process li > span {
     background: color-mix(in srgb, #D5F1F4, white calc(var(--step-text-light, 0) * 70%));
     box-shadow: inset 0 1px 0 #ffffffb0, inset 0 -5px 10px #ffffff20,
@@ -942,6 +949,6 @@ body:has(#view-workspace.active:not(.analyzing)) #view-workspace textarea:focus-
     color: color-mix(in srgb, #1D4C60, #103F50 calc(var(--step-text-light, 0) * 40%));
   }
   .landing-process li p {
-    color: color-mix(in srgb, #245267, #103F50 calc(var(--step-text-light, 0) * 17%));
+    color: color-mix(in srgb, #47798B, #103F50 calc(var(--step-text-light, 0) * 17%));
   }
 }
