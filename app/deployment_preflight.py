@@ -50,8 +50,9 @@ def load_configuration() -> BaseModel:
     return settings
 
 
-def check_configuration(settings: Settings | BaseModel, *, key_present: bool) -> str:
-    if settings.environment != 'production':
+def check_configuration(settings: Settings | BaseModel, *, key_present: bool,
+                        other_provider_key_present: bool = False) -> str:
+    if settings.environment not in {'production', 'staging'}:
         return 'PRODUCTION_REQUIRED'
     try:
         url = make_url(settings.database_url)
@@ -63,15 +64,24 @@ def check_configuration(settings: Settings | BaseModel, *, key_present: bool) ->
             any(not origin.startswith('https://') for origin in settings.auth_allowed_origins) or
             not set(settings.cors_origins).issubset(settings.auth_allowed_origins)):
         return 'AUTH_CONFIGURATION_INVALID'
-    # Mirror existing model routing restrictions without constructing an adapter,
-    # reading its key value, or changing the provider's own validation/behavior.
-    model = settings.ai_model_name
-    if (settings.ai_provider != 'openrouter' or not settings.live_provider_enabled or
-            settings.local_synthetic_acceptance_enabled or not key_present or
-            len(model) > 128 or not re.fullmatch(r'[A-Za-z0-9_.-]+/[A-Za-z0-9_.:-]+', model) or
-            'mock' in model.lower() or ':free' in model.lower() or
-            model.lower().split('/')[1].split(':')[0] in {'auto', 'free', 'router', 'dynamic'}):
-        return 'PROVIDER_CONFIGURATION_INVALID'
+    if settings.environment == 'staging':
+        if key_present or other_provider_key_present:
+            return 'STAGING_PROVIDER_CREDENTIALS_FORBIDDEN'
+        if (settings.ai_provider != 'mock' or settings.ai_model_name != 'mock-evidence-v1'
+                or settings.live_provider_enabled or settings.local_synthetic_acceptance_enabled):
+            return 'PROVIDER_CONFIGURATION_INVALID'
+        if settings.cors_origins:
+            return 'AUTH_CONFIGURATION_INVALID'
+    else:
+        # Mirror existing model routing restrictions without constructing an adapter,
+        # reading its key value, or changing the provider's own validation/behavior.
+        model = settings.ai_model_name
+        if (settings.ai_provider != 'openrouter' or not settings.live_provider_enabled or
+                settings.local_synthetic_acceptance_enabled or not key_present or
+                len(model) > 128 or not re.fullmatch(r'[A-Za-z0-9_.-]+/[A-Za-z0-9_.:-]+', model) or
+                'mock' in model.lower() or ':free' in model.lower() or
+                model.lower().split('/')[1].split(':')[0] in {'auto', 'free', 'router', 'dynamic'}):
+            return 'PROVIDER_CONFIGURATION_INVALID'
     if not settings.require_clinician_reviewed_knowledge_pack:
         return 'REVIEWED_PACK_ENFORCEMENT_REQUIRED'
     if not Path(settings.artifact_storage_dir).is_absolute():
@@ -154,7 +164,8 @@ def main() -> int:
         # Inspect provider key presence only, separately from configuration.
         key_present = bool(os.environ.get('DJ_OPENROUTER_API_KEY'))
         settings = load_configuration()
-        configuration = check_configuration(settings, key_present=key_present)
+        configuration = check_configuration(settings, key_present=key_present,
+            other_provider_key_present=bool(os.environ.get('DJ_OPENAI_API_KEY')))
         checks = {'configuration': configuration}
         if configuration == 'OK':
             checks.update(database=check_database(settings),

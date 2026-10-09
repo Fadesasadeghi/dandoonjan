@@ -1,24 +1,44 @@
-# NOT A PRODUCTION DEPLOYMENT RECIPE. Historical incomplete template only.
-# SQLite/Mock, missing auth origins, migrations and persistent storage conflict
-# with the Gate 7.3 runtime contract; preflight will reject these settings.
-# See docs/phase-7/gate-7.3/README.md. No hosting provider is selected by this file.
+# NOT A PRODUCTION DEPLOYMENT RECIPE. Gate 7.5B infrastructure-only staging.
+# TEMPLATE ONLY: do not apply until deployment is separately authorized.
+# Existing Dockerfile pins Python 3.11; startup checks, never migrates.
+# No database/disk is provisioned. Free artifacts are ephemeral.
+# Separately inspect and migrate the approved synthetic PostgreSQL 16 database.
 services:
   - type: web
-    name: dandoonjan-api
+    name: dandoonjan-api-staging
     runtime: docker
+    plan: free
+    autoDeploy: false
     dockerfilePath: ./Dockerfile
     dockerContext: .
     healthCheckPath: /health
     envVars:
+      - key: DJ_ENVIRONMENT
+        value: staging
+      - key: DJ_DATABASE_URL
+        sync: false
+      - key: DJ_AUTH_ALLOWED_ORIGINS
+        sync: false
+      - key: DJ_TRUSTED_PROXY_PEERS
+        sync: false
+      - key: DJ_AUTH_FOUNDATION_ENABLED
+        value: "true"
+      - key: DJ_CORS_ORIGINS
+        value: "[]"
       - key: DJ_AI_PROVIDER
         value: mock
       - key: DJ_AI_MODEL_NAME
         value: mock-evidence-v1
-      - key: DJ_ENVIRONMENT
-        value: production
-      - key: DJ_DATABASE_URL
-        value: sqlite:///./data/dandoonjan.db
-      - key: DJ_ARTIFACT_STORAGE_DIR
-        value: ./data/artifact_store
-      - key: DJ_REQUIRE_CLINICIAN_REVIEWED_KNOWLEDGE_PACK
+      - key: DJ_LIVE_PROVIDER_ENABLED
         value: "false"
+      - key: DJ_LOCAL_SYNTHETIC_ACCEPTANCE_ENABLED
+        value: "false"
+      - key: DJ_ARTIFACT_STORAGE_DIR
+        value: /app/data/artifact_store
+      - key: DJ_REQUIRE_CLINICIAN_REVIEWED_KNOWLEDGE_PACK
+        value: "true"
+      - key: DJ_MAX_UPLOAD_BYTES
+        value: "26214400"
+# PORT is supplied by Render. Provider key variables must remain absent.
+# Auth origins: exact HTTPS Netlify origin JSON array; no wildcard.
+# Proxy peers: verified finite literal ingress IPs; no invented value or '*'.
