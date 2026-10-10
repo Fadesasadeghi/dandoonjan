@@ -11,7 +11,7 @@ window.Account = (() => {
   class StaleRequest extends Error { constructor() { super('STALE_REQUEST'); this.stale = true; } }
   let user = null, status = 'restoring', preauthCSRF = null, accountCSRF = null;
   let passiveAuthUnavailable = false;
-  let epoch = 0, refreshPromise = null, hooks = null, mode = 'login', pending = false;
+  let epoch = 0, refreshPromise = null, hooks = null, uiInitialized = false, mode = 'login', pending = false;
   let opener = null, intent = null, ready = Promise.resolve(), preauthIssued = 0;
   const controllers = new Set();
   const limits = new Map();
@@ -131,6 +131,7 @@ window.Account = (() => {
   function setMode(next, message = '') {
     mode = next;
     el('account-password').value = '';
+    setPasswordVisibility(false);
     el('account-password').autocomplete = mode === 'login' ? 'current-password' : 'new-password';
     el('account-title').textContent = mode === 'login' ? 'ورود به حساب' : 'ساخت حساب';
     el('account-submit').textContent = mode === 'login' ? 'ورود' : 'ثبت‌نام';
@@ -142,10 +143,16 @@ window.Account = (() => {
   function formBusy(value) {
     pending = value;
     el('account-form').setAttribute('aria-busy', String(value));
-    for (const id of ['account-submit','account-email','account-password','account-login-mode','account-register-mode']) el(id).disabled = value;
+    for (const id of ['account-submit','account-email','account-password','account-password-visibility','account-login-mode','account-register-mode']) el(id).disabled = value;
+  }
+  function setPasswordVisibility(visible) {
+    el('account-password').type = visible ? 'text' : 'password';
+    el('account-password-visibility').setAttribute('aria-pressed', String(visible));
+    el('account-password-visibility').setAttribute('aria-label', visible ? 'پنهان کردن گذرواژه' : 'نمایش گذرواژه');
   }
   function close() {
     el('account-password').value = ''; intent = null;
+    setPasswordVisibility(false);
     dialog.close();
     if (opener?.isConnected) opener.focus();
   }
@@ -258,39 +265,48 @@ window.Account = (() => {
     render();
   }
   function initialize(callbacks) {
-    hooks = callbacks;
-    el('landing-auth').onclick = () => { void open(); };
-    el('account-close').onclick = close;
-    dialog.addEventListener('cancel', event => { event.preventDefault(); close(); });
-    dialog.addEventListener('keydown', event => {
-      if (event.key !== 'Tab') return;
-      const items = [...dialog.querySelectorAll('button,input')].filter(item => !item.disabled && item.getClientRects().length);
-      const first = items[0], last = items.at(-1);
-      if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
-      else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
-    });
-    el('account-login-mode').onclick = () => setMode('login');
-    el('account-register-mode').onclick = () => setMode('register');
-    el('account-form').onsubmit = submit;
-    el('account-logout').onclick = () => { void logout(); };
-    el('account-dialog-logout').onclick = () => { void logout(); };
-    el('account-revalidate').onclick = () => { status = 'unavailable'; ready = restore(); };
-    if (channel) channel.onmessage = event => {
-      if (event.data?.type !== 'session-changed') return;
-      // No account identity/credentials/clinical data are sent through this signal.
-      announce('نشست در پنجرهٔ دیگری تغییر کرده است؛ دوباره بررسی می‌شود.');
-      if (event.data.phase === 'started') {
-        invalidate(); status = 'unavailable';
-        hooks.clear({accountOnly:true}); el('account-password').value = ''; render();
-        return;
-      }
-      ready = restore({external:true});
-    };
-    window.addEventListener('pageshow', event => { if (event.persisted) ready = restore(); });
-    window.addEventListener('pagehide', () => {
-      el('account-password').value = '';
-      hooks.clear({preserveResume:true, accountOnly:true});
-    });
+    const candidate = callbacks === undefined ? hooks : callbacks;
+    const requiredHooks = ['generation','clear','confirmTransition','startAccount','continuity'];
+    if (!candidate || requiredHooks.some(name => typeof candidate[name] !== 'function')) {
+      throw new TypeError('Account.initialize requires application hooks');
+    }
+    hooks = candidate;
+    if (!uiInitialized) {
+      el('landing-auth').onclick = () => { void open(); };
+      el('account-close').onclick = close;
+      dialog.addEventListener('cancel', event => { event.preventDefault(); close(); });
+      dialog.addEventListener('keydown', event => {
+        if (event.key !== 'Tab') return;
+        const items = [...dialog.querySelectorAll('button,input')].filter(item => !item.disabled && item.getClientRects().length);
+        const first = items[0], last = items.at(-1);
+        if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+        else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+      });
+      el('account-login-mode').onclick = () => setMode('login');
+      el('account-register-mode').onclick = () => setMode('register');
+      el('account-password-visibility').onclick = () => setPasswordVisibility(el('account-password').type === 'password');
+      el('account-form').onsubmit = submit;
+      el('account-logout').onclick = () => { void logout(); };
+      el('account-dialog-logout').onclick = () => { void logout(); };
+      el('account-revalidate').onclick = () => { status = 'unavailable'; ready = restore(); };
+      if (channel) channel.onmessage = event => {
+        if (event.data?.type !== 'session-changed') return;
+        // No account identity/credentials/clinical data are sent through this signal.
+        announce('نشست در پنجرهٔ دیگری تغییر کرده است؛ دوباره بررسی می‌شود.');
+        if (event.data.phase === 'started') {
+          invalidate(); status = 'unavailable';
+          hooks.clear({accountOnly:true}); el('account-password').value = ''; render();
+          return;
+        }
+        ready = restore({external:true});
+      };
+      window.addEventListener('pageshow', event => { if (event.persisted) ready = restore(); });
+      window.addEventListener('pagehide', () => {
+        el('account-password').value = '';
+        hooks.clear({preserveResume:true, accountOnly:true});
+      });
+      uiInitialized = true;
+    }
     ready = restore();
     return ready;
   }

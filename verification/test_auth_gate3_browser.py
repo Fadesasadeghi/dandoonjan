@@ -531,8 +531,17 @@ def test_closed_pending_login_cannot_replace_new_demo_workspace(page):
 def test_account_surfaces_have_scoped_aqua_colors(page):
     open_auth(page)
     assert page.locator('#account-dialog').evaluate('el => getComputedStyle(el).backgroundColor')=='rgb(247, 250, 251)'
-    assert page.locator('#account-submit').evaluate('el => getComputedStyle(el).backgroundColor')=='rgb(16, 63, 80)'
-    assert page.locator('#account-submit').evaluate('el => getComputedStyle(el).color')=='rgb(247, 250, 251)'
+    submit = page.locator('#account-submit').evaluate('el => {const s=getComputedStyle(el); return {background:s.backgroundImage,color:s.color}}')
+    assert submit['background']=='linear-gradient(110deg, rgb(115, 184, 207), rgb(158, 215, 224))'
+    assert submit['color']=='rgb(16, 63, 80)'
+    def luminance(rgb):
+        channels = [int(channel) / 255 for channel in rgb]
+        return sum((channel / 12.92 if channel <= .04045 else ((channel + .055) / 1.055) ** 2.4) * weight
+                   for channel, weight in zip(channels, [.2126, .7152, .0722]))
+    foreground = (16, 63, 80)
+    for stop in [(115, 184, 207), (158, 215, 224)]:
+        low, high = sorted((luminance(foreground), luminance(stop)))
+        assert (high + .05) / (low + .05) >= 4.5
     page.keyboard.press('Escape')
     signed_in(page)
     assert page.locator('#account-panel').evaluate('el => getComputedStyle(el).backgroundColor')=='rgb(247, 250, 251)'

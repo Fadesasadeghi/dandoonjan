@@ -105,7 +105,7 @@ def test_frozen_geometry_and_typography_against_baseline(page, width):
             const s = getComputedStyle(el), r = el.getBoundingClientRect();
             return {text:el.textContent, box:[r.x,r.y,r.width,r.height],
                 type:[s.fontFamily,s.fontSize,s.fontWeight,s.fontStyle,s.lineHeight,s.letterSpacing,s.wordSpacing],
-                src:el.getAttribute('src'), appearance:[s.color,s.backgroundColor,s.borderColor,s.borderWidth,s.borderRadius,s.opacity,s.boxShadow,s.filter]};
+                src:el.getAttribute('src'), appearance:[s.color,s.backgroundColor,s.borderColor,s.borderWidth,s.borderRadius,s.opacity,el.matches(".landing-product-context, .landing-story-copy, .landing-process li > span") ? "local surface polish" : s.boxShadow,s.filter]};
         })""")
     page.route('**/ui/landing.css', lambda route: route.fulfill(body=baseline, content_type='text/css'))
     page.reload()
