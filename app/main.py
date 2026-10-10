@@ -17,6 +17,7 @@ from app.config import get_settings
 from app.db import Base, engine
 from app.errors import DandoonjanError
 from app.safe_logging import configure_logging
+from app.security.render_ingress import RenderStagingHTTPSBoundaryMiddleware
 
 configure_logging()
 
@@ -27,6 +28,7 @@ FRONTEND_DIR = Path(__file__).resolve().parent.parent / "frontend"
 app.add_middleware(CORSMiddleware, allow_origins=get_settings().cors_origins,
                    allow_methods=["GET", "POST", "PATCH", "PUT"],
                    allow_headers=["Content-Type"], allow_credentials=False)
+app.add_middleware(RenderStagingHTTPSBoundaryMiddleware)
 
 
 @app.exception_handler(DandoonjanError)

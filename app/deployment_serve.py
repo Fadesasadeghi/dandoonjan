@@ -6,6 +6,8 @@ import json
 import os
 import sys
 
+from app.security.render_ingress import render_boundary_enabled
+
 
 def trusted_peers(value: str | None) -> str:
     """Accept only a nonempty finite list of literal IP peers, without DNS."""
@@ -36,7 +38,16 @@ def run_preflight() -> int:
 
 def main() -> int:
     try:
-        peers = trusted_peers(os.environ.get('DJ_TRUSTED_PROXY_PEERS'))
+        boundary = render_boundary_enabled(os.environ.get('DJ_ENVIRONMENT', 'development'),
+            os.environ.get('DJ_RENDER_STAGING_HTTPS_BOUNDARY', 'disabled'),
+            peers_present='DJ_TRUSTED_PROXY_PEERS' in os.environ)
+    except ValueError:
+        print(json.dumps({'status': 'FAIL', 'code': 'RENDER_STAGING_HTTPS_BOUNDARY_INVALID'}, sort_keys=True))
+        return 1
+    try:
+        proxy_arguments = ['--no-proxy-headers'] if boundary else [
+            '--proxy-headers', '--forwarded-allow-ips',
+            trusted_peers(os.environ.get('DJ_TRUSTED_PROXY_PEERS'))]
     except ValueError:
         print(json.dumps({'status': 'FAIL', 'code': 'PROXY_TRUST_INVALID'}, sort_keys=True))
         return 1
@@ -52,8 +63,7 @@ def main() -> int:
     # Replace the wrapper process: no shell or implicit Uvicorn trust settings.
     os.execv(sys.executable, [sys.executable, '-m', 'uvicorn', 'app.main:app',
                              '--host', '0.0.0.0', '--port', str(int(raw_port)),
-                             '--log-config', 'app/logging.json', '--proxy-headers',
-                             '--forwarded-allow-ips', peers])
+                             '--log-config', 'app/logging.json', *proxy_arguments])
     return 0
 
 

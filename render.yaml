@@ -18,9 +18,9 @@ services:
       - key: DJ_DATABASE_URL
         sync: false
       - key: DJ_AUTH_ALLOWED_ORIGINS
-        sync: false
-      - key: DJ_TRUSTED_PROXY_PEERS
-        sync: false
+        value: '["https://dazzling-bombolone-90006d.netlify.app"]'
+      - key: DJ_RENDER_STAGING_HTTPS_BOUNDARY
+        value: render-managed-tls
       - key: DJ_AUTH_FOUNDATION_ENABLED
         value: "true"
       - key: DJ_CORS_ORIGINS
@@ -41,4 +41,6 @@ services:
         value: "26214400"
 # PORT is supplied by Render. Provider key variables must remain absent.
 # Auth origins: exact HTTPS Netlify origin JSON array; no wildcard.
-# Proxy peers: verified finite literal ingress IPs; no invented value or '*'.
+# Render staging: DJ_TRUSTED_PROXY_PEERS must be absent; proxy headers disabled.
+# The boundary asserts managed HTTPS ingress, not caller forwarding headers.
+# Normal/production mode retains finite literal proxy peers; no wildcard trust.

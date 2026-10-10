@@ -20,6 +20,7 @@ from sqlalchemy import create_engine, text
 from sqlalchemy.engine import make_url
 
 from app.config import Settings
+from app.security.render_ingress import render_boundary_enabled
 
 ROOT = Path(__file__).resolve().parents[1]
 REQUIRED_ASSETS = (
@@ -52,6 +53,10 @@ def load_configuration() -> BaseModel:
 
 def check_configuration(settings: Settings | BaseModel, *, key_present: bool,
                         other_provider_key_present: bool = False) -> str:
+    try:
+        render_boundary_enabled(settings.environment, settings.render_staging_https_boundary)
+    except ValueError:
+        return 'RENDER_STAGING_HTTPS_BOUNDARY_INVALID'
     if settings.environment not in {'production', 'staging'}:
         return 'PRODUCTION_REQUIRED'
     try:
@@ -164,6 +169,8 @@ def main() -> int:
         # Inspect provider key presence only, separately from configuration.
         key_present = bool(os.environ.get('DJ_OPENROUTER_API_KEY'))
         settings = load_configuration()
+        render_boundary_enabled(settings.environment, settings.render_staging_https_boundary,
+                                peers_present='DJ_TRUSTED_PROXY_PEERS' in os.environ)
         configuration = check_configuration(settings, key_present=key_present,
             other_provider_key_present=bool(os.environ.get('DJ_OPENAI_API_KEY')))
         checks = {'configuration': configuration}

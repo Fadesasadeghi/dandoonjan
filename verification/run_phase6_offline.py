@@ -29,6 +29,7 @@ def main():
             'DJ_AI_PROVIDER': 'mock', 'DJ_AI_MODEL_NAME': 'mock-evidence-v1',
             'DJ_LIVE_PROVIDER_ENABLED': 'false', 'DJ_OPENAI_API_KEY': '',
             'DJ_OPENROUTER_API_KEY': '', 'DJ_ENVIRONMENT': 'test',
+            'DJ_RENDER_STAGING_HTTPS_BOUNDARY': 'disabled',
             'DJ_LOCAL_SYNTHETIC_ACCEPTANCE_ENABLED': 'false',
             'DJ_AUTH_FOUNDATION_ENABLED': 'false', 'DJ_AUTH_ALLOWED_ORIGINS': '[]',
             'PYTHONDONTWRITEBYTECODE': '1',

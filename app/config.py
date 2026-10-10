@@ -2,10 +2,13 @@
 from __future__ import annotations
 
 from functools import lru_cache
+from typing import Literal
 from urllib.parse import urlsplit
 
-from pydantic import field_validator
+from pydantic import field_validator, model_validator
 from pydantic_settings import BaseSettings
+
+from app.security.render_ingress import render_boundary_enabled
 
 
 class Settings(BaseSettings):
@@ -25,11 +28,18 @@ class Settings(BaseSettings):
     # Production deployments must set this to True to reject non-clinician-reviewed packs
     require_clinician_reviewed_knowledge_pack: bool = False
     environment: str = "development"
+    # Operator assertion of Render-managed TLS, never hostname/header detection.
+    render_staging_https_boundary: Literal['disabled', 'render-managed-tls'] = 'disabled'
     # Same-origin frontend needs no CORS grant. Explicit JSON array in DJ_CORS_ORIGINS.
     cors_origins: list[str] = []
     # Backend verification only until Gate 2 protects every normal case route.
     auth_foundation_enabled: bool = False
     auth_allowed_origins: list[str] = []
+
+    @model_validator(mode='after')
+    def render_boundary_staging_only(self):
+        render_boundary_enabled(self.environment, self.render_staging_https_boundary)
+        return self
 
     @field_validator("cors_origins", "auth_allowed_origins")
     @classmethod

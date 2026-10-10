@@ -1,5 +1,15 @@
 # Gate 7.5B — staging integration preparation
 
+**Gate 7.5E follow-up:** the local Render staging ingress contract now uses
+`DJ_RENDER_STAGING_HTTPS_BOUNDARY=render-managed-tls` and requires
+`DJ_TRUSTED_PROXY_PEERS` to be absent. The launcher disables proxy headers; an
+HTTP-only middleware represents Render's operator-approved external HTTPS hop.
+Production/default mode still requires finite literal peers. See
+[Gate 7.5E](../gate-7.5E/README.md) for the current contract and verification.
+The original Gate 7.5B text below is historical: its unresolved peer-discovery
+requirement is superseded only for this explicit Render staging mode. No hosted
+deployment, provider-boundary verification or clinical acceptance is implied.
+
 Owner-authorized implementation starts at
 `6c878958c2d3d96a433aa2a6fc0d9c655dcbda93` on
 `agent/sadeghi-next-phase`. PR #5 remains open/unmerged. This gate authorizes
