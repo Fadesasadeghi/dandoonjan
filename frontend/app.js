@@ -1,6 +1,6 @@
 "use strict";
 const $ = id => document.getElementById(id);
-const state = {caseId: null, files: [], busy: false, sample: false, report: null, createUncertain: false};
+const state = {caseId: null, files: [], busy: false, sample: false, report: null, createUncertain: false, knowledgePackUnavailable: false};
 let demoCSRF = null;
 let demoRefresh = null;
 const boundary = {generation:0, controllers:new Set()};
@@ -32,7 +32,7 @@ function clearBoundary({preserveResume = false, accountOnly = false, demo = fals
   const record = (() => { try { return JSON.parse(sessionStorage.getItem('dandoonjan_active_case')); } catch (_) { return null; } })();
   invalidateWorkflow();
   navigation.session = navigationId(); navigation.draft = false; navigation.operations.clear(); navigation.lastWork = 'intake';
-  Object.assign(state, {caseId:null, files:[], busy:false, sample:demo, report:null, createUncertain:false});
+  Object.assign(state, {caseId:null, files:[], busy:false, sample:demo, report:null, createUncertain:false, knowledgePackUnavailable:false});
   clearReport(); clearError(); $('workspace-error').textContent = '';
   $('case-form').reset(); $('files').value = ''; $('document-role').value = 'unspecified';
   $('dropzone').classList.remove('dragging');
@@ -238,6 +238,7 @@ function setBusy(busy, message = "") {
   ['return-draft', 'return-evidence'].forEach(id => { if ($(id)) $(id).disabled = false; });
   if (navigation.current?.view === 'report' && !state.report) $('print-report').disabled = true;
   if (state.createUncertain) $("submit-case").disabled = true;
+  if (state.knowledgePackUnavailable) $("process-case").disabled = true;
   $("activity").textContent = message;
   $("view-workspace").setAttribute("aria-busy", String(busy));
 }
@@ -370,6 +371,7 @@ function applyAttention(result) {
   renderFiles();
 }
 function outcome(result) {
+  const knowledgeUnavailable = result.code === 'KNOWLEDGE_PACK_UNAVAILABLE';
   const blocked = result.safety_state === "BLOCKED";
   const urgent = result.safety_state === "URGENT_EVALUATION";
   const manual = result.status === "MANUAL_REVIEW_REQUIRED" || result.safety_state === "MANUAL_REVIEW";
@@ -377,15 +379,16 @@ function outcome(result) {
   if (blocked) { title = "تولید گزارش به دلایل ایمنی متوقف شد"; text = "این درخواست در محدودهٔ ایمن این سرویس نیست. برای تصمیم درمانی با دندان‌پزشک گفت‌وگو کنید؛ گزارش قبلی به‌عنوان نتیجهٔ فعلی نمایش داده نمی‌شود."; }
   else if (urgent) { title = "نیازمند ارزیابی فوری"; text = "برای ارزیابی فوری به دندان‌پزشک یا خدمات اورژانس مراجعه کنید. منتظر تکمیل مدارک نمانید."; }
   else if (manual) { title = "نیازمند بررسی دستی"; text = "نتیجهٔ معمول قابل ارائه نیست. این نسخه امکان ارجاع به بازبین را ندارد؛ با دندان‌پزشک گفت‌وگو کنید."; }
+  else if (knowledgeUnavailable) { title = "تولید خروجی بالینی در دسترس نیست"; text = "در حال حاضر دانشنامهٔ بالینی تأییدشده در دسترس نیست؛ بدون آن امکان تولید خروجی بالینی وجود ندارد. پرونده و مدارک ثبت‌شدهٔ شما حفظ شده‌اند. تکرار پردازش یا افزودن مدرک، این محدودیت را برطرف نمی‌کند. می‌توانید مدارک همین پرونده را ببینید یا به صفحهٔ اصلی برگردید."; }
   else if (result.status === "FAILED") { title = "پردازش کامل نشد"; text = "پرونده و فایل‌های ثبت‌شده حفظ شده‌اند. می‌توانید پردازش همین پرونده را دوباره اجرا کنید."; }
   else if (result.status !== "NEEDS_MORE_EVIDENCE") { title = "نتیجهٔ فعلی آماده نیست"; text = "وضعیت همین پرونده را دوباره بررسی کنید."; }
   $("outcome-title").textContent = title; $("outcome-text").textContent = text;
   $("outcome").classList.remove("hidden");
-  $("retry-process").classList.toggle("hidden", blocked || manual || urgent);
+  $("retry-process").classList.toggle("hidden", blocked || manual || urgent || knowledgeUnavailable);
   if (navigation.current?.view === "evidence") $("outcome-title").focus();
 }
 async function processCase({replaceHistory = false} = {}) {
-  if (state.busy || !state.caseId) return;
+  if (state.busy || !state.caseId || state.knowledgePackUnavailable) return;
   const generation = boundary.generation;
   clearError(); clearReport(); $('outcome').classList.add('hidden'); evidenceView(replaceHistory);
   const operation = {id: navigationId(), caseId: state.caseId, done: false, report: null};
@@ -409,7 +412,15 @@ async function processCase({replaceHistory = false} = {}) {
       operation.report = await api(`/api/cases/${operation.caseId}/report`);
       assertBoundary(generation);
     } else outcome(result);
-  } catch (e) { if (currentBoundary(generation) && !e.stale) { error(e.message); outcome({status: 'FAILED'}); } }
+  } catch (e) {
+    if (currentBoundary(generation) && !e.stale) {
+      if (e.code === 'KNOWLEDGE_PACK_UNAVAILABLE') {
+        // Reflect the server restriction only; approval is never decided here.
+        state.knowledgePackUnavailable = true;
+        outcome({code: e.code});
+      } else { error(e.message); outcome({status: 'FAILED'}); }
+    }
+  }
   finally {
     if (currentBoundary(generation)) {
       operation.done = true;
