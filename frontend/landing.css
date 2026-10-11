@@ -113,7 +113,7 @@ body:has(:is(#view-home.active, #view-workspace.active)) .site-footer { color: #
   body:has(:is(#view-home.active, #view-workspace.active)) .brand { font-size: 22px; }
   body:has(:is(#view-home.active, #view-workspace.active)) .brand-mark { width: 25px; height: 30px; }
   body:has(:is(#view-home.active, #view-workspace.active)) .site-header > span { display: none; }
-  body:has(:is(#view-home.active, #view-workspace.active)) .landing-nav { gap: 12px; }
+  body:has(:is(#view-home.active, #view-workspace.active)) .landing-nav { display: none; }
   .landing-nav a { font-size: 11px; }
   .landing-scene { padding: 22px 20px 30px; }
   .landing-eyebrow { font-size: 12px; margin-bottom: 8px; }
@@ -272,8 +272,8 @@ body:has(:is(#view-home.active, #view-workspace.active)) .site-footer { color: #
   }
 }
 
-/* Desktop lower landing: continuous aqua, restrained editorial glass. */
-@media (min-width: 1051px) {
+/* Shared lower components; retain the explicitly protected 1050px baseline. */
+@media (max-width: 1049px), (min-width: 1051px) {
   .landing-lower { position: relative; isolation: isolate; padding: 88px 0 88px; color: #103F50; }
   .landing-lower::before {
     content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none;
@@ -306,7 +306,7 @@ body:has(:is(#view-home.active, #view-workspace.active)) .site-footer { color: #
   .landing-story h2 { font-size: 46px; font-weight: 500; line-height: 1.45; margin: 0; color: #103F50; }
   .landing-story-support { font-size: 20px; font-weight: 400; line-height: 1.8; margin: 22px 0 0; }
   .landing-story-copy {
-    max-width: none; font-size: 18px; line-height: 1.85; padding: 32px 36px;
+    max-width: none; font-size: 18px; line-height: 1.85; padding: 22px 36px;
     border-radius: 32px; border: 1px solid #ffffff75; background: linear-gradient(145deg, #ffffff44, #ffffff23);
     backdrop-filter: blur(10px); box-shadow: inset 0 1px 0 #ffffff70, inset 1px 0 0 #ffffff25;
   }
@@ -321,7 +321,7 @@ body:has(:is(#view-home.active, #view-workspace.active)) .site-footer { color: #
   .landing-process h3 { font-size: 19px; font-weight: 500; line-height: 1.55; margin: 0; }
   .landing-process li p { font-size: 16px; margin: 2px 0 0; line-height: 1.6; }
   .landing-faq { width: calc(100% - 220px); max-width: 1220px; margin: 78px auto 0; }
-  .landing-faq-intro { margin-bottom: 28px; }
+  .landing-faq-intro { margin-bottom: 12px; }
   .landing-faq h2 { font-size: 40px; font-weight: 500; line-height: 1.4; margin: 0; color: #103F50; }
   .landing-faq-intro .landing-eyebrow { margin-bottom: 10px; }
   .landing-faq-items { display: grid; gap: 14px; }
@@ -335,6 +335,9 @@ body:has(:is(#view-home.active, #view-workspace.active)) .site-footer { color: #
   .landing-faq summary:hover { background: #ffffff14; }
   .landing-faq summary:focus-visible { outline: 3px solid #103F50; outline-offset: 4px; background: #ffffff25; }
   .landing-faq details > p { font-size: 18px; line-height: 1.9; color: #103F50; margin: 0; padding: 0 28px 25px 72px; max-width: 980px; }
+  .landing-faq details[open] > p { padding-bottom: 17px; }
+}
+@media (min-width: 1051px) {
   body:has(:is(#view-home.active, #view-workspace.active)) .site-footer { border: 0; }
 }
 
@@ -545,6 +548,9 @@ body:has(:is(#view-home.active, #view-workspace.active)) .site-footer { color: #
   #view-home .landing-actions .btn { font-size: 17.1px; }
   .landing-feature h2 { font-size: 17.85px; line-height: 28.5px; }
   .landing-feature p { font-size: 15.04px; line-height: 25.6px; }
+}
+/* Share the approved lower-component palette and glass, without hero rules. */
+@media (max-width: 1049px), (min-width: 1051px) {
   .landing-lower::before {
     background:
       radial-gradient(ellipse 1000px 720px at -10% 10%, rgba(231,250,255,.18), transparent 85%),
@@ -821,7 +827,7 @@ body:has(#view-workspace.active:not(.analyzing)) #view-workspace textarea:focus-
 }
 
 /* Local middle-component polish only; atmosphere and Hero remain frozen. */
-@media (min-width: 1051px) {
+@media (max-width: 1049px), (min-width: 1051px) {
   .landing-product-context, .landing-story-copy {
     position: relative; overflow: clip;
     box-shadow: inset 0 1px 0 #ffffff70, inset 1px 0 0 #ffffff30,
@@ -851,13 +857,13 @@ body:has(#view-workspace.active:not(.analyzing)) #view-workspace textarea:focus-
     border: 1px solid transparent; border-radius: 50%;
     inset-inline-start: -85px; top: -25px; z-index: -1;
     transform: rotate(-18deg); pointer-events: none;
-    /* Approved C+ spectrum and feathering, clipped to the frozen 1px outline. */
-    background: radial-gradient(circle 38px at var(--local-edge-x, 100%) var(--local-edge-y, 50%),
-      rgba(250,255,255,.72), rgba(223,252,255,.32) 40%, transparent 100%);
+    /* Brighter, softly feathered interaction on the existing 1px outline. */
+    background: radial-gradient(circle 64px at var(--local-edge-x, 100%) var(--local-edge-y, 50%),
+      rgba(250,255,255,1), rgba(223,252,255,.8) 40%, transparent 100%);
     background-origin: border-box;
     mask-image: radial-gradient(ellipse closest-side, transparent calc(100% - 1px), #000 100%);
-    filter: blur(1.3px);
-    opacity: calc(var(--local-light, 0) * .65);
+    filter: blur(.8px) drop-shadow(0 0 3px rgba(223,252,255,.85));
+    opacity: var(--local-light, 0);
   }
 }
 
@@ -888,8 +894,8 @@ body:has(#view-workspace.active:not(.analyzing)) #view-workspace textarea:focus-
 }
 
 /* FAQ-only refinement; approved surfaces and typography remain frozen. */
-@media (min-width: 1051px) {
-  .landing-faq { margin-top: 48px; }
+@media (max-width: 1049px), (min-width: 1051px) {
+  .landing-faq { margin-top: 32px; }
   .landing-faq details { position: relative; }
   .landing-faq details::before {
     content: ""; position: absolute; inset: 0; border-radius: inherit;
@@ -927,7 +933,10 @@ body:has(#view-workspace.active:not(.analyzing)) #view-workspace textarea:focus-
 
 /* Local process refinement: internal alignment and nearest-step illumination only. */
 @media (min-width: 1051px) {
-  .landing-process { inset-inline-start: 18px; }
+  .landing-story-copy > p { opacity: .85; }
+  .landing-story-copy > p:first-child { font-size: 17px; line-height: 32.375px; }
+  .landing-story-copy > p:last-child { font-size: 16px; line-height: 30.525px; }
+  .landing-process { inset-inline-start: 30px; }
   .landing-process li p { color: #47798B; }
 }
 @media (min-width: 1051px) and (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
@@ -935,7 +944,7 @@ body:has(#view-workspace.active:not(.analyzing)) #view-workspace textarea:focus-
     content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
     background: radial-gradient(ellipse 300px 210px at var(--local-x, 50%) var(--local-y, 50%),
       rgba(250,255,255,.28), rgba(235,253,255,.11) 42%, transparent 100%);
-    opacity: var(--local-light, 0);
+    opacity: calc(var(--local-light, 0) * .45);
   }
   .landing-process li > span {
     background: color-mix(in srgb, #D5F1F4, white calc(var(--step-text-light, 0) * 70%));
@@ -951,4 +960,50 @@ body:has(#view-workspace.active:not(.analyzing)) #view-workspace textarea:focus-
   .landing-process li p {
     color: color-mix(in srgb, #47798B, #103F50 calc(var(--step-text-light, 0) * 17%));
   }
+}
+
+/* Narrow layouts reuse the approved cards above; only geometry/type reflow here. */
+@media (max-width: 1049px) {
+  .landing-lower { padding: 24px 0 48px; }
+  .landing-product-context, .landing-story, .landing-faq {
+    width: calc(100% - 64px); max-width: 720px;
+  }
+  .landing-product-context { padding: 24px; gap: 18px; }
+  .landing-story {
+    display: grid; grid-template-columns: minmax(0, 1fr); gap: 28px;
+    margin-top: 48px; padding: 0;
+  }
+  .landing-story::before { width: min(470px, 100%); inset-inline-start: 0; }
+  .landing-story h2 { font-size: 34px; }
+  .landing-story-support { margin-top: 16px; }
+  .landing-story-copy { padding: 24px; min-width: 0; }
+  .landing-process li > div { min-width: 0; }
+  .landing-process li p { color: #47798B; }
+  .landing-story-copy > p { opacity: .85; }
+  .landing-faq { margin-top: 48px; }
+  .landing-faq h2 { font-size: 32px; }
+  .landing-faq summary { padding: 18px 22px; gap: 16px; min-height: 68px; }
+  .landing-faq details > p { padding-inline: 22px; }
+  body:has(#view-home.active) .site-footer {
+    width: calc(100% - 64px); max-width: 720px; border: 0;
+  }
+}
+@media (max-width: 600px) {
+  .landing-product-context, .landing-story, .landing-faq,
+  body:has(#view-home.active) .site-footer { width: calc(100% - 40px); }
+  .landing-product-context { flex-direction: column; padding: 20px; gap: 14px; }
+  .landing-info-copy h2 { font-size: 20px; }
+  .landing-product-context .landing-sample-note,
+  .landing-product-context .landing-limitation { font-size: 16px; }
+  .landing-info-actions { gap: 10px; }
+  .landing-story h2 { font-size: 30px; }
+  .landing-story-support { font-size: 18px; }
+  .landing-story-copy { padding: 20px; font-size: 16px; }
+  .landing-story-copy > p:last-child { font-size: 16px; }
+  .landing-process li { gap: 12px; }
+  .landing-process h3 { font-size: 17px; }
+  .landing-process li p { font-size: 15px; }
+  .landing-faq h2 { font-size: 28px; }
+  .landing-faq summary { padding: 16px 18px; font-size: 17px; }
+  .landing-faq details > p { padding-inline: 18px; font-size: 16px; }
 }
