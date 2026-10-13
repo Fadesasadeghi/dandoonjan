@@ -7,21 +7,21 @@ landingTooth.addEventListener("error", showLandingFallback);
 if (landingTooth.complete && !landingTooth.naturalWidth) showLandingFallback();
 
 // Existing rings only: localized light and anchored depth activation.
-(() => {
-  const home = document.getElementById('view-home');
+const initializeArtworkLighting = (view, tooth) => {
+  const active = () => view.classList.contains('active') && !view.classList.contains('analyzing');
   const eligible = matchMedia('(min-width: 1051px) and (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference)');
-  const rings = [...home.querySelectorAll('.landing-orbits span')].map((el, i) => ({
+  const rings = [...view.querySelectorAll('.landing-orbits span')].map((el, i) => ({
     el, scale: [.016, .020, .012, .018][i], drift: [[3, -4], [-4, -3], [4, 3], [-3, 5]][i], level: 0, target: 0, lx: 50, ly: 50, tx: 50, ty: 50, specularAngle: 0, specularTarget: 0
   }));
-  const artwork = landingTooth.closest('.landing-artwork');
+  const artwork = tooth.closest('.landing-artwork');
   const sheen = {level: 0, target: 0, x: 50, y: 50, tx: 50, ty: 50, angle: 0, targetAngle: 0};
   // Middle surfaces share the existing scheduler; no geometry is animated.
-  const surfaces = [home.querySelector('.landing-product-context'),
-    ...home.querySelectorAll('.landing-process li'), home.querySelector('.landing-story'),
-    home.querySelector('.landing-story-copy')]
+  const surfaces = [view.querySelector('.landing-product-context'),
+    ...view.querySelectorAll('.landing-process li'), view.querySelector('.landing-story'),
+    view.querySelector('.landing-story-copy')].filter(Boolean)
     .map(el => ({el, kind: el.matches('.landing-process li') ? 'step' : el.matches('.landing-story') ? 'edge' : 'card',
       level: 0, target: 0, x: 50, y: 50, tx: 50, ty: 50, angle: 0, ta: 0, textLevel: 0, textTarget: 0}));
-  const faqLights = [...home.querySelectorAll('.landing-faq details')].map(el =>
+  const faqLights = [...view.querySelectorAll('.landing-faq details')].map(el =>
     ({el, level: 0, target: 0, x: 50, y: 50, tx: 50, ty: 50}));
   const clearFaq = s => ['--faq-light', '--faq-x', '--faq-y'].forEach(name => s.el.style.removeProperty(name));
   let surfaceBounds = null;
@@ -46,7 +46,7 @@ if (landingTooth.complete && !landingTooth.naturalWidth) showLandingFallback();
     rings.forEach(r => { r.level = r.target = 0; clear(r); });
   };
   const tick = time => {
-    if (!eligible.matches || document.hidden || !home.classList.contains('active')) { reset(); return; }
+    if (!eligible.matches || document.hidden || !active()) { reset(); return; }
     const blend = 1 - Math.exp(-Math.min(lastTime ? time - lastTime : 16, 64) / 160);
     lastTime = time;
     let moving = false;
@@ -138,14 +138,19 @@ if (landingTooth.complete && !landingTooth.naturalWidth) showLandingFallback();
   const schedule = () => { if (!frame) frame = requestAnimationFrame(tick); };
   const neutral = () => { faqLights.forEach(s => { s.target = 0; }); surfaces.forEach(s => { s.target = s.textTarget = 0; }); sheen.target = 0; rings.forEach(r => { r.target = 0; }); schedule(); };
   window.addEventListener('pointermove', event => {
-    if (!eligible.matches || event.pointerType !== 'mouse' || !home.classList.contains('active')) return;
+    if (!eligible.matches || event.pointerType !== 'mouse' || !active()) return;
     // Read once after invalidation, never in the animation loop. Recover resting
     // centers and dimensions so activation cannot feed back into proximity.
-    if (!geometry) geometry = rings.map(r => {
-      const b = r.el.getBoundingClientRect();
-      return {cx: b.x + b.width / 2 - r.level * r.drift[0], cy: b.y + b.height / 2 - r.level * r.drift[1],
-        rx: r.el.offsetWidth / 2, ry: r.el.offsetHeight / 2};
-    });
+    if (!geometry) {
+      // Workspace scales the entire approved canvas. Measure proximity in screen
+      // pixels while retaining the landing handler's resting ring geometry.
+      const scale = view.id === 'view-workspace' ? artwork.getBoundingClientRect().width / artwork.offsetWidth : 1;
+      geometry = rings.map(r => {
+        const b = r.el.getBoundingClientRect();
+        return {cx: b.x + b.width / 2 - r.level * r.drift[0] * scale, cy: b.y + b.height / 2 - r.level * r.drift[1] * scale,
+          rx: r.el.offsetWidth * scale / 2, ry: r.el.offsetHeight * scale / 2};
+      });
+    }
     rings.forEach((r, i) => {
       const g = geometry[i], dx = event.clientX - g.cx, dy = event.clientY - g.cy;
       const distance = Math.hypot(dx, dy);
@@ -158,7 +163,7 @@ if (landingTooth.complete && !landingTooth.naturalWidth) showLandingFallback();
       r.tx = Math.max(0, Math.min(100, 50 + dx / (g.rx || 1) * 50));
       r.ty = Math.max(0, Math.min(100, 50 + dy / (g.ry || 1) * 50));
     });
-    if (!toothBounds) toothBounds = landingTooth.getBoundingClientRect();
+    if (!toothBounds) toothBounds = tooth.getBoundingClientRect();
     const b = toothBounds;
     const dx = event.clientX - (b.x + b.width / 2), dy = event.clientY - (b.y + b.height / 2);
     const radial = b.width && b.height ? Math.hypot(dx / (b.width / 2), dy / (b.height / 2)) : Infinity;
@@ -226,10 +231,16 @@ if (landingTooth.complete && !landingTooth.naturalWidth) showLandingFallback();
   window.addEventListener('resize', reset, { passive: true });
   window.addEventListener('scroll', () => { geometry = null; toothBounds = null; surfaceBounds = null; neutral(); }, { passive: true });
   document.addEventListener('visibilitychange', reset);
-  home.addEventListener('animationend', event => {
+  view.addEventListener('animationend', event => {
     if (event.animationName === 'middle-entry') surfaceBounds = null;
   });
-})();
+  if (view.id === 'view-workspace') {
+    // Discard cached bounds/light when entering, leaving or hiding this artwork.
+    new MutationObserver(reset).observe(view, {attributes: true, attributeFilter: ['class']});
+  }
+};
+initializeArtworkLighting(document.getElementById('view-home'), landingTooth);
+initializeArtworkLighting(document.getElementById('view-workspace'), document.querySelector('.workspace-tooth'));
 
 // One-time middle entry. The process and statement share their existing wrapper,
 // so they reveal together without doubled movement or alignment changes.

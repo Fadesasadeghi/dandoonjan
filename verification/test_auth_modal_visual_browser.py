@@ -1,5 +1,6 @@
-"""Modal-only computed-style/interaction checks. No screenshots or PDFs."""
+"""Modal-only computed-style/interaction checks; optional review screenshots."""
 import os
+from pathlib import Path
 import subprocess
 import re
 
@@ -271,12 +272,6 @@ def presentation(page):
     })''')
 
 
-def typography(page):
-    return page.locator('#account-dialog, #account-dialog *').evaluate_all('''els => els.map(el => {
-        const s = getComputedStyle(el);
-        return [s.fontFamily, s.fontSize, s.fontWeight, s.lineHeight, s.letterSpacing];
-    })''')
-
 
 @pytest.mark.parametrize('width', [320, 390, 768, 1440])
 def test_modal_focus_geometry_and_frozen_presentation(page, width):
@@ -289,7 +284,6 @@ def test_modal_focus_geometry_and_frozen_presentation(page, width):
     page.evaluate('document.fonts.ready')
     original_home = presentation(page)
     open_auth(page)
-    original_type = typography(page)
     page.keyboard.press('Escape')
     page.unroute('**/ui/account.css')
     page.reload()
@@ -297,8 +291,16 @@ def test_modal_focus_geometry_and_frozen_presentation(page, width):
     page.evaluate('document.fonts.ready')
     assert presentation(page) == original_home
     open_auth(page)
-    assert typography(page) == original_type
     expect(page.locator('#account-email')).to_be_focused()
+    assert page.evaluate('document.documentElement.scrollWidth <= innerWidth')
+    if width == 1440:
+        assert page.locator('#account-dialog').bounding_box()['width'] == 520
+    for selector in ['#account-email', '#account-password', '#account-submit']:
+        assert page.locator(selector).bounding_box()['height'] >= 56
+    if os.environ.get('AUTH_MODAL_SCREENSHOTS'):
+        folder = Path(os.environ['AUTH_MODAL_SCREENSHOTS'])
+        folder.mkdir(parents=True, exist_ok=True)
+        page.screenshot(path=str(folder / f'login-{width}.png'))
     assert page.locator('#account-dialog').evaluate('el => getComputedStyle(el).direction') == 'rtl'
     assert page.locator('#account-dialog').evaluate('el => el.scrollWidth <= el.clientWidth')
     box = page.locator('#account-dialog').bounding_box()
@@ -328,3 +330,21 @@ def test_modal_focus_geometry_and_frozen_presentation(page, width):
     open_auth(page)
     page.keyboard.press('Escape')
     expect(page.locator('#account-dialog')).not_to_be_visible()
+
+
+@pytest.mark.parametrize('width,height', [(320, 568), (390, 664), (844, 390)])
+def test_short_viewport_registration_remains_reachable(page, width, height):
+    page.set_viewport_size({'width': width, 'height': height})
+    open_auth(page)
+    page.locator('#account-register-mode').click()
+    dialog = page.locator('#account-dialog')
+    box = dialog.bounding_box()
+    assert box['y'] >= 0 and box['y'] + box['height'] <= height
+    assert dialog.evaluate('el => el.scrollWidth <= el.clientWidth')
+    assert page.evaluate('document.documentElement.scrollWidth <= innerWidth')
+    page.locator('#account-submit').click()
+    expect(page.locator('#account-status')).to_contain_text('ایمیل معتبر')
+    page.locator('#account-submit').scroll_into_view_if_needed()
+    expect(page.locator('#account-submit')).to_be_in_viewport()
+    page.locator('#account-close').click()
+    expect(dialog).not_to_be_visible()

@@ -610,6 +610,7 @@ body:has(#view-workspace.active) .site-footer { color: #245267; }
 #view-workspace .primary { background: linear-gradient(155deg, #F6FAFB, #EFF5F7 75%, #ECF3F5); color: #17627A; border-color: #ffffff60; box-shadow: inset 0 1px 0 #ffffff70, inset 0 -1px 0 #ffffff20; }
 #view-workspace .btn.text, #view-workspace .btn.quiet { background: linear-gradient(145deg, #ffffff16, #ffffff09); border: 1px solid #ffffff60; color: #F7FAFB; box-shadow: inset 0 1px 0 #ffffff20; }
 #view-workspace .dropzone, #view-workspace .notice:not(.error) { background: #ffffff20; border-color: #ffffff60; color: #F7FAFB; border-radius: 14px; }
+#view-workspace #workspace-error { background: #D5F1F4; border-color: #7FC2CE; color: #103F50; }
 #view-workspace #activity, #view-workspace .file-message { color: #E6F2F5; }
 #view-workspace .workspace-art { width: 399px; top: 80px; left: 80px; right: auto; }
 #view-workspace .workspace-art .landing-artwork { height: 454px; }
@@ -657,11 +658,17 @@ body:has(#view-workspace.active) { position: relative; display: flow-root; min-h
   }
   #view-workspace.active:not(.analyzing) > :not(.workspace-art) { grid-column: 1; }
   #view-workspace.active:not(.analyzing) .workspace-art {
-    position: sticky; top: 24px; left: auto; right: auto; width: 399px;
+    position: sticky; top: 24px; left: auto; right: auto; width: 100%;
+    container-type: inline-size;
     grid-column: 2; grid-row: 1 / span 8; justify-self: center; align-self: start; margin-top: 24px;
   }
   #view-workspace .workspace-art .landing-artwork {
-    transform: scale(.87); transform-origin: center top; margin-bottom: -59.02px;
+    /* Preserve the landing canvas; include its overflowing rings when fitting the left column. */
+    width: 399px; margin-inline: calc((100% - 399px) / 2);
+    scale: min(1, calc((100cqw + 110px) / 589px)); translate: -24px;
+    transform-origin: center top; margin-bottom: 0;
+    /* Keep the shared artwork fully lit inside the sticky, scaled column. */
+    animation: none;
   }
   #view-workspace .workspace-caption { margin-top: 54px; }
   #view-workspace .source-layer { margin-top: 6px; padding: 7px 12px; }
@@ -766,7 +773,7 @@ body:has(#view-workspace.active:not(.analyzing)) #view-workspace textarea:focus-
 #file-list:not(:empty) + .evidence-empty { display: none; }
 @media (min-width: 1051px) {
   #view-workspace.active:not(.analyzing) { grid-template-columns: minmax(0, 640px) minmax(0, 1fr); column-gap: 48px; }
-  #view-workspace:not(.analyzing) .workspace-art { width: min(100%, 360px); }
+  #view-workspace:not(.analyzing) .workspace-art { width: 100%; }
   #view-workspace:not(.analyzing) .workspace-caption { color: #f5fcfd; }
 }
 @media (max-width: 1050px) {
@@ -789,7 +796,7 @@ body:has(#view-workspace.active:not(.analyzing)) #view-workspace textarea:focus-
 
 /* Alternative C: transient light on the existing ring, invisible at rest. */
 @media (min-width: 1051px) and (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
-  #view-home .landing-orbits span::after {
+  :is(#view-home, #view-workspace) .landing-orbits span::after {
     content: ""; position: absolute; inset: -5px; border-radius: inherit;
     pointer-events: none; opacity: var(--ring-light, 0);
     background: radial-gradient(circle 110px at var(--ring-light-x, 50%) var(--ring-light-y, 50%),
@@ -802,7 +809,7 @@ body:has(#view-workspace.active:not(.analyzing)) #view-workspace textarea:focus-
 
 /* C+: small ring-surface reflection; approved C ambient light is unchanged. */
 @media (min-width: 1051px) and (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
-  #view-home .landing-orbits span::before {
+  :is(#view-home, #view-workspace) .landing-orbits span::before {
     content: ""; position: absolute; inset: -4px; border-radius: inherit;
     pointer-events: none; opacity: var(--ring-light, 0);
     background: radial-gradient(circle 38px at var(--ring-specular-x, 100%) var(--ring-specular-y, 50%),
@@ -815,7 +822,7 @@ body:has(#view-workspace.active:not(.analyzing)) #view-workspace textarea:focus-
 
 /* Experimental external studio illumination: neutral white, alpha-clipped. */
 @media (min-width: 1051px) and (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
-  #view-home .landing-artwork::before {
+  :is(#view-home, #view-workspace) .landing-artwork::before {
     content: ""; position: absolute; inset: 2.65%; z-index: 1;
     pointer-events: none; opacity: var(--tooth-sheen, 0);
     background: linear-gradient(var(--tooth-light-angle, -90deg),
