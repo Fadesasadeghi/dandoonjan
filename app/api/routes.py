@@ -13,7 +13,7 @@ from app.db import get_db
 from app.domain.enums import CaseStatus, DerivationStatus, ProcessingRunStatus, RunAuthority
 from app.domain.models import (Artifact, Assessment, AssessmentSnapshot, Case, ProcessingRun, Report,
                                public_id)
-from app.errors import DandoonjanError, InvalidTransitionError
+from app.errors import DandoonjanError, InvalidTransitionError, KnowledgePackUnavailableError
 from app.governance.record import audit
 from app.pipeline.orchestrator import run_case_pipeline
 from app.security import case_access
@@ -185,17 +185,35 @@ def case_status(case_public_id: str, case: Case = Depends(case_access.read_case)
                            "subtype": a.subtype.value} for a in artifacts]}
 
 
+def _current_pipeline_filters(db: Session, case: Case) -> tuple:
+    """Shared current-result boundary; stored ACTIVE history alone is not current."""
+    from app.pipeline.orchestrator import effective_input_hash
+    current_hash = effective_input_hash(db, case)
+    latest_id = (db.query(ProcessingRun.id).filter(
+        ProcessingRun.case_id == case.id, ProcessingRun.module == 'pipeline')
+        .order_by(ProcessingRun.id.desc()).limit(1).scalar())
+    return (ProcessingRun.case_id == case.id,
+            ProcessingRun.module == 'pipeline',
+            ProcessingRun.status == ProcessingRunStatus.SUCCEEDED,
+            ProcessingRun.authority == RunAuthority.ACTIVE,
+            ProcessingRun.input_hash == current_hash,
+            ProcessingRun.id == latest_id)
+
+
 @router.get("/cases/{case_public_id}/assessment")
 def case_assessment(case_public_id: str, case: Case = Depends(case_access.read_case),
                     db: Session = Depends(get_db, scope="function")):
-    assessments = (db.query(Assessment)
-                   .join(ProcessingRun, Assessment.derivation_run_id == ProcessingRun.id)
-                   .filter(Assessment.case_id == case.id,
-                           Assessment.derivation_status == DerivationStatus.ACTIVE,
-                           ProcessingRun.case_id == case.id,
-                           ProcessingRun.module == "pipeline",
-                           ProcessingRun.status == ProcessingRunStatus.SUCCEEDED,
-                           ProcessingRun.authority == RunAuthority.ACTIVE).all())
+    try:
+        current_filters = _current_pipeline_filters(db, case)
+    except KnowledgePackUnavailableError:
+        # No current authority can be established. Preserve the empty-list API.
+        assessments = []
+    else:
+        assessments = (db.query(Assessment)
+                       .join(ProcessingRun, Assessment.derivation_run_id == ProcessingRun.id)
+                       .filter(Assessment.case_id == case.id,
+                               Assessment.derivation_status == DerivationStatus.ACTIVE,
+                               *current_filters).all())
     return {"case_id": case.public_id, "status": case.status.value,
             "assessments": [{"claim_type": a.claim.claim_type.value,
                              "treatment": a.claim.treatment_id,
@@ -209,22 +227,12 @@ def case_assessment(case_public_id: str, case: Case = Depends(case_access.read_c
 def case_report(case_public_id: str, case: Case = Depends(case_access.read_case),
                 db: Session = Depends(get_db, scope="function")):
     # An earlier snapshot remains history after a failed/new processing contract.
-    from app.pipeline.orchestrator import effective_input_hash
-    current_hash = effective_input_hash(db, case)
-    latest_attempt = (db.query(ProcessingRun).filter(ProcessingRun.case_id == case.id,
-        ProcessingRun.module == 'pipeline').order_by(ProcessingRun.id.desc()).first())
-    if latest_attempt is None or latest_attempt.status != ProcessingRunStatus.SUCCEEDED:
-        raise HTTPException(status_code=404, detail="REPORT_NOT_READY")
+    current_filters = _current_pipeline_filters(db, case)
     report = (db.query(Report)
               .join(ProcessingRun, Report.derivation_run_id == ProcessingRun.id)
               .join(AssessmentSnapshot, Report.snapshot_id == AssessmentSnapshot.id)
               .filter(Report.case_id == case.id,
-                      ProcessingRun.case_id == case.id,
-                      ProcessingRun.module == "pipeline",
-                      ProcessingRun.status == ProcessingRunStatus.SUCCEEDED,
-                      ProcessingRun.authority == RunAuthority.ACTIVE,
-                      ProcessingRun.input_hash == current_hash,
-                      ProcessingRun.id == latest_attempt.id,
+                      *current_filters,
                       AssessmentSnapshot.case_id == case.id,
                       AssessmentSnapshot.derivation_run_id == ProcessingRun.id,
                       AssessmentSnapshot.case_version == case.version)
