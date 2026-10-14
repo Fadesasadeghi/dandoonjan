@@ -25,6 +25,9 @@ class CaseAdmissionRoute(APIRoute):
                 await run_in_threadpool(check_headers, request, False)
             elif path == '/api/demo/cases' or path.startswith('/api/demo/cases/'):
                 await run_in_threadpool(check_headers, request, True)
+            if request.method == 'POST' and self.path.endswith('/artifacts'):
+                from app.security.upload_form import with_bounded_upload_form
+                return await with_bounded_upload_form(request, original)
             return await original(request)
 
         return admitted
