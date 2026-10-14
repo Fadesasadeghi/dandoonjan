@@ -16,6 +16,7 @@ from app.domain.models import (Artifact, Assessment, AssessmentSnapshot, Case, P
 from app.errors import DandoonjanError, InvalidTransitionError, KnowledgePackUnavailableError
 from app.governance.record import audit
 from app.pipeline.orchestrator import run_case_pipeline
+from app.pipeline.runs import lock_case
 from app.security import case_access
 
 router = APIRouter(route_class=case_access.CaseAdmissionRoute)
@@ -148,6 +149,8 @@ def update_case(case_public_id: str, question: str = Form(None),
                 case: Case = Depends(case_access.mutate_case),
                 db: Session = Depends(get_db, scope="function")):
     """Material case-text change bumps Case version (P0-04)."""
+    lock_case(db, case.id)
+    db.refresh(case)
     changed = False
     if question is not None and question != case.question_text:
         case.question_text = question
