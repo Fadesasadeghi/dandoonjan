@@ -711,8 +711,11 @@ body:has(#view-workspace.active:not(.analyzing))::before { display: none; }
 #view-workspace:not(.analyzing) { color: #f5fcfd; padding-bottom: 56px; }
 #view-workspace:not(.analyzing) :is(.paper > p, .eyebrow, label, label span, .small, summary, #activity, .file-message) { color: #f5fcfd; }
 #view-workspace:not(.analyzing) .paper { background: transparent; border: 0; box-shadow: none; min-width: 0; }
-#view-workspace:not(.analyzing) h1 { margin-bottom: 16px; }
-#view-workspace:not(.analyzing) label { margin: 24px 0 10px; font-weight: 600; }
+#view-workspace:not(.analyzing) h1 { margin-bottom: 12px; }
+#view-workspace:not(.analyzing) label { margin: 18px 0 8px; font-size: 17px; font-weight: 600; }
+#view-workspace:not(.analyzing) .paper > p { font-size: 17px; }
+#view-workspace:not(.analyzing) label span,
+#view-workspace:not(.analyzing) .paper .small { font-size: 15px; }
 #view-workspace:not(.analyzing) :is(textarea, input:not([type=file]), select) {
   background: #e0f7f526; color: #143f49; border: 1px solid #ffffff80;
   border-radius: 16px; box-shadow: inset 0 1px #ffffff20;
@@ -727,12 +730,12 @@ body:has(#view-workspace.active:not(.analyzing)) #view-workspace :focus-visible 
 body:has(#view-workspace.active:not(.analyzing)) #view-workspace textarea:focus-visible {
   background: #e0f7f542; border-color: #ffffffd0; box-shadow: none;
 }
-#view-workspace:not(.analyzing) .dossier-section { margin-top: 14px; padding-inline: 16px; border-color: #ffffff50; background: #d5f1f412; }
+#view-workspace:not(.analyzing) .dossier-section { margin-top: 10px; padding-inline: 16px; border-color: #ffffff50; background: #d5f1f412; }
 #view-workspace:not(.analyzing) .dossier-section:hover { background: #d5f1f424; }
 #view-workspace:not(.analyzing) .dossier-section[open] { padding-bottom: 20px; }
 #view-workspace:not(.analyzing) summary { min-height: 56px; padding-block: 10px; }
-#view-workspace:not(.analyzing) summary::marker { color: #f5fcfd; }
-#view-workspace:not(.analyzing) .actions { gap: 14px; margin-top: 28px; }
+#view-workspace:not(.analyzing) summary::marker { color: #103F50; }
+#view-workspace:not(.analyzing) .actions { gap: 14px; margin-top: 20px; }
 #view-workspace:not(.analyzing) .btn.text { color: #f5fcfd; background: #d5f1f41c; }
 #view-workspace:not(.analyzing) .btn:hover { border-color: #fff; }
 #view-workspace:not(.analyzing) #evidence-panel { margin-top: 40px; padding-top: 32px; border-top: 1px solid #ffffff70; }
@@ -793,6 +796,21 @@ body:has(#view-workspace.active:not(.analyzing)) #view-workspace textarea:focus-
 }
 #view-workspace:not(.analyzing) :is(h1, .dropzone strong, .upload-icon) { color: #ffffff; }
 #view-workspace:not(.analyzing) :is(textarea, input, select, .file-list [data-upload-state="rejected"] .file-status, .file-list [data-upload-state="uploaded"] .file-status) { text-shadow: none; }
+
+/* Final case-form text contrast; retain the white heading and form labels. */
+#view-workspace:not(.analyzing) :is(.paper > p, .dossier-section summary, #back-home, .source-layer) {
+  color: #103F50; text-shadow: none;
+}
+#view-workspace:not(.analyzing) .source-layer { color: #103F50 !important; }
+
+/* One-step readability increase for workspace supporting text only. */
+#view-workspace:not(.analyzing) > .eyebrow,
+#view-workspace:not(.analyzing) .workspace-caption { font-size: 15px; }
+#view-workspace:not(.analyzing) > #sample-notice { font-size: 16px; }
+body:has(#view-workspace.active:not(.analyzing)) .site-footer { font-size: 15px; }
+@media (min-width: 1051px) {
+  body:has(#view-workspace.active:not(.analyzing)) .site-footer { font-size: 14px; }
+}
 
 /* Alternative C: transient light on the existing ring, invisible at rest. */
 @media (min-width: 1051px) and (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
