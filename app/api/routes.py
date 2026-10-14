@@ -2,7 +2,7 @@
 from __future__ import annotations
 from typing import Literal
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import PlainTextResponse, Response
 from sqlalchemy.orm import Session
 
@@ -143,9 +143,25 @@ def read_upload_bounded(stream, limit: int) -> bytes:
     return b''.join(chunks)
 
 
+async def recommendation_patch(request: Request, dentist_recommendation: str = Form(None)):
+    """Keep explicit clears distinct from omission, retaining Form type validation."""
+    # FastAPI maps both absent fields and empty strings to the Form(None) default.
+    if dentist_recommendation is None and (await request.form()).get('dentist_recommendation') == "":
+        return ""
+    return dentist_recommendation
+
+
+async def context_patch(request: Request, context: str = Form(None)):
+    """ACCOUNT context is optional text; Demo context remains server-owned."""
+    if context is None and (await request.form()).get('context') == "":
+        return ""
+    return context
+
+
 @router.patch("/cases/{case_public_id}")
 def update_case(case_public_id: str, question: str = Form(None),
-                dentist_recommendation: str = Form(None), context: str = Form(None),
+                dentist_recommendation: str = Depends(recommendation_patch),
+                context: str = Depends(context_patch),
                 case: Case = Depends(case_access.mutate_case),
                 db: Session = Depends(get_db, scope="function")):
     """Material case-text change bumps Case version (P0-04)."""

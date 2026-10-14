@@ -62,7 +62,8 @@ def get_case(case_public_id: str, case: Case = Depends(access.read_demo_case),
 
 @router.patch('/cases/{case_public_id}')
 def update_case(case_public_id: str, question: str = Form(None),
-                dentist_recommendation: str = Form(None), context: str = Form(None),
+                dentist_recommendation: str = Depends(routes.recommendation_patch),
+                context: str = Form(None),
                 case: Case = Depends(access.mutate_demo_case),
                 db: Session = Depends(get_db, scope='function')):
     # Keep server-written synthetic context; client hints cannot change mode.
