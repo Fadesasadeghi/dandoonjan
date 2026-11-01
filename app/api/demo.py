@@ -6,8 +6,9 @@ from sqlalchemy.orm import Session
 
 from app.api import routes
 from app.config import get_settings
+from app.core.artifacts.ingestion import ingest_artifact
 from app.core.cases import dossier
-from app.core.cases.sample import DEMO_MARKER
+from app.core.cases.sample import DEMO_MARKER, PORTFOLIO_SCENARIOS
 from app.db import get_db
 from app.domain.models import Case
 from app.security import case_access as access, csrf, demo_sessions, sessions
@@ -46,12 +47,59 @@ def visitor_csrf(request: Request, db: Session = Depends(get_db, scope='function
 
 
 @router.post('/cases', status_code=201)
-def create_case(question: str = Form(...), dentist_recommendation: str = Form(''),
+def create_case(question: str | None = Form(None),
+                dentist_recommendation: str = Form(''),
+                scenario: str | None = Form(None),
                 principal: access.Principal = Depends(access.visitor_mutation),
                 db: Session = Depends(get_db, scope='function')):
     access.touch(db, principal)
-    return routes.create_owned_case(db, principal.user_id, question,
-                                    dentist_recommendation, DEMO_MARKER)
+
+    if scenario is not None:
+        selected = PORTFOLIO_SCENARIOS.get(scenario)
+        if selected is None:
+            raise HTTPException(
+                status_code=422,
+                detail={'code': 'UNKNOWN_DEMO_SCENARIO'},
+            )
+        if not question or not question.strip():
+            question = selected['question']
+        if not dentist_recommendation.strip():
+            dentist_recommendation = selected['dentist_recommendation']
+
+    if question is None:
+        raise HTTPException(
+            status_code=422,
+            detail={'code': 'QUESTION_REQUIRED'},
+        )
+
+    created = routes.create_owned_case(
+        db,
+        principal.user_id,
+        question,
+        dentist_recommendation,
+        DEMO_MARKER,
+    )
+
+    if scenario is not None:
+        case = db.query(Case).filter_by(public_id=created['case_id']).one()
+    
+        dossier.update(
+            db,
+            case,
+            dossier.DossierPatch(**selected['dossier']),
+        )
+    
+        plan = selected['treatment_plan'].encode('utf-8')
+        ingest_artifact(
+            db,
+            case,
+            f'synthetic-{scenario}-treatment-plan.txt',
+            'text/plain',
+            plan,
+            document_role='treatment_plan',
+        )
+
+    return created
 
 
 @router.get('/cases/{case_public_id}')

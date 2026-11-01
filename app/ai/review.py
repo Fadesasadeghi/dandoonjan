@@ -60,7 +60,10 @@ def demo_review(db, case, derivation_run_id, data, missing):
             continue
         tooth = (item.tooth_id or '').replace('TOOTH_', '') or 'نامشخص'
         treatment = TREATMENTS_FA.get(item.treatment_id.replace('TREATMENT_', ''), 'درمان نامشخص')
-        document_lines.append(f'{artifact.original_filename}: {treatment} دندان {tooth}، {MODALITY_FA.get(item.predicate, "ثبت شده")}')
+        document_lines.append(
+            f'{treatment} دندان {tooth}، '
+            f'{MODALITY_FA.get(item.predicate, "ثبت شده")}'
+        )
         document_refs.extend(document_ref(artifact.public_id, item.page))
     for artifact in case.artifacts:
         if artifact.document_role == 'previous_report' and artifact.text_content and not artifact.detected_mime_type.startswith('image/'):

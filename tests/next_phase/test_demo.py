@@ -197,3 +197,221 @@ def test_demo_retains_restricted_safety(api_client, symptoms, state):
         report = client.get(case_path(client, cid)+'/report').json()
         assert report['report_kind'] == 'URGENT'
         assert not report.get('review')
+
+
+def test_portfolio_scenario_defaults_and_unknown_rejection(api_client):
+    from app.core.cases.sample import PORTFOLIO_SCENARIOS
+
+    client, _, _ = api_client
+
+    bootstrap = client.post(
+        '/api/demo/session',
+        headers={'Origin': 'http://testserver'},
+    )
+    assert bootstrap.status_code == 200
+
+    headers = {
+        'Origin': 'http://testserver',
+        'X-CSRF-Token': bootstrap.json()['csrf_token'],
+    }
+    client.headers.update(headers)
+
+    assert set(PORTFOLIO_SCENARIOS) == {
+        'root_canal',
+        'extraction_gap',
+        'treatment_cost',
+    }
+
+    for scenario_id, scenario in PORTFOLIO_SCENARIOS.items():
+        created = client.post(
+            '/api/demo/cases',
+            data={
+                'scenario': scenario_id,
+            },
+        )
+        assert created.status_code == 201, created.text
+
+        cid = created.json()['case_id']
+        case = client.get(f'/api/demo/cases/{cid}')
+        assert case.status_code == 200
+
+        payload = case.json()
+        assert payload['question'] == scenario['question']
+        assert payload['dentist_recommendation'] == scenario['dentist_recommendation']
+
+    rejected = client.post(
+        '/api/demo/cases',
+        data={
+            'question': '',
+            'dentist_recommendation': '',
+            'scenario': 'does-not-exist',
+        },
+    )
+    assert rejected.status_code == 422
+    assert rejected.json()['detail']['code'] == 'UNKNOWN_DEMO_SCENARIO'
+
+
+def test_portfolio_scenarios_extract_distinct_structured_facts():
+    from app.ai.prompts import get_prompt
+    from app.ai.providers import MockProvider
+    from app.core.cases.sample import PORTFOLIO_SCENARIOS
+
+    provider = MockProvider()
+    prompt = get_prompt('treatment_plan_extractor')
+
+    expected = {
+        'root_canal': {
+            ('TOOTH_46', 'TREATMENT_ROOT_CANAL'),
+            ('TOOTH_46', 'TREATMENT_CROWN'),
+        },
+        'extraction_gap': {
+            ('TOOTH_36', 'TREATMENT_EXTRACTION'),
+        },
+        'treatment_cost': {
+            ('TOOTH_46', 'TREATMENT_ROOT_CANAL'),
+            ('TOOTH_46', 'TREATMENT_CROWN'),
+            ('TOOTH_36', 'TREATMENT_FILLING'),
+        },
+    }
+
+    for scenario_id, scenario in PORTFOLIO_SCENARIOS.items():
+        result = provider.run(
+            prompt,
+            scenario['treatment_plan'],
+            {},
+        )
+
+        extracted = {
+            (item['tooth'], item['treatment'])
+            for item in result['treatment_items']
+        }
+        assert extracted == expected[scenario_id]
+
+        if scenario_id == 'treatment_cost':
+            prices = [
+                field['raw_value']
+                for field in result['fields']
+                if field['field_name'] == 'price'
+            ]
+            assert prices == ['18,500,000 toman']
+
+
+
+def test_portfolio_scenarios_run_end_to_end(api_client):
+    from app.domain.models import (
+        Artifact,
+        AssessmentSnapshot,
+        Case,
+        ExtractedField,
+        Extraction,
+        TreatmentItem,
+    )
+
+    client, sessions, _ = api_client
+
+    bootstrap = client.post(
+        '/api/demo/session',
+        headers={'Origin': 'http://testserver'},
+    )
+    assert bootstrap.status_code == 200
+    client.headers.update({
+        'Origin': 'http://testserver',
+        'X-CSRF-Token': bootstrap.json()['csrf_token'],
+    })
+
+    expected_treatments = {
+        'root_canal': {
+            ('TOOTH_46', 'TREATMENT_ROOT_CANAL'),
+            ('TOOTH_46', 'TREATMENT_CROWN'),
+        },
+        'extraction_gap': {
+            ('TOOTH_36', 'TREATMENT_EXTRACTION'),
+        },
+        'treatment_cost': {
+            ('TOOTH_46', 'TREATMENT_ROOT_CANAL'),
+            ('TOOTH_46', 'TREATMENT_CROWN'),
+            ('TOOTH_36', 'TREATMENT_FILLING'),
+        },
+    }
+
+    for scenario_id, expected in expected_treatments.items():
+        created = client.post(
+            '/api/demo/cases',
+            data={'scenario': scenario_id},
+        )
+        assert created.status_code == 201, created.text
+        cid = created.json()['case_id']
+
+        case_payload = client.get(f'/api/demo/cases/{cid}')
+        assert case_payload.status_code == 200
+        artifacts = case_payload.json()['artifacts']
+        assert len(artifacts) == 1
+        assert artifacts[0]['filename'] == (
+            f'synthetic-{scenario_id}-treatment-plan.txt'
+        )
+
+        processed = client.post(f'/api/demo/cases/{cid}/process')
+        assert processed.status_code == 200, processed.text
+        assert processed.json()['report'], (
+            f"{scenario_id}: process={processed.json()}"
+        )
+
+        report = client.get(f'/api/demo/cases/{cid}/report')
+        assert report.status_code == 200, report.text
+        payload = report.json()
+        assert payload['review'], (
+            f"{scenario_id}: report_kind={payload.get('report_kind')}, "
+            f"safety_state={payload.get('safety_state')}, "
+            f"sections={payload.get('sections')}"
+        )
+
+        with sessions() as db:
+            case = db.query(Case).filter_by(public_id=cid).one()
+            snapshot = (
+                db.query(AssessmentSnapshot)
+                .filter_by(case_id=case.id)
+                .order_by(AssessmentSnapshot.id.desc())
+                .first()
+            )
+            assert snapshot is not None
+            run_id = snapshot.derivation_run_id
+
+            actual = {
+                (item.tooth_id, item.treatment_id)
+                for item in (
+                    db.query(TreatmentItem)
+                    .join(Extraction)
+                    .join(Artifact)
+                    .filter(
+                        Artifact.case_id == case.id,
+                        TreatmentItem.derivation_run_id == run_id,
+                    )
+                    .all()
+                )
+            }
+            assert actual == expected
+
+            if scenario_id == 'treatment_cost':
+                prices = [
+                    field.raw_value
+                    for field in (
+                        db.query(ExtractedField)
+                        .join(Extraction)
+                        .join(Artifact)
+                        .filter(
+                            Artifact.case_id == case.id,
+                            Extraction.derivation_run_id == run_id,
+                            ExtractedField.field_name == 'price',
+                        )
+                        .all()
+                    )
+                ]
+                assert prices == ['18,500,000 toman']
+
+            if scenario_id == 'extraction_gap':
+                missing = {
+                    gap['gap_type']
+                    for gap in snapshot.payload['gaps']
+                    if gap['status'] == 'MISSING'
+                }
+                assert missing
