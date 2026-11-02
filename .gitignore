@@ -62,3 +62,27 @@ DANDOONJAN_NETLIFY_DROP.zip
 .idea/
 .DS_Store
 Thumbs.db
+
+# --- Local development / temporary workspace ---
+
+# Temporary working directories
+.tmp-*/
+
+# Local archives and project exports
+*.zip
+
+# Local screenshots / design references kept outside tracked docs
+Screenshot*.png
+Modern Persian Dental Login Modal.png
+
+# Local notes
+dandoonjan.txt
+
+# Temporary frontend / development workspace
+frontend-demo/
+
+# Accidental local terminal output
+creenshot-directory link(s) in {path}")
+
+# Unrelated local project accidentally stored in this workspace
+موزه مد ایران/
