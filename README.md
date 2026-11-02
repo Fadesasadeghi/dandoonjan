@@ -1,165 +1,400 @@
-# دندون‌جان | DANDOONJAN
+<div align="center">
 
-**Persian-first dental evidence intelligence platform**
+# 🦷 دندون‌جان | DANDOONJAN
 
-دندون‌جان یک وب‌اپلیکیشن فارسی برای سازمان‌دهی و تحلیل شواهد مرتبط با پرونده‌های دندان‌پزشکی است. کاربر می‌تواند سؤال خود، توضیحات پرونده و مدارک موجود را ثبت کند و سیستم پیش از تولید گزارش، اطلاعات را به یک مدل ساختاریافته و قابل ردیابی از شواهد تبدیل می‌کند.
+### Persian-first Dental Evidence Intelligence Platform
 
-> **Evidence → Assessment → Explanation**
+**A structured, safety-oriented platform for organizing dental case evidence, generating traceable assessments, and producing patient-friendly reports.**
 
-دندون‌جان یک چت‌بات تشخیصی یا جایگزین دندان‌پزشک نیست. هدف سیستم کمک به فهم بهتر مدارک، مشخص‌کردن اطلاعات ناقص و آماده‌شدن برای گفت‌وگوی آگاهانه‌تر با دندان‌پزشک است.
+<br>
 
-## Portfolio Demo
+![Python](https://img.shields.io/badge/Python-3.11-3776AB?style=for-the-badge&logo=python&logoColor=white)
+![FastAPI](https://img.shields.io/badge/FastAPI-Backend-009688?style=for-the-badge&logo=fastapi&logoColor=white)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-Database-4169E1?style=for-the-badge&logo=postgresql&logoColor=white)
+![JavaScript](https://img.shields.io/badge/JavaScript-Frontend-F7DF1E?style=for-the-badge&logo=javascript&logoColor=black)
+![Docker](https://img.shields.io/badge/Docker-Containerized-2496ED?style=for-the-badge&logo=docker&logoColor=white)
+![Status](https://img.shields.io/badge/Status-Work%20in%20Progress-orange?style=for-the-badge)
 
-نسخه موجود در این repository برای نمایش فنی و Portfolio آماده شده است و با **داده‌های کاملاً ساختگی** اجرا می‌شود.
+<br>
 
-در صفحه اصلی می‌توان از گزینه **«مشاهده پرونده نمونه»** استفاده کرد تا workflow پروژه بدون واردکردن اطلاعات واقعی مشاهده شود.
+**Evidence → Assessment → Explanation**
 
-Demo به‌صورت پیش‌فرض از provider آفلاین و deterministic پروژه استفاده می‌کند:
+</div>
 
-`DJ_AI_PROVIDER=mock`
+---
 
-بنابراین برای اجرای Demo به OpenAI، OpenRouter یا API Key پولی نیاز نیست.
+![DANDOONJAN Landing Page](docs/next-phase/evidence/landing-1440.png)
 
-نسخه عمومی Demo تصاویر دندان را واقعاً تفسیر پزشکی نمی‌کند و هیچ خروجی آن نباید به‌عنوان تشخیص، تجویز یا اثبات ضرورت درمان استفاده شود.
+---
 
-## What the project demonstrates
+## About DANDOONJAN
 
-- Persian-first responsive UI with RTL support
-- Structured dental case intake
-- Evidence and document ingestion
-- Treatment and tooth normalization
-- Structured extraction from synthetic documents
-- Provenance tracking from findings back to source evidence
-- Evidence-gap detection
-- Assessment and report generation
-- Separate patient-facing and professional report views
-- Immutable assessment/report snapshots
-- Safety gates and fail-closed behavior
-- Authentication, session isolation and CSRF protection
-- Case ownership boundaries
-- Deterministic offline Demo provider
-- PDF/report workflow
-- Database migrations and PostgreSQL support
-- Automated unit, integration, security and regression testing
+**دندون‌جان** یک وب‌اپلیکیشن فارسی برای سازمان‌دهی و تحلیل شواهد مرتبط با پرونده‌های دندان‌پزشکی است.
 
-## Architecture
+کاربر می‌تواند سؤال، توضیحات پرونده و مدارک موجود را ثبت کند. سیستم پیش از تولید گزارش، اطلاعات را پردازش کرده و آن‌ها را به یک مدل ساختاریافته و قابل ردیابی از شواهد تبدیل می‌کند.
 
-The central design principle is:
+هدف اصلی پروژه ایجاد یک workflow قابل‌ردیابی است که مسیر اطلاعات را از **مدرک اولیه** تا **assessment** و در نهایت **توضیح قابل‌فهم برای کاربر** حفظ کند.
 
-    Files
-      ↓
-    Ingestion & validation
-      ↓
-    Structured extraction
-      ↓
-    Normalized evidence + provenance
-      ↓
-    Assessment
-      ↓
-    Immutable snapshot
-      ↓
-    Patient / professional explanation
+> **DANDOONJAN is not a diagnostic chatbot and is not a replacement for a dentist.**
 
-Raw uploaded files do not directly become patient-facing answers.
+هدف سیستم کمک به سازمان‌دهی و فهم بهتر مدارک، مشخص‌کردن اطلاعات ناقص و آماده‌شدن برای گفت‌وگوی آگاهانه‌تر با متخصص دندان‌پزشکی است.
 
-Material findings retain provenance information such as their source artifact and relevant extraction context. Patient-reported, clinician-reported, document-extracted and model-inferred information are kept distinct throughout the workflow.
+---
 
-The project also contains an AI gateway abstraction with deterministic Mock execution for the public Demo and support for a real provider configuration when explicitly enabled.
+## ✨ Key Features
 
-## Tech Stack
+- 🇮🇷 Persian-first responsive interface with full RTL support
+- 🗂️ Structured dental case intake
+- 📎 Evidence and document ingestion
+- 🦷 Treatment and tooth normalization
+- 📄 Structured extraction from synthetic documents
+- 🔗 Provenance tracking from findings back to source evidence
+- 🔍 Evidence-gap detection
+- 🧠 Structured assessment generation
+- 👤 Patient-facing report view
+- 👩‍⚕️ Professional report view
+- 📸 Immutable assessment and report snapshots
+- 🔐 Authentication and session isolation
+- 🛡️ CSRF protection and case ownership boundaries
+- ⚠️ Safety gates and fail-closed behavior
+- 🤖 Deterministic offline AI Demo provider
+- 📑 PDF and report generation workflow
+- 🗄️ Database migrations and PostgreSQL support
+- 🧪 Unit, integration, security and regression testing
+
+---
+
+## 🛠️ Tech Stack
 
 ### Backend
 
-- Python
-- FastAPI
-- SQLAlchemy
-- Alembic
-- PostgreSQL / local development database
-- Pydantic
+| Technology | Role |
+|---|---|
+| **Python 3.11** | Core application language |
+| **FastAPI** | Backend API and application framework |
+| **Pydantic** | Validation and structured data models |
+| **Uvicorn** | ASGI application server |
+| **HTTPX** | HTTP client and integration testing |
+
+### Database & Persistence
+
+| Technology | Role |
+|---|---|
+| **PostgreSQL** | Production-capable relational database |
+| **SQLAlchemy** | ORM and persistence layer |
+| **Alembic** | Database migrations |
+| **psycopg** | PostgreSQL driver |
 
 ### Frontend
 
-- HTML
-- CSS
-- Vanilla JavaScript
-- Persian / RTL responsive interface
+| Technology | Role |
+|---|---|
+| **HTML5** | Application structure |
+| **CSS3** | Responsive UI and visual system |
+| **Vanilla JavaScript** | Client-side application logic |
+| **RTL / Persian UI** | Persian-first interface |
 
-### Quality & Engineering
+### Documents & Media
 
-- Pytest
-- Integration and regression tests
-- Security and ingestion tests
-- Provenance and snapshot invariants
-- Safety evaluation cases
-- Versioned prompts, schemas and ontology
+| Technology | Role |
+|---|---|
+| **PyMuPDF** | PDF processing |
+| **Pillow** | Image processing |
+| **python-multipart** | File upload handling |
 
-## Run locally
+### Authentication & Security
 
-Install the project dependencies:
+| Technology | Role |
+|---|---|
+| **Argon2** | Password hashing |
+| **Email Validator** | Email validation |
+| **CSRF protection** | Request protection |
+| **Session isolation** | User/session boundaries |
+| **Ownership checks** | Case-level access boundaries |
 
-    pip install -r requirements.txt
+### Testing & Engineering
 
-Create the local environment configuration:
+| Technology | Role |
+|---|---|
+| **Pytest** | Automated testing |
+| **HTTPX** | API/integration testing |
+| **Alembic migrations** | Schema evolution |
+| **Versioned prompts & schemas** | Reproducible AI behavior |
+| **Regression tests** | Behavioral preservation |
 
-    cp .env.example .env
+### Infrastructure
 
-Start the application:
+| Technology | Role |
+|---|---|
+| **Docker** | Containerized runtime |
+| **Uvicorn** | Application serving |
+| **Environment-based configuration** | Runtime configuration |
 
-    python -m uvicorn app.main:app --host 127.0.0.1 --port 8000 --log-config app/logging.json
+---
+
+## 🏗️ Architecture
+
+The central design principle of DANDOONJAN is:
+
+```text
+Files
+  │
+  ▼
+Ingestion & Validation
+  │
+  ▼
+Structured Extraction
+  │
+  ▼
+Normalized Evidence + Provenance
+  │
+  ▼
+Assessment
+  │
+  ▼
+Immutable Snapshot
+  │
+  ▼
+Patient / Professional Explanation
+```
+
+Raw uploaded files do **not** directly become patient-facing answers.
+
+Material findings retain provenance information such as their source artifact and relevant extraction context.
+
+The system also keeps different information sources conceptually separate, including:
+
+- Patient-reported information
+- Clinician-reported information
+- Document-extracted information
+- Model-inferred information
+
+This separation is maintained throughout the workflow to make the resulting assessment more traceable and auditable.
+
+---
+
+## 🤖 AI Architecture
+
+DANDOONJAN contains an AI gateway abstraction designed to separate the application workflow from the underlying AI provider.
+
+For the public Portfolio Demo, the project uses a deterministic offline provider:
+
+```env
+DJ_AI_PROVIDER=mock
+```
+
+This allows the Demo workflow to run without requiring paid AI credentials.
+
+The architecture also supports configuration for a real provider when explicitly enabled.
+
+The public Demo does **not** perform genuine medical interpretation of dental radiographs.
+
+---
+
+## 🎮 Portfolio Demo
+
+The version published in this repository is intended for technical demonstration and Portfolio use.
+
+All Demo data is **synthetic**.
+
+The landing page includes the option:
+
+> **مشاهده پرونده نمونه**
+
+which allows the application workflow to be explored without entering real patient information.
+
+No OpenAI, OpenRouter or other paid API key is required for the default offline Demo configuration.
+
+---
+
+## 🛡️ Safety by Design
+
+Because DANDOONJAN works with dental evidence and medical-adjacent information, safety boundaries are part of the application architecture rather than an afterthought.
+
+The project includes:
+
+- Safety gates
+- Fail-closed behavior
+- Evidence provenance
+- Evidence-gap detection
+- Immutable assessment snapshots
+- Separation of reported, extracted and inferred information
+- Authentication and authorization boundaries
+- Synthetic Portfolio Demo data
+- Explicit limitations around medical interpretation
+
+### Important limitation
+
+This repository is a **software engineering and Portfolio project**, not a clinically validated medical device.
+
+The generated information must not be interpreted as a medical diagnosis, prescription or proof that a particular treatment is required.
+
+Treatment decisions must be made with a qualified dental professional.
+
+---
+
+## 🚀 Run Locally
+
+### 1. Clone the repository
+
+```bash
+git clone https://github.com/Fadesasadeghi/dandoonjan.git
+cd dandoonjan
+```
+
+### 2. Create a virtual environment
+
+Linux / macOS:
+
+```bash
+python -m venv .venv
+source .venv/bin/activate
+```
+
+Windows:
+
+```powershell
+python -m venv .venv
+.venv\Scripts\activate
+```
+
+### 3. Install dependencies
+
+```bash
+pip install -r requirements.txt
+```
+
+### 4. Create the environment configuration
+
+```bash
+cp .env.example .env
+```
+
+On Windows PowerShell:
+
+```powershell
+Copy-Item .env.example .env
+```
+
+### 5. Start the application
+
+```bash
+python -m uvicorn app.main:app --host 127.0.0.1 --port 8000 --log-config app/logging.json
+```
 
 Then open:
 
-    http://127.0.0.1:8000
+```text
+http://127.0.0.1:8000
+```
 
-No paid AI credentials are required for the default offline Demo.
+The default offline Demo does not require paid AI credentials.
 
-## Tests
+---
 
-Run the automated test suite with:
+## 🧪 Tests
 
-    python -m pytest tests -q
+Run the automated test suite:
 
-The repository includes tests for core workflow behavior, ingestion, authentication and authorization boundaries, provenance, immutable snapshots, safety behavior and regression cases.
+```bash
+python -m pytest tests -q
+```
 
-## Database migrations
+The repository contains automated coverage for areas including:
 
-Apply database migrations with:
+- Core workflow behavior
+- Evidence ingestion
+- Authentication
+- Authorization boundaries
+- Provenance
+- Immutable snapshots
+- Safety behavior
+- Integration behavior
+- Regression cases
 
-    alembic upgrade head
+---
 
-## Safety and limitations
+## 🗄️ Database Migrations
 
-This repository is a software engineering and Portfolio project, not a clinically validated medical device.
+Apply the available database migrations with:
+
+```bash
+alembic upgrade head
+```
+
+---
+
+## 📚 Engineering Documentation
+
+DANDOONJAN retains a significant portion of its engineering documentation and development history.
+
+This is intentional.
+
+The repository documents not only the resulting application but also parts of the engineering process used to build and validate it.
+
+Additional technical material is available under:
+
+```text
+docs/
+evaluation/
+verification/
+```
+
+These materials include architectural decisions, testing records, safety considerations, UI development evidence and development gates.
+
+---
+
+## ⚠️ Safety & Limitations
+
+Please keep the following limitations in mind:
 
 - All Portfolio Demo data is synthetic.
 - Do not enter real patient or sensitive medical information into the public Demo.
 - Demo mode does not perform genuine radiographic interpretation.
 - Generated explanations are not medical diagnoses.
+- Generated output must not be used as proof of treatment necessity.
 - Treatment decisions must be made with a qualified dental professional.
 - The development Knowledge Pack included in the repository is not clinically validated.
+- Some workflows and deployment-related functionality remain under development.
 
-## Engineering documentation
+---
 
-The repository retains its engineering history and technical documentation to demonstrate the development process and architectural decisions.
+## 👩‍💻 Project Credits
 
-Additional material is available under:
+### Software Developer
 
-- `docs/`
-- `evaluation/`
-- `verification/`
+**Fatemeh Sadeghi**
 
-The detailed engineering history and development gates have intentionally been retained as part of the Portfolio repository.
+Responsible for the design and implementation of the software and its codebase, including application development, architecture implementation, frontend and backend development, testing and technical refinement.
 
-## Project credits
+### Project Manager
 
-**Software Developer:** Fatemeh Sadeghi — responsible for the design and implementation of the software and its codebase.
+**Mehdi Abbasy**
 
-**Project Manager:** Mehdi Abbasy — responsible for project management and coordination.
+Responsible for project management and coordination.
 
-This project was originally developed as a commissioned software project and is published here for Portfolio and technical demonstration purposes with permission.
+---
 
-## Status
+This project was originally developed as a commissioned software project and is published here for **Portfolio and technical demonstration purposes with permission**.
 
-**Work in Progress**
+---
 
-DANDOONJAN is under active development. This repository represents the current development state of the project and is published as a portfolio project. Some workflows and deployment-related features are still being completed and refined.
+## 🚧 Project Status
+
+> **Work in Progress**
+
+DANDOONJAN is under active development.
+
+This repository represents the current development state of the project and is published as a Portfolio project. Some workflows and deployment-related features are still being completed and refined.
+
+---
+
+<div align="center">
+
+### 🦷 DANDOONJAN
+
+**Structured evidence. Traceable assessment. Clearer explanation.**
+
+Built with Python, FastAPI and a safety-oriented engineering approach.
+
+</div>
