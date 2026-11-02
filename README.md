@@ -152,8 +152,9 @@ The detailed engineering history and development gates have intentionally been r
 
 ## Project credits
 
-**Developer:** Fatemeh Sadeghi
-**Project Manager:** Mehdi Abbasy
+**Software Developer:** Fatemeh Sadeghi — responsible for the design and implementation of the software and its codebase.
+
+**Project Manager:** Mehdi Abbasy — responsible for project management and coordination.
 
 This project was originally developed as a commissioned software project and is published here for Portfolio and technical demonstration purposes with permission.
 
