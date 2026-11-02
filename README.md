@@ -159,6 +159,6 @@ This project was originally developed as a commissioned software project and is 
 
 ## Status
 
-**Portfolio Release**
+**Work in Progress**
 
-The current release demonstrates the complete synthetic workflow without requiring paid external AI services.
+DANDOONJAN is under active development. This repository represents the current development state of the project and is published as a portfolio project. Some workflows and deployment-related features are still being completed and refined.
