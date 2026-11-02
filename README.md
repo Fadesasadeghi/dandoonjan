@@ -23,7 +23,7 @@
 
 ---
 
-![DANDOONJAN Landing Page](docs/next-phase/evidence/landing-1440.png)
+![DANDOONJAN Landing Page](docs/ui-redesign/reference/aqua-landing-target.png)
 
 ---
 
