@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="frontend/hero-tooth-aqua.png" width="90" alt="DANDOONJAN">
+<img src="frontend/hero-tooth-aqua.png" width="32" alt="DANDOONJAN">
 
 # دندون‌جان | DANDOONJAN
 
