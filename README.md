@@ -1,25 +1,26 @@
 <div align="center">
 
-<img src="frontend/hero-tooth-aqua.png" width="32" alt="DANDOONJAN">
+<h1>
+  <img src="frontend/hero-tooth-aqua.png" width="34" alt="DANDOONJAN" valign="middle">
+  دندون‌جان | DANDOONJAN
+</h1>
 
-# دندون‌جان | DANDOONJAN
+<h3>Persian-first Dental Evidence Intelligence Platform</h3>
 
-### Persian-first Dental Evidence Intelligence Platform
-
-**A Persian-first platform for turning dental evidence into structured, traceable reports.**
+<p><strong>A Persian-first platform for turning dental evidence into structured, traceable reports.</strong></p>
 
 <br>
 
-![Python](https://img.shields.io/badge/Python-3.11-3776AB?style=for-the-badge&logo=python&logoColor=white)
-![FastAPI](https://img.shields.io/badge/FastAPI-Backend-009688?style=for-the-badge&logo=fastapi&logoColor=white)
-![PostgreSQL](https://img.shields.io/badge/PostgreSQL-Database-4169E1?style=for-the-badge&logo=postgresql&logoColor=white)
-![JavaScript](https://img.shields.io/badge/JavaScript-Frontend-F7DF1E?style=for-the-badge&logo=javascript&logoColor=black)
-![Docker](https://img.shields.io/badge/Docker-Containerized-2496ED?style=for-the-badge&logo=docker&logoColor=white)
-![Status](https://img.shields.io/badge/Status-Work%20in%20Progress-orange?style=for-the-badge)
+<img src="https://img.shields.io/badge/Python-3.11-3776AB?style=for-the-badge&logo=python&logoColor=white" alt="Python">
+<img src="https://img.shields.io/badge/FastAPI-Backend-009688?style=for-the-badge&logo=fastapi&logoColor=white" alt="FastAPI">
+<img src="https://img.shields.io/badge/PostgreSQL-Database-4169E1?style=for-the-badge&logo=postgresql&logoColor=white" alt="PostgreSQL">
+<img src="https://img.shields.io/badge/JavaScript-Frontend-F7DF1E?style=for-the-badge&logo=javascript&logoColor=black" alt="JavaScript">
+<img src="https://img.shields.io/badge/Docker-Containerized-2496ED?style=for-the-badge&logo=docker&logoColor=white" alt="Docker">
+<img src="https://img.shields.io/badge/Status-Work%20in%20Progress-orange?style=for-the-badge" alt="Status">
 
 <br><br>
 
-**Evidence → Assessment → Explanation**
+<strong>Evidence → Assessment → Explanation</strong>
 
 </div>
 
@@ -43,7 +44,7 @@
 
 ---
 
-## Project Highlights
+## 🌟 Project Highlights
 
 | | Highlight | Description |
 |---|---|---|
@@ -54,57 +55,58 @@
 
 ---
 
-## Key Features
+## ✨ Key Features
 
-- Persian-first responsive interface with full RTL support
-- Structured dental case intake
-- Evidence and document ingestion
-- Treatment and tooth normalization
-- Structured extraction from synthetic documents
-- Provenance tracking from findings back to source evidence
-- Evidence-gap detection
-- Structured assessment generation
-- Separate patient-facing and professional report views
-- Immutable assessment and report snapshots
-- Authentication and session isolation
-- CSRF protection and case ownership boundaries
-- Safety gates and fail-closed behavior
-- Deterministic offline Demo provider
-- PDF and report workflow
-- PostgreSQL support and database migrations
-- Automated unit, integration, security and regression testing
+- 🇮🇷 Persian-first responsive interface with full RTL support
+- 🗂️ Structured dental case intake
+- 📎 Evidence and document ingestion
+- Structured treatment and tooth normalization
+- 📄 Structured extraction from synthetic documents
+- 🔗 Provenance tracking from findings back to source evidence
+- 🔍 Evidence-gap detection
+- 🧠 Structured assessment generation
+- 👤 Patient-facing report view
+- 👩‍⚕️ Professional report view
+- 📸 Immutable assessment and report snapshots
+- 🔐 Authentication and session isolation
+- 🛡️ CSRF protection and case ownership boundaries
+- ⚠️ Safety gates and fail-closed behavior
+- 🤖 Deterministic offline Demo provider
+- 📑 PDF and report workflow
+- 🗄️ PostgreSQL support and database migrations
+- 🧪 Automated unit, integration, security and regression testing
 
 ---
 
-## Tech Stack
+## 🛠️ Tech Stack
 
 <div align="center">
 
-**Backend**
+### Backend
 
 `Python 3.11` · `FastAPI` · `Pydantic` · `Uvicorn`
 
-**Database**
+### Database
 
 `PostgreSQL` · `SQLAlchemy` · `Alembic` · `psycopg`
 
-**Frontend**
+### Frontend
 
 `HTML5` · `CSS3` · `Vanilla JavaScript` · `RTL / Persian UI`
 
-**Documents & Media**
+### Documents & Media
 
 `PyMuPDF` · `Pillow` · `python-multipart`
 
-**Security**
+### Security
 
 `Argon2` · `CSRF Protection` · `Session Isolation` · `Ownership Boundaries`
 
-**Testing & Engineering**
+### Testing & Engineering
 
 `Pytest` · `HTTPX` · `Regression Testing` · `Versioned Prompts & Schemas`
 
-**Infrastructure**
+### Infrastructure
 
 `Docker` · `Environment-based Configuration`
 
@@ -112,7 +114,7 @@
 
 ---
 
-## Architecture
+## 🏗️ Architecture
 
 The central design principle of DANDOONJAN is:
 
@@ -142,7 +144,7 @@ Raw uploaded files do **not** directly become patient-facing answers.
 
 Material findings retain provenance information such as their source artifact and relevant extraction context.
 
-Different categories of information are also kept conceptually separate throughout the workflow:
+Different categories of information are kept conceptually separate throughout the workflow:
 
 - **Patient-reported** information
 - **Clinician-reported** information
@@ -153,7 +155,7 @@ This separation makes assessments more traceable and reduces the risk of present
 
 ---
 
-## AI & Safety Architecture
+## 🤖 AI & Safety Architecture
 
 DANDOONJAN uses an AI gateway abstraction to separate application logic from the underlying AI provider.
 
@@ -167,20 +169,20 @@ This allows the workflow to run without requiring paid AI credentials.
 
 The architecture also supports configuration for a real provider when explicitly enabled.
 
-Safety mechanisms include:
+### 🛡️ Safety mechanisms
 
-- Evidence provenance
-- Evidence-gap detection
-- Safety gates
+- 🔗 Evidence provenance
+- 🔍 Evidence-gap detection
+- ⚠️ Safety gates
 - Fail-closed behavior
-- Immutable assessment snapshots
+- 📸 Immutable assessment snapshots
 - Separation of reported, extracted and inferred information
-- Authentication and authorization boundaries
+- 🔐 Authentication and authorization boundaries
 - Case ownership enforcement
 - Synthetic Portfolio Demo data
 - Explicit limitations around medical interpretation
 
-### Medical limitation
+### ⚕️ Medical limitation
 
 DANDOONJAN is a **software engineering and Portfolio project**, not a clinically validated medical device.
 
@@ -190,7 +192,7 @@ Treatment decisions must be made with a qualified dental professional.
 
 ---
 
-## Portfolio Demo
+## 🎮 Portfolio Demo
 
 The version published in this repository is intended for technical demonstration and Portfolio use.
 
@@ -202,7 +204,7 @@ When using the offline Demo configuration, no OpenAI, OpenRouter or other paid A
 
 ---
 
-## Run Locally
+## 🚀 Run Locally
 
 ### 1. Clone the repository
 
@@ -263,7 +265,7 @@ No paid AI credentials are required for the offline Demo configuration.
 
 ---
 
-## Tests
+## 🧪 Tests
 
 Run the automated test suite:
 
@@ -277,7 +279,7 @@ The repository includes automated tests covering:
 
 ---
 
-## Database Migrations
+## 🗄️ Database Migrations
 
 Apply database migrations with:
 
@@ -287,7 +289,7 @@ alembic upgrade head
 
 ---
 
-## Engineering Documentation
+## 📚 Engineering Documentation
 
 DANDOONJAN retains a significant portion of its engineering documentation and development history.
 
@@ -305,31 +307,38 @@ These materials include architectural decisions, testing records, safety conside
 
 ---
 
-## Limitations
+## ⚠️ Limitations
 
 - All Portfolio Demo data is synthetic.
-- Real patient or sensitive medical information should not be entered into a public deployment.
+- Do not enter real patient or sensitive medical information into a public deployment.
 - Demo mode does not perform genuine radiographic interpretation.
 - Generated explanations are not medical diagnoses.
 - Generated output must not be used as proof of treatment necessity.
+- Treatment decisions must be made with a qualified dental professional.
 - The development Knowledge Pack included in the repository is not clinically validated.
 - Some workflows and deployment-related functionality remain under development.
 
 ---
 
-## Project Credits
+## 👩‍💻 Project Credits
 
-**Fatemeh Sadeghi — Software Developer**  
+### Software Developer
+
+**Fatemeh Sadeghi**
+
 Design and implementation of the software and its codebase, including application development, architecture implementation, frontend and backend development, testing and technical refinement.
 
-**Mehdi Abbasy — Project Manager**  
+### Project Manager
+
+**Mehdi Abbasy**
+
 Project management and coordination.
 
 This project was originally developed as a commissioned software project and is published here for **Portfolio and technical demonstration purposes with permission**.
 
 ---
 
-## Project Status
+## 🚧 Project Status
 
 > **Work in Progress**
 
@@ -341,8 +350,8 @@ This repository represents the current development state of the project. Some wo
 
 <div align="center">
 
-**DANDOONJAN**
+### DANDOONJAN
 
-*Structured evidence. Traceable assessment. Clearer explanation.*
+**Structured evidence. Traceable assessment. Clearer explanation.**
 
 </div>
